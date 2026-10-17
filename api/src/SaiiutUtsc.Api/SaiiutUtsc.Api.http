@@ -1,6 +1,2 @@
 @SaiiutUtsc.Api_HostAddress = http://localhost:5291
 
-GET {{SaiiutUtsc.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
