@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SaiiutUtsc.Application\SaiiutUtsc.Application.csproj" />
+    <ProjectReference Include="..\..\src\SaiiutUtsc.Domain\SaiiutUtsc.Domain.csproj" />
   </ItemGroup>
 
 </Project>
