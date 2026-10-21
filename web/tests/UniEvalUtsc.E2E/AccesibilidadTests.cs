@@ -70,6 +70,7 @@ public sealed class AccesibilidadTests
                         {
                             await pagina.SetViewportSizeAsync(ancho, 900);
                             await AplicarTemaAsync(pagina, tema);
+                            await DesactivarTransicionesAsync(pagina);
                             var resultado = await pagina.RunAxe(new AxeRunOptions
                             {
                                 RunOnly = new RunOnlyOptions
@@ -347,6 +348,7 @@ public sealed class AccesibilidadTests
             {
                 await pagina.SetViewportSizeAsync(ancho, 900);
                 await AplicarTemaAsync(pagina, tema);
+                await DesactivarTransicionesAsync(pagina);
                 var resultado = await pagina.RunAxe(new AxeRunOptions
                 {
                     RunOnly = new RunOnlyOptions { Type = "tag", Values = EtiquetasAxe.ToList() }
@@ -378,6 +380,21 @@ public sealed class AccesibilidadTests
         await pagina.EvaluateAsync(
             "tema => { document.documentElement.dataset.theme = tema; localStorage.setItem('unieval-theme', tema); }",
             valor);
+        await pagina.WaitForFunctionAsync("tema => document.documentElement.dataset.theme === tema", valor);
+    }
+
+    private static async Task DesactivarTransicionesAsync(IPage pagina)
+    {
+        await pagina.EvaluateAsync("""
+            () => {
+                if (document.getElementById("axe-disable-transitions")) return;
+                const style = document.createElement("style");
+                style.id = "axe-disable-transitions";
+                style.textContent = "* { transition: none !important; animation: none !important; }";
+                document.head.appendChild(style);
+            }
+            """);
+        await pagina.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 
     private static async Task EnfocarConTabAsync(IPage pagina, ILocator elemento, int maximoTabs = 60)
