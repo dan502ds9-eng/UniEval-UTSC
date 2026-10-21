@@ -42,7 +42,7 @@
 
         bindMenu(trigger, menu, dotNetReference, openMethod, closeMethod) {
             const moveFocus = (index) => {
-                const items = Array.from(menu.querySelectorAll("[role='menuitem']:not([disabled])"));
+                const items = Array.from(menu.querySelectorAll("[role='menuitem']:not([disabled]), [role='menuitemradio']:not([disabled])"));
                 if (items.length > 0) {
                     items[(index + items.length) % items.length].focus();
                 }
@@ -64,7 +64,7 @@
                 }
             });
             menu.addEventListener("keydown", event => {
-                const items = Array.from(menu.querySelectorAll("[role='menuitem']:not([disabled])"));
+                const items = Array.from(menu.querySelectorAll("[role='menuitem']:not([disabled]), [role='menuitemradio']:not([disabled])"));
                 const current = items.indexOf(document.activeElement);
                 if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                     event.preventDefault();
@@ -188,6 +188,32 @@
         setLocalStorage(key, value) {
             try {
                 window.localStorage.setItem(key, value);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+
+        getSessionStorage(key) {
+            try {
+                return window.sessionStorage.getItem(key);
+            } catch {
+                return null;
+            }
+        },
+
+        setSessionStorage(key, value) {
+            try {
+                window.sessionStorage.setItem(key, value);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+
+        removeSessionStorage(key) {
+            try {
+                window.sessionStorage.removeItem(key);
                 return true;
             } catch {
                 return false;

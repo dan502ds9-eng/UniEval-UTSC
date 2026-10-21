@@ -13,7 +13,11 @@
         @if (AuthService.CurrentUser?.Role == Rol.Alumno)
         {
             <button class="topbar__boton topbar__notificaciones" type="button" aria-label="Notificaciones, 0 pendientes">
-                <span aria-hidden="true">🔔</span><span class="topbar__campana-conteo">0</span>
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                    <path d="M10 21h4" />
+                </svg>
+                <span class="topbar__campana-conteo">0</span>
             </button>
         }
 
@@ -22,15 +26,16 @@
                     class="topbar__boton"
                     type="button"
                     aria-haspopup="menu"
+                    aria-controls="menu-tamano-texto"
                     aria-expanded="@_textoAbierto"
                     @onclick="ToggleTextMenu">Aa</button>
-            <div @ref="_textoMenu" class="topbar__menu" role="menu" hidden="@(!_textoAbierto)" aria-label="Tamaño del texto">
+            <div id="menu-tamano-texto" @ref="_textoMenu" class="topbar__menu" role="menu" hidden="@(!_textoAbierto)" aria-label="Tamaño del texto">
                 @foreach (var tamaño in _tamanosTexto)
                 {
                     <button type="button"
-                            role="menuitem"
-                            aria-current="@(_escala == tamaño ? "true" : null)"
-                            @onclick="() => CambiarEscala(tamaño)">@tamaño%</button>
+                            role="menuitemradio"
+                            aria-checked="@(_escala == tamaño ? "true" : "false")"
+                            @onclick="() => CambiarEscala(tamaño)">@EtiquetaEscala(tamaño)</button>
                 }
             </div>
         </div>
@@ -39,7 +44,19 @@
                 type="button"
                 aria-label="@(_tema == "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro")"
                 @onclick="CambiarTema">
-            <span aria-hidden="true">@(_tema == "dark" ? "☀" : "☾")</span>
+            @if (_tema == "dark")
+            {
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="4.2" />
+                    <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" />
+                </svg>
+            }
+            else
+            {
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z" />
+                </svg>
+            }
         </button>
 
         @if (AuthService.CurrentUser is { } usuario)
@@ -49,12 +66,13 @@
                         class="topbar__usuario"
                         type="button"
                         aria-haspopup="menu"
+                        aria-controls="menu-cuenta-usuario"
                         aria-expanded="@_usuarioAbierto"
                         @onclick="ToggleUserMenu">
                     <span class="topbar__iniciales">@usuario.Initials</span>
                     <span class="topbar__rol">@AuthService.Etiqueta(usuario.Role)</span>
                 </button>
-                <div @ref="_usuarioMenu" class="topbar__menu topbar__menu--usuario" role="menu" hidden="@(!_usuarioAbierto)" aria-label="Cuenta de usuario">
+                <div id="menu-cuenta-usuario" @ref="_usuarioMenu" class="topbar__menu topbar__menu--usuario" role="menu" hidden="@(!_usuarioAbierto)" aria-label="Cuenta de usuario">
                     <div class="topbar__perfil">
                         <strong>@usuario.Name</strong>
                         <span>@AuthService.Etiqueta(usuario.Role)</span>
@@ -79,6 +97,14 @@
     private bool _usuarioAbierto;
     private string _tema = "light";
     private int _escala = 100;
+    private static string EtiquetaEscala(int tamaño) => tamaño switch
+    {
+        100 => "Normal 100%",
+        125 => "Mediano 125%",
+        150 => "Grande 150%",
+        200 => "Muy grande 200%",
+        _ => throw new ArgumentOutOfRangeException(nameof(tamaño), tamaño, "Tamaño de texto no soportado.")
+    };
 
     protected override void OnInitialized()
     {

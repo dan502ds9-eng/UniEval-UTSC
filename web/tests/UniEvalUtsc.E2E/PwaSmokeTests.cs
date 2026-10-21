@@ -27,14 +27,15 @@ public sealed class PwaSmokeTests
 
         var menuTexto = pagina.GetByRole(AriaRole.Button, new() { Name = "Aa" });
         await menuTexto.PressAsync("Enter");
-        var itemEscala100 = pagina.Locator("[role='menuitem']").Filter(new() { HasText = "100%" });
+        var itemEscala100 = pagina.Locator("[role='menuitemradio']").Filter(new() { HasText = "Normal 100%" });
         await Assertions.Expect(itemEscala100).ToBeFocusedAsync();
         await pagina.Keyboard.PressAsync("Escape");
         await Assertions.Expect(menuTexto).ToBeFocusedAsync();
         await menuTexto.PressAsync("ArrowDown");
-        var itemEscala125 = pagina.Locator("[role='menuitem']").Filter(new() { HasText = "125%" });
-        var itemEscala150 = pagina.Locator("[role='menuitem']").Filter(new() { HasText = "150%" });
-        var itemEscala200 = pagina.Locator("[role='menuitem']").Filter(new() { HasText = "200%" });
+        var itemEscala125 = pagina.Locator("[role='menuitemradio']").Filter(new() { HasText = "Mediano 125%" });
+        var itemEscala150 = pagina.Locator("[role='menuitemradio']").Filter(new() { HasText = "Grande 150%" });
+        var itemEscala200 = pagina.Locator("[role='menuitemradio']").Filter(new() { HasText = "Muy grande 200%" });
+        await Assertions.Expect(itemEscala150).ToHaveAttributeAsync("aria-checked", "false");
         await Assertions.Expect(itemEscala100).ToBeFocusedAsync();
         await pagina.Keyboard.PressAsync("End");
         await Assertions.Expect(itemEscala200).ToBeFocusedAsync();
@@ -78,7 +79,7 @@ public sealed class PwaSmokeTests
         await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Periodos" })).ToBeFocusedAsync();
         await Assertions.Expect(pagina).ToHaveTitleAsync("Periodos · UniEval UTSC");
         await pagina.GetByRole(AriaRole.Button, new() { Name = "Aa" }).ClickAsync();
-        await pagina.Locator("[role='menuitem']").Filter(new() { HasText = "100%" }).ClickAsync();
+        await pagina.Locator("[role='menuitemradio']").Filter(new() { HasText = "Normal 100%" }).ClickAsync();
         Assert.Equal("sticky", await pagina.Locator(".staff-shell__sidebar").EvaluateAsync<string>("element => getComputedStyle(element).position"));
         await pagina.SetViewportSizeAsync(800, 900);
         Assert.Equal("static", await pagina.Locator(".staff-shell__sidebar").EvaluateAsync<string>("element => getComputedStyle(element).position"));
@@ -86,6 +87,19 @@ public sealed class PwaSmokeTests
         await pagina.SetViewportSizeAsync(1280, 900);
         await pagina.GetByRole(AriaRole.Link, new() { Name = "Volver al inicio" }).ClickAsync();
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/admin/inicio$"));
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Link, new() { Name = "Resultados de docentes" })).ToHaveAttributeAsync("href", "/admin/resultados-docentes");
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Link, new() { Name = "Resultados de tutores" })).ToHaveAttributeAsync("href", "/admin/resultados-tutores");
+
+        await menuUsuario.PressAsync("ArrowDown");
+        await pagina.Locator("[role='menuitem']").Filter(new() { HasText = "Cerrar sesión" }).ClickAsync();
+        await pagina.Locator("#rol-acceso").SelectOptionAsync("Docente");
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión" }).ClickAsync();
+        await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/docente/inicio$"));
+        await Assertions.Expect(pagina.Locator(".staff-shell__nombre")).ToHaveTextAsync("Óscar Gabriel Chávez Gómez");
+        Assert.NotEmpty(await pagina.EvaluateAsync<string>("() => sessionStorage.getItem('unieval-sesion-simulada')"));
+        await pagina.ReloadAsync();
+        await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/docente/inicio$"));
+        await Assertions.Expect(pagina.Locator(".staff-shell__nombre")).ToHaveTextAsync("Óscar Gabriel Chávez Gómez");
 
         await pagina.GotoAsync(new Uri(new Uri(url), "/dev/componentes").ToString());
         var abrirDialogo = pagina.GetByRole(AriaRole.Button, new() { Name = "Mostrar diálogo" });
