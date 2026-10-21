@@ -6,6 +6,7 @@ Contexto permanente para Codex. Léelo completo antes de cualquier tarea en este
 **UniEval UTSC** (nombre interno del sistema: SAIIUT) sustituye los formatos de Excel **FORM-AC16** (Desempeño Docente, 10 aspectos) y **FORM-AC64** (Desempeño del Tutor, 7 aspectos) de la Universidad Tecnológica Santa Catarina. Es una aplicación web responsiva, instalable como PWA, que los alumnos contestan desde el celular.
 
 - **Referencia visual obligatoria:** `docs/prototipo/unieval-demo.html`. Es la simulación aprobada por el equipo y la subdirección. Ábrela en el navegador y replica su estructura, comportamiento, textos y estilo. Si este documento y la demo difieren, manda este documento.
+- **Decisiones del equipo:** `docs/DECISIONES.md` resuelve las dudas de `docs/PLAN.md` (D-01 a D-14). **Manda sobre el PDF y la demo**; léelo antes de cada prompt.
 - **Documento de diseño:** `docs/Diseno_Sistema_Encuestas_Desempeno_UTSC.pdf` define reglas (RN), requerimientos (RF/RNF), pantallas (P-01 a P-12) y API.
 - Los datos de la demo son **de ejemplo**. Nunca los dejes fijos en el código de producción: van en datos semilla (seed) o en servicios simulados (mock).
 
