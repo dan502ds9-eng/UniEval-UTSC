@@ -4,15 +4,15 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface IResultadosService
 {
-    IReadOnlyList<PeriodoResultado> ObtenerPeriodos();
+    Task<IReadOnlyList<PeriodoResultado>> ObtenerPeriodosAsync(CancellationToken ct = default);
 
-    IReadOnlyList<TarjetaResultado> ObtenerTarjetasInicio(Rol rol, string periodoId);
+    Task<IReadOnlyList<TarjetaResultado>> ObtenerTarjetasInicioAsync(Rol rol, string periodoId, CancellationToken ct = default);
 
-    IReadOnlyList<ElementoResultado> ObtenerElementos(Rol rol);
+    Task<IReadOnlyList<ElementoResultado>> ObtenerElementosAsync(Rol rol, CancellationToken ct = default);
 
-    ResultadoPersonal? ObtenerResultado(Rol rol, string periodoId, string elementoId);
+    Task<ResultadoPersonal?> ObtenerResultadoAsync(Rol rol, string periodoId, string elementoId, CancellationToken ct = default);
 
-    IReadOnlyList<PuntoHistorico> ObtenerHistorico(Rol rol, string elementoId);
+    Task<IReadOnlyList<PuntoHistorico>> ObtenerHistoricoAsync(Rol rol, string elementoId, CancellationToken ct = default);
 
-    IReadOnlyList<FilaReportePersonal> ObtenerReportes(Rol rol);
+    Task<IReadOnlyList<FilaReportePersonal>> ObtenerReportesAsync(Rol rol, CancellationToken ct = default);
 }

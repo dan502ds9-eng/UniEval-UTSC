@@ -6,7 +6,15 @@
 
 <PageTitle>Mis encuestas · UniEval UTSC</PageTitle>
 
-@if (_evaluacion is not null)
+@if (_cargando)
+{
+    <p class="student-home" role="status">Cargando…</p>
+}
+else if (_error is not null)
+{
+    <p class="student-home" role="alert">@_error</p>
+}
+else if (_evaluacion is not null)
 {
     <main class="student-home alumno-pagina">
         <h1 tabindex="-1">Mis encuestas</h1>
@@ -52,19 +60,37 @@
     private EvaluacionAlumno? _evaluacion;
     private Dictionary<string, int> _calificaciones = [];
     private string? _toast;
+    private bool _cargando = true;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
-        _evaluacion = AlumnoService.ObtenerEvaluacion();
-        _calificaciones = await AlumnoService.RecuperarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno");
+        try
+        {
+            _evaluacion = await AlumnoService.ObtenerEvaluacionAsync();
+            _calificaciones = await AlumnoService.RecuperarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno");
 
-        if (Navigation.Uri.Contains("borrador=guardado", StringComparison.Ordinal))
-        {
-            _toast = "✓ Borrador guardado. Continúa cuando quieras desde Mis encuestas.";
+            if (Navigation.Uri.Contains("borrador=guardado", StringComparison.Ordinal))
+            {
+                _toast = "✓ Borrador guardado. Continúa cuando quieras desde Mis encuestas.";
+            }
+            else if (Navigation.Uri.Contains("borrador=error", StringComparison.Ordinal))
+            {
+                _toast = "No se pudo guardar el borrador. Intenta de nuevo.";
+            }
         }
-        else if (Navigation.Uri.Contains("borrador=error", StringComparison.Ordinal))
+        catch (InvalidOperationException exception)
         {
-            _toast = "No se pudo guardar el borrador. Intenta de nuevo.";
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
         }
     }
 

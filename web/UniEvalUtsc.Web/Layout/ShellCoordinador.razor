@@ -3,15 +3,26 @@
 
 <StaffShell Rol="Rol.Coordinador" Seccion="@Seccion">
     <ChildContent>
-        <FiltrosResultados Periodos="@_periodos"
-                           PeriodoId="@Filtros.PeriodoId"
-                           Cuatrimestre="@Filtros.Cuatrimestre"
-                           CarreraId="@Filtros.CarreraId"
-                           HabilitarCarrera="false"
-                           CarreraCambiada="CambiarCarrera"
-                           PeriodoCambiado="CambiarPeriodo"
-                           CuatrimestreCambiado="CambiarCuatrimestre" />
-        @ChildContent
+        @if (_cargando)
+        {
+            <p role="status">Cargando…</p>
+        }
+        else if (_error is not null)
+        {
+            <p role="alert">@_error</p>
+        }
+        else
+        {
+            <FiltrosResultados Periodos="@_periodos"
+                               PeriodoId="@Filtros.PeriodoId"
+                               Cuatrimestre="@Filtros.Cuatrimestre"
+                               CarreraId="@Filtros.CarreraId"
+                               HabilitarCarrera="false"
+                               CarreraCambiada="CambiarCarrera"
+                               PeriodoCambiado="CambiarPeriodo"
+                               CuatrimestreCambiado="CambiarCuatrimestre" />
+            @ChildContent
+        }
         <p class="coordinacion-privacidad">Ves participación y promedios. Nunca qué calificó cada alumno (RN-09).</p>
     </ChildContent>
 </StaffShell>
@@ -21,12 +32,29 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private IReadOnlyList<PeriodoResultado> _periodos = [];
+    private bool _cargando = true;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _periodos = ResultadosService.ObtenerPeriodos();
-        Filtros.InicializarPeriodo(_periodos);
-        Filtros.CambiarCarrera("dsm");
+        try
+        {
+            _periodos = await ResultadosService.ObtenerPeriodosAsync();
+            Filtros.InicializarPeriodo(_periodos);
+            Filtros.CambiarCarrera(FiltrosState.CarreraCoordinadorId);
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 
     private Task CambiarPeriodo(string periodoId)

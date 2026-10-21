@@ -9,11 +9,11 @@ namespace UniEvalUtsc.Web.Tests.Services;
 public sealed class AlumnoInMemoryServiceTests
 {
     [Fact]
-    public void EvaluacionRegular_CalculaPreguntasPorDocentesMasTutor()
+    public async Task EvaluacionRegular_CalculaPreguntasPorDocentesMasTutor()
     {
         var servicio = CrearServicio();
 
-        var evaluacion = servicio.ObtenerEvaluacion();
+        var evaluacion = await servicio.ObtenerEvaluacionAsync();
 
         Assert.Equal(10, evaluacion.Preguntas.Count);
         Assert.Equal(8, evaluacion.Evaluados.Count);
@@ -22,11 +22,11 @@ public sealed class AlumnoInMemoryServiceTests
     }
 
     [Fact]
-    public void EvaluacionDeEstadias_UsaAC64YAsignaSoloAlTutor()
+    public async Task EvaluacionDeEstadias_UsaAC64YAsignaSoloAlTutor()
     {
         var servicio = CrearServicio(esEstadia: true);
 
-        var evaluacion = servicio.ObtenerEvaluacion();
+        var evaluacion = await servicio.ObtenerEvaluacionAsync();
 
         Assert.Equal("FORM-AC64", evaluacion.Formato);
         Assert.Equal(7, evaluacion.Preguntas.Count);
@@ -44,7 +44,7 @@ public sealed class AlumnoInMemoryServiceTests
 
         Assert.False(resultado.Exitoso);
         Assert.Contains("80", resultado.Mensaje);
-        Assert.False(servicio.ObtenerEvaluacion().Enviado);
+        Assert.False((await servicio.ObtenerEvaluacionAsync()).Enviado);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class AlumnoInMemoryServiceTests
     public async Task EnviarAsync_AceptaSoloTodasLasRespuestasValidas()
     {
         var servicio = CrearServicio();
-        var evaluacion = servicio.ObtenerEvaluacion();
+        var evaluacion = await servicio.ObtenerEvaluacionAsync();
         var respuestas = evaluacion.Preguntas
             .SelectMany(pregunta => evaluacion.Evaluados.Select(evaluado =>
                 new KeyValuePair<string, int>(
@@ -82,21 +82,23 @@ public sealed class AlumnoInMemoryServiceTests
         var resultado = await servicio.EnviarAsync("alumno-1", respuestas);
 
         Assert.True(resultado.Exitoso);
-        Assert.True(servicio.ObtenerEvaluacion().Enviado);
-        Assert.NotNull(servicio.ObtenerEvaluacion().FechaEnvio);
+        var evaluacionEnviada = await servicio.ObtenerEvaluacionAsync();
+        Assert.True(evaluacionEnviada.Enviado);
+        Assert.NotNull(evaluacionEnviada.FechaEnvio);
     }
 
     [Fact]
-    public void CrearRecordatorio_AgregaMensajeVisibleParaElAlumno()
+    public async Task CrearRecordatorio_AgregaMensajeVisibleParaElAlumno()
     {
         var servicio = CrearServicio();
 
-        servicio.CrearRecordatorio("dsm05av-a", "DSM05AV · Grupo A");
+        await servicio.CrearRecordatorioAsync("dsm05av-a", "DSM05AV · Grupo A");
 
-        var mensaje = Assert.Single(servicio.ObtenerMensajes(), item =>
+        var mensajes = await servicio.ObtenerMensajesAsync();
+        var mensaje = Assert.Single(mensajes, item =>
             item.Titulo.Contains("DSM05AV · Grupo A", StringComparison.Ordinal));
         Assert.Equal("Te invitamos a completar tus evaluaciones pendientes del cuatrimestre.", mensaje.Cuerpo);
-        Assert.Equal(3, servicio.MensajesSinLeer);
+        Assert.Equal(3, await servicio.ObtenerMensajesSinLeerAsync());
     }
 
     private static AlumnoInMemoryService CrearServicio(RuntimeFalso? runtime = null, bool esEstadia = false)

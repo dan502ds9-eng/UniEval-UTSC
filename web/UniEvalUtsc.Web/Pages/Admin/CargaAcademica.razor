@@ -6,6 +6,16 @@
 <ShellAdministrador Seccion="carga-academica">
     <ChildContent>
         <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (_error is not null)
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
             <h2>Carga académica por grupo</h2>
             <label class="campo">
                 <span class="campo__etiqueta">Grupo</span>
@@ -28,8 +38,8 @@
                                 <td>
                                     <select class="campo__entrada" aria-label="@($"Docente de {asignacion.Materia}")"
                                             value="@asignacion.Docente"
-                                            @onchange="evento => CambiarDocente(asignacion.Id, evento)">
-                                        @foreach (var docente in CargaService.ObtenerDocentes())
+                                            @onchange="evento => CambiarDocenteAsync(asignacion.Id, evento)">
+                                        @foreach (var docente in _docentes)
                                         {
                                             <option value="@docente">@docente</option>
                                         }
@@ -41,6 +51,7 @@
                 </table>
             </div>
             <p>@(_cantidadMaterias) materias + 1 tutor = @(_cantidadMaterias + 1) encuestas por alumno.</p>
+            }
         </section>
 
         <section class="coordinacion-panel">
@@ -70,27 +81,65 @@
     private string _grupoId = string.Empty;
     private string _mensaje = string.Empty;
     private IReadOnlyList<RegistroImportacion> _errores = [];
-    private IReadOnlyList<AsignacionCarga> Asignaciones => CargaService.ObtenerAsignaciones()
+    private IReadOnlyList<AsignacionCarga> _asignaciones = [];
+    private IReadOnlyList<string> _docentes = [];
+    private bool _cargando = true;
+    private string? _error;
+    private IReadOnlyList<AsignacionCarga> Asignaciones => _asignaciones
         .Where(asignacion => asignacion.GrupoId == _grupoId).ToArray();
-    private IReadOnlyList<(string Id, string Nombre)> Grupos => CargaService.ObtenerAsignaciones()
+    private IReadOnlyList<(string Id, string Nombre)> Grupos => _asignaciones
         .GroupBy(asignacion => asignacion.GrupoId)
         .Select(grupo => (grupo.Key, grupo.First().Grupo))
         .ToArray();
     private string _grupoNombre => Grupos.FirstOrDefault(grupo => grupo.Id == _grupoId).Nombre ?? string.Empty;
     private int _cantidadMaterias => Asignaciones.Count(asignacion => !asignacion.EsTutor);
 
-    protected override void OnInitialized() => _grupoId = Grupos.FirstOrDefault().Id ?? string.Empty;
+    protected override async Task OnInitializedAsync() => await CargarAsync();
 
-    private void CambiarGrupo(ChangeEventArgs evento)
+    private async Task CargarAsync()
     {
-        _grupoId = evento.Value?.ToString() ?? throw new InvalidOperationException("Selecciona un grupo.");
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _asignaciones = await CargaService.ObtenerAsignacionesAsync();
+            _docentes = await CargaService.ObtenerDocentesAsync();
+            if (string.IsNullOrEmpty(_grupoId))
+            {
+                _grupoId = Grupos.FirstOrDefault().Id ?? string.Empty;
+            }
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 
-    private void CambiarDocente(string asignacionId, ChangeEventArgs evento)
+    private Task CambiarGrupo(ChangeEventArgs evento)
+    {
+        _grupoId = evento.Value?.ToString() ?? throw new InvalidOperationException("Selecciona un grupo.");
+        return Task.CompletedTask;
+    }
+
+    private async Task CambiarDocenteAsync(string asignacionId, ChangeEventArgs evento)
     {
         var docente = evento.Value?.ToString()
             ?? throw new InvalidOperationException("Selecciona un docente.");
-        CargaService.CambiarDocente(asignacionId, docente);
+        await CargaService.CambiarDocenteAsync(asignacionId, docente);
+        await CargarAsync();
     }
 
     private async Task Importar(InputFileChangeEventArgs evento)
@@ -101,11 +150,12 @@
         try
         {
             var filas = ImportadorTabular.Leer(archivo.OpenReadStream(5 * 1024 * 1024), archivo.Name);
-            var resultado = CargaService.Importar(filas);
+            var resultado = await CargaService.ImportarAsync(filas);
             _errores = resultado.Errores;
             _mensaje = $"Renglones procesados: {resultado.Renglones}. Asignaciones importadas: {resultado.Importados}.";
+            await CargarAsync();
         }
-        catch (Exception exception) when (exception is IOException or ArgumentException or FormatException)
+        catch (Exception exception) when (exception is IOException or ArgumentException or FormatException or InvalidOperationException or HttpRequestException)
         {
             _mensaje = $"No se pudo importar el archivo: {exception.Message}";
         }

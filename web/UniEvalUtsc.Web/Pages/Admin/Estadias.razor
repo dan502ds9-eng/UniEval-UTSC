@@ -6,11 +6,21 @@
 <ShellAdministrador Seccion="estadias">
     <ChildContent>
         <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (_error is not null)
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
             <h2>Asignación de tutor de estadías</h2>
             <label class="campo">
                 <span class="campo__etiqueta">Grupo</span>
                 <select class="campo__entrada" value="@_grupoId" @onchange="CambiarGrupo">
-                    @foreach (var grupo in EstadiasService.ObtenerGrupos())
+                    @foreach (var grupo in _grupos)
                     {
                         <option value="@grupo.Id">@grupo.Nombre</option>
                     }
@@ -20,7 +30,7 @@
                 <span class="campo__etiqueta">Tutor para todo el grupo</span>
                 <select class="campo__entrada" @onchange="AsignarGrupo">
                     <option value="">Selecciona tutor</option>
-                    @foreach (var tutor in EstadiasService.ObtenerTutores())
+                    @foreach (var tutor in _tutores)
                     {
                         <option value="@tutor">@tutor</option>
                     }
@@ -42,7 +52,7 @@
                                             value="@alumno.TutorId"
                                             @onchange="evento => CambiarTutor(alumno.AlumnoId, evento)">
                                         <option value="">Sin asignar</option>
-                                        @foreach (var tutor in EstadiasService.ObtenerTutores())
+                                        @foreach (var tutor in _tutores)
                                         {
                                             <option value="@tutor">@tutor</option>
                                         }
@@ -59,6 +69,7 @@
             {
                 <p role="status">@_mensaje</p>
             }
+            }
         </section>
     </ChildContent>
 </ShellAdministrador>
@@ -66,35 +77,84 @@
 @code {
     private string _grupoId = string.Empty;
     private string _mensaje = string.Empty;
-    private IReadOnlyList<AsignacionTutorEstadias> Alumnos => EstadiasService.ObtenerAsignaciones(_grupoId);
+    private IReadOnlyList<GrupoEstadias> _grupos = [];
+    private IReadOnlyList<string> _tutores = [];
+    private IReadOnlyList<AsignacionTutorEstadias> _alumnos = [];
+    private bool _cargando = true;
+    private string? _error;
+    private IReadOnlyList<AsignacionTutorEstadias> Alumnos => _alumnos;
     private int _sinTutor => Alumnos.Count(alumno => string.IsNullOrWhiteSpace(alumno.TutorId));
 
-    protected override void OnInitialized() =>
-        _grupoId = EstadiasService.ObtenerGrupos().FirstOrDefault()?.Id ?? string.Empty;
+    protected override async Task OnInitializedAsync() => await CargarAsync();
 
-    private void CambiarGrupo(ChangeEventArgs evento)
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _grupos = await EstadiasService.ObtenerGruposAsync();
+            _tutores = await EstadiasService.ObtenerTutoresAsync();
+            if (string.IsNullOrEmpty(_grupoId))
+            {
+                _grupoId = _grupos.FirstOrDefault()?.Id ?? string.Empty;
+            }
+
+            if (!string.IsNullOrEmpty(_grupoId))
+            {
+                _alumnos = await EstadiasService.ObtenerAsignacionesAsync(_grupoId);
+            }
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CambiarGrupo(ChangeEventArgs evento)
     {
         _grupoId = evento.Value?.ToString() ?? throw new InvalidOperationException("Selecciona un grupo.");
         _mensaje = string.Empty;
+        _alumnos = await EstadiasService.ObtenerAsignacionesAsync(_grupoId);
     }
 
-    private void AsignarGrupo(ChangeEventArgs evento)
+    private async Task AsignarGrupo(ChangeEventArgs evento)
     {
         var tutorId = evento.Value?.ToString();
         if (!string.IsNullOrWhiteSpace(tutorId))
         {
-            EstadiasService.AsignarTutorATodoElGrupo(_grupoId, tutorId);
+            await EstadiasService.AsignarTutorATodoElGrupoAsync(_grupoId, tutorId);
+            await RecargarAlumnosAsync();
         }
     }
 
-    private void CambiarTutor(string alumnoId, ChangeEventArgs evento) =>
-        EstadiasService.CambiarTutor(alumnoId, string.IsNullOrWhiteSpace(evento.Value?.ToString())
+    private async Task CambiarTutor(string alumnoId, ChangeEventArgs evento)
+    {
+        await EstadiasService.CambiarTutorAsync(alumnoId, string.IsNullOrWhiteSpace(evento.Value?.ToString())
             ? null
             : evento.Value.ToString());
+        await RecargarAlumnosAsync();
+    }
 
-    private void Guardar()
+    private async Task Guardar()
     {
-        EstadiasService.GuardarAsignaciones(_grupoId);
+        await EstadiasService.GuardarAsignacionesAsync(_grupoId);
         _mensaje = "Las asignaciones de estadías se guardaron.";
     }
+
+    private async Task RecargarAlumnosAsync() =>
+        _alumnos = await EstadiasService.ObtenerAsignacionesAsync(_grupoId);
 }

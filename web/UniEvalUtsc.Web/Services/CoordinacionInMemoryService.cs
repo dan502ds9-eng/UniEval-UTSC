@@ -49,14 +49,65 @@ public sealed class CoordinacionInMemoryService(AuthService? authService = null)
         "Isabel Flores Lozano"
     ];
 
-    public ResumenCoordinacion ObtenerResumen(string periodoId, string cuatrimestre, string carreraId)
+    public Task<ResumenCoordinacion> ObtenerResumenAsync(
+        string periodoId,
+        string cuatrimestre,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerResumenCore(periodoId, cuatrimestre, carreraId));
+    }
+
+    public Task<IReadOnlyList<GrupoParticipacion>> ObtenerGruposAsync(
+        string periodoId,
+        string cuatrimestre,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerGruposCore(periodoId, cuatrimestre, carreraId));
+    }
+
+    public Task<IReadOnlyList<string>> ObtenerAlumnosPendientesAsync(
+        string grupoId,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerAlumnosPendientesCore(grupoId, carreraId));
+    }
+
+    public Task<IReadOnlyList<ResultadoCoordinacion>> ObtenerResultadosAsync(
+        string periodoId,
+        string cuatrimestre,
+        bool tutores,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerResultadosCore(periodoId, cuatrimestre, tutores, carreraId));
+    }
+
+    public Task<IReadOnlyList<IReadOnlyList<string>>> ObtenerDatosReporteAsync(
+        string tipo,
+        string periodoId,
+        string cuatrimestre,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerDatosReporteCore(tipo, periodoId, cuatrimestre, carreraId));
+    }
+
+    private ResumenCoordinacion ObtenerResumenCore(string periodoId, string cuatrimestre, string carreraId)
     {
         carreraId = CarreraEfectiva(carreraId);
-        var grupos = ObtenerGrupos(periodoId, cuatrimestre, carreraId);
+        var grupos = ObtenerGruposCore(periodoId, cuatrimestre, carreraId);
         var total = grupos.Sum(grupo => grupo.Total);
         var contestaron = grupos.Sum(grupo => grupo.Contestaron);
-        var docentes = ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId);
-        var tutores = ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId);
+        var docentes = ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId);
+        var tutores = ObtenerResultadosCore(periodoId, cuatrimestre, tutores: true, carreraId);
         var promedio = docentes.Count == 0 ? 0 : docentes.Average(resultado => resultado.Promedio);
 
         return new ResumenCoordinacion(
@@ -67,7 +118,7 @@ public sealed class CoordinacionInMemoryService(AuthService? authService = null)
             docentes.Concat(tutores).Count(resultado => resultado.Promedio < 8));
     }
 
-    public IReadOnlyList<GrupoParticipacion> ObtenerGrupos(string periodoId, string cuatrimestre, string carreraId)
+    private IReadOnlyList<GrupoParticipacion> ObtenerGruposCore(string periodoId, string cuatrimestre, string carreraId)
     {
         carreraId = CarreraEfectiva(carreraId);
         ValidarPeriodo(periodoId);
@@ -84,7 +135,7 @@ public sealed class CoordinacionInMemoryService(AuthService? authService = null)
             .ToArray();
     }
 
-    public IReadOnlyList<string> ObtenerAlumnosPendientes(string grupoId, string carreraId)
+    private IReadOnlyList<string> ObtenerAlumnosPendientesCore(string grupoId, string carreraId)
     {
         carreraId = CarreraEfectiva(carreraId);
         if (!EsCarreraDisponible(carreraId))
@@ -104,7 +155,7 @@ public sealed class CoordinacionInMemoryService(AuthService? authService = null)
             : Enumerable.Range(1, grupo.Faltan).Select(indice => $"Alumno pendiente {indice}").ToArray();
     }
 
-    public IReadOnlyList<ResultadoCoordinacion> ObtenerResultados(
+    private IReadOnlyList<ResultadoCoordinacion> ObtenerResultadosCore(
         string periodoId,
         string cuatrimestre,
         bool tutores,
@@ -138,7 +189,7 @@ public sealed class CoordinacionInMemoryService(AuthService? authService = null)
             .ToArray();
     }
 
-    public IReadOnlyList<IReadOnlyList<string>> ObtenerDatosReporte(
+    private IReadOnlyList<IReadOnlyList<string>> ObtenerDatosReporteCore(
         string tipo,
         string periodoId,
         string cuatrimestre,
@@ -147,14 +198,14 @@ public sealed class CoordinacionInMemoryService(AuthService? authService = null)
         carreraId = CarreraEfectiva(carreraId);
         return tipo switch
         {
-            "docente" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)),
-            "tutor" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId)),
+            "docente" => FilasResultados(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId)),
+            "tutor" => FilasResultados(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: true, carreraId)),
             "concentrado" => FilasResultados(
-                ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)
-                    .Concat(ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId))
+                ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId)
+                    .Concat(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: true, carreraId))
                     .OrderBy(resultado => resultado.Promedio)),
-            "participacion" => FilasParticipacion(ObtenerGrupos(periodoId, cuatrimestre, carreraId)),
-            "historico" => FilasHistorico(ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)),
+            "participacion" => FilasParticipacion(ObtenerGruposCore(periodoId, cuatrimestre, carreraId)),
+            "historico" => FilasHistorico(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId)),
             _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "El tipo de reporte no es válido.")
         };
     }

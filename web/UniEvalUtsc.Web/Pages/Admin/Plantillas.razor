@@ -6,11 +6,21 @@
 <ShellAdministrador Seccion="plantillas">
     <ChildContent>
         <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
             <h2>Plantillas de evaluación</h2>
             <label class="campo">
                 <span class="campo__etiqueta">Formulario</span>
                 <select class="campo__entrada" value="@_plantillaId" @onchange="Seleccionar">
-                    @foreach (var plantilla in PlantillasService.ObtenerPlantillas())
+                    @foreach (var plantilla in _plantillas)
                     {
                         <option value="@plantilla.Id">@plantilla.Nombre · versión @plantilla.Version · @Etiqueta(plantilla)</option>
                     }
@@ -24,22 +34,22 @@
                     <li>
                         <div class="plantillas-admin__acciones">
                             <button class="boton boton--enlace" type="button" aria-label="@($"Mover aspecto {index + 1} hacia arriba")"
-                                    disabled="@(index == 0 || !EsBorrador)" @onclick="() => Mover(index, -1)">↑</button>
+                                    disabled="@(index == 0 || !EsBorrador)" @onclick="() => MoverAsync(index, -1)">↑</button>
                             <button class="boton boton--enlace" type="button" aria-label="@($"Mover aspecto {index + 1} hacia abajo")"
-                                    disabled="@(index == _aspectos.Count - 1 || !EsBorrador)" @onclick="() => Mover(index, 1)">↓</button>
+                                    disabled="@(index == _aspectos.Count - 1 || !EsBorrador)" @onclick="() => MoverAsync(index, 1)">↓</button>
                             <button class="boton boton--enlace" type="button" disabled="@(!EsBorrador)"
                                     @onclick="() => CambiarModoEdicion(index)">
                                 @(_editandoIndice == index ? "Listo" : "Editar")
                             </button>
                             <button class="boton boton--enlace" type="button" disabled="@(!EsBorrador || _aspectos.Count <= 1)"
-                                    @onclick="() => Eliminar(index)">Eliminar</button>
+                                    @onclick="() => EliminarAsync(index)">Eliminar</button>
                         </div>
                         @if (EsBorrador && _editandoIndice == index)
                         {
                             <label class="campo">
                                 <span class="campo__etiqueta">Aspecto @(index + 1)</span>
                                 <textarea class="campo__entrada" rows="2" value="@_aspectos[index].Texto"
-                                          @onchange="evento => Editar(index, evento.Value?.ToString() ?? string.Empty)"></textarea>
+                                          @onchange="evento => EditarAsync(index, evento.Value?.ToString() ?? string.Empty)"></textarea>
                             </label>
                         }
                         else
@@ -50,18 +60,15 @@
                 }
             </ol>
             <div class="plantillas-admin__acciones">
-                <button class="boton boton--contorno" type="button" disabled="@EsBorrador" @onclick="CrearBorrador">Crear borrador</button>
-                <button class="boton boton--contorno" type="button" disabled="@(!EsBorrador)" @onclick="AgregarAspecto">Agregar aspecto</button>
-                <button class="boton" type="button" disabled="@(!EsBorrador || !_cambios)" @onclick="Publicar">Publicar versión @_plantilla?.Version</button>
-                <button class="boton boton--contorno" type="button" disabled="@(!EsBorrador)" @onclick="Descartar">Descartar cambios</button>
+                <button class="boton boton--contorno" type="button" disabled="@EsBorrador" @onclick="CrearBorradorAsync">Crear borrador</button>
+                <button class="boton boton--contorno" type="button" disabled="@(!EsBorrador)" @onclick="AgregarAspectoAsync">Agregar aspecto</button>
+                <button class="boton" type="button" disabled="@(!EsBorrador || !_cambios)" @onclick="PublicarAsync">Publicar versión @_plantilla?.Version</button>
+                <button class="boton boton--contorno" type="button" disabled="@(!EsBorrador)" @onclick="DescartarAsync">Descartar cambios</button>
             </div>
             @if (!string.IsNullOrWhiteSpace(_mensaje))
             {
                 <p role="status">@_mensaje</p>
             }
-            @if (!string.IsNullOrWhiteSpace(_error))
-            {
-                <p class="resultado-aviso" role="alert">@_error</p>
             }
         </section>
     </ChildContent>
@@ -70,11 +77,13 @@
 @code {
     private string _plantillaId = string.Empty;
     private PlantillaAdministrativa? _plantilla;
+    private IReadOnlyList<PlantillaAdministrativa> _plantillas = [];
     private List<AspectoPlantilla> _aspectos = [];
     private int _editandoIndice = -1;
     private bool _cambios;
     private string _mensaje = string.Empty;
     private string _error = string.Empty;
+    private bool _cargando = true;
     private bool EsBorrador => _plantilla?.Borrador == true;
     private string IdBase
     {
@@ -85,22 +94,53 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _plantillaId = PlantillasService.ObtenerPlantillas().First().Id;
-        CargarPlantilla();
+        await CargarAsync();
     }
 
-    private void Seleccionar(ChangeEventArgs evento)
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = string.Empty;
+        try
+        {
+            _plantillas = await PlantillasService.ObtenerPlantillasAsync();
+            if (string.IsNullOrEmpty(_plantillaId))
+            {
+                _plantillaId = _plantillas.First().Id;
+            }
+
+            await CargarPlantillaAsync();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task Seleccionar(ChangeEventArgs evento)
     {
         _plantillaId = evento.Value?.ToString()
             ?? throw new InvalidOperationException("Selecciona una plantilla.");
-        CargarPlantilla();
+        await CargarPlantillaAsync();
     }
 
-    private void CargarPlantilla()
+    private async Task CargarPlantillaAsync()
     {
-        _plantilla = PlantillasService.Obtener(_plantillaId);
+        _plantilla = await PlantillasService.ObtenerAsync(_plantillaId);
         _aspectos = _plantilla.Aspectos.ToList();
         _editandoIndice = -1;
         _cambios = false;
@@ -108,24 +148,24 @@
         _error = string.Empty;
     }
 
-    private void CrearBorrador()
+    private Task CrearBorradorAsync()
     {
-        Ejecutar(() =>
+        return EjecutarAsync(async () =>
         {
-            _plantilla = PlantillasService.CrearBorrador(IdBase);
+            _plantilla = await PlantillasService.CrearBorradorAsync(IdBase);
             _plantillaId = _plantilla.Id;
-            CargarPlantilla();
+            await CargarPlantillaAsync();
             _mensaje = "Se creó un borrador editable.";
         });
     }
 
-    private void Editar(int indice, string texto)
+    private async Task EditarAsync(int indice, string texto)
     {
         _aspectos[indice] = _aspectos[indice] with { Texto = texto };
-        GuardarCambios();
+        await GuardarCambiosAsync();
     }
 
-    private void Mover(int indice, int desplazamiento)
+    private async Task MoverAsync(int indice, int desplazamiento)
     {
         var destino = indice + desplazamiento;
         (_aspectos[indice], _aspectos[destino]) = (_aspectos[destino], _aspectos[indice]);
@@ -138,10 +178,10 @@
             _editandoIndice = indice;
         }
 
-        GuardarCambios();
+        await GuardarCambiosAsync();
     }
 
-    private void Eliminar(int indice)
+    private async Task EliminarAsync(int indice)
     {
         _aspectos.RemoveAt(indice);
         if (_editandoIndice == indice)
@@ -153,25 +193,25 @@
             _editandoIndice--;
         }
 
-        GuardarCambios();
+        await GuardarCambiosAsync();
     }
 
-    private void AgregarAspecto()
+    private async Task AgregarAspectoAsync()
     {
         _aspectos.Add(new AspectoPlantilla(_aspectos.Count + 1, "Nuevo aspecto"));
         _editandoIndice = _aspectos.Count - 1;
-        GuardarCambios();
+        await GuardarCambiosAsync();
     }
 
     private void CambiarModoEdicion(int indice) =>
         _editandoIndice = _editandoIndice == indice ? -1 : indice;
 
-    private void GuardarCambios()
+    private async Task GuardarCambiosAsync()
     {
         try
         {
-            PlantillasService.ReemplazarAspectos(_plantillaId, _aspectos);
-            _plantilla = PlantillasService.Obtener(_plantillaId);
+            await PlantillasService.ReemplazarAspectosAsync(_plantillaId, _aspectos);
+            _plantilla = await PlantillasService.ObtenerAsync(_plantillaId);
             _aspectos = _plantilla.Aspectos.ToList();
             _cambios = true;
             _error = string.Empty;
@@ -180,30 +220,35 @@
         {
             _error = exception.Message;
         }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
     }
 
-    private void Publicar() => Ejecutar(() =>
+    private Task PublicarAsync() => EjecutarAsync(async () =>
     {
-        PlantillasService.Publicar(_plantillaId);
-        CargarPlantilla();
+        await PlantillasService.PublicarAsync(_plantillaId);
+        await CargarAsync();
         _mensaje = "La nueva versión quedó publicada y se aplicará a partir del siguiente periodo.";
     });
 
-    private void Descartar() => Ejecutar(() =>
+    private Task DescartarAsync() => EjecutarAsync(async () =>
     {
-        PlantillasService.Descartar(_plantillaId);
-        _plantillaId = PlantillasService.ObtenerPlantillas().First(plantilla => plantilla.Id == IdBase).Id;
-        CargarPlantilla();
+        await PlantillasService.DescartarAsync(_plantillaId);
+        _plantillas = await PlantillasService.ObtenerPlantillasAsync();
+        _plantillaId = _plantillas.First(plantilla => plantilla.Id == IdBase).Id;
+        await CargarPlantillaAsync();
         _mensaje = "Se descartó el borrador.";
     });
 
-    private void Ejecutar(Action accion)
+    private async Task EjecutarAsync(Func<Task> accion)
     {
         _mensaje = string.Empty;
         _error = string.Empty;
         try
         {
-            accion();
+            await accion();
         }
         catch (ArgumentException exception)
         {
@@ -212,6 +257,11 @@
         catch (InvalidOperationException exception)
         {
             _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
         }
     }
 

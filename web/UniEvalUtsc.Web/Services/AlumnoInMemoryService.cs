@@ -21,10 +21,18 @@ public sealed class AlumnoInMemoryService(
     private bool _enviado;
     private DateOnly? _fechaEnvio;
 
-    public EvaluacionAlumno ObtenerEvaluacion()
+    public async Task<EvaluacionAlumno> ObtenerEvaluacionAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var periodo = periodosService is null
+            ? null
+            : await periodosService.ObtenerActualAsync(ct);
+        return ObtenerEvaluacionCore(periodo);
+    }
+
+    private EvaluacionAlumno ObtenerEvaluacionCore(PeriodoAdministrativo? periodoActual = null)
     {
         var esEstadia = configuration.GetValue("Alumno:EsEstadia", false);
-        var periodoActual = periodosService?.ObtenerActual();
         var periodoAbierto = periodoActual is null
             ? configuration.GetValue("Alumno:PeriodoAbierto", true)
             : periodoActual.Estado == EstadoPeriodoGestion.Abierto;
@@ -47,8 +55,9 @@ public sealed class AlumnoInMemoryService(
             _fechaEnvio);
     }
 
-    public async Task<Dictionary<string, int>> RecuperarBorradorAsync(string alumno)
+    public async Task<Dictionary<string, int>> RecuperarBorradorAsync(string alumno, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var valor = await jsInterop.GetLocalStorageAsync(ClaveBorrador(alumno));
         if (string.IsNullOrWhiteSpace(valor))
         {
@@ -78,8 +87,12 @@ public sealed class AlumnoInMemoryService(
             .ToDictionary(par => par.Key, par => par.Value);
     }
 
-    public async Task<bool> GuardarBorradorAsync(string alumno, IReadOnlyDictionary<string, int> calificaciones)
+    public async Task<bool> GuardarBorradorAsync(
+        string alumno,
+        IReadOnlyDictionary<string, int> calificaciones,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         ValidarCalificaciones(calificaciones);
         var resultado = await jsInterop.SetLocalStorageAsync(
             ClaveBorrador(alumno),
@@ -94,9 +107,14 @@ public sealed class AlumnoInMemoryService(
 
     public async Task<ResultadoEnvioAlumno> EnviarAsync(
         string alumno,
-        IReadOnlyDictionary<string, int> calificaciones)
+        IReadOnlyDictionary<string, int> calificaciones,
+        CancellationToken ct = default)
     {
-        var evaluacion = ObtenerEvaluacion();
+        ct.ThrowIfCancellationRequested();
+        var evaluacion = ObtenerEvaluacionCore(
+            periodosService is null
+                ? null
+                : await periodosService.ObtenerActualAsync(ct));
         if (_enviado)
         {
             return new ResultadoEnvioAlumno(false, "La evaluación ya fue enviada.");
@@ -125,34 +143,47 @@ public sealed class AlumnoInMemoryService(
         return new ResultadoEnvioAlumno(true, string.Empty);
     }
 
-    public ComprobanteAlumno? ObtenerComprobante()
+    public async Task<ComprobanteAlumno?> ObtenerComprobanteAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (!_enviado || _fechaEnvio is null)
         {
             return null;
         }
 
-        var evaluacion = ObtenerEvaluacion();
+        var periodoActual = periodosService is null
+            ? null
+            : await periodosService.ObtenerActualAsync(ct);
+        var evaluacion = ObtenerEvaluacionCore(periodoActual);
         return new ComprobanteAlumno(
-            PeriodoNombre,
+            evaluacion.Periodo,
             evaluacion.Evaluados.Count,
             evaluacion.Evaluados.Count,
             _fechaEnvio);
     }
 
-    public IReadOnlyList<MensajeAlumno> ObtenerMensajes() => _mensajes;
-
-    public int MensajesSinLeer => _mensajes.Count(mensaje => !mensaje.Leido);
-
-    public void CrearRecordatorio(string grupoId, string nombreGrupo)
+    public Task<IReadOnlyList<MensajeAlumno>> ObtenerMensajesAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<MensajeAlumno>>(_mensajes);
+    }
+
+    public Task<int> ObtenerMensajesSinLeerAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(_mensajes.Count(mensaje => !mensaje.Leido));
+    }
+
+    public Task CrearRecordatorioAsync(string grupoId, string nombreGrupo, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(grupoId);
         ArgumentException.ThrowIfNullOrWhiteSpace(nombreGrupo);
 
         var grupoAsignado = configuration["Alumno:GrupoId"] ?? "dsm05av-a";
         if (!string.Equals(grupoAsignado, grupoId, StringComparison.Ordinal))
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _mensajes.Insert(0, new MensajeAlumno(
@@ -162,21 +193,27 @@ public sealed class AlumnoInMemoryService(
             "Te invitamos a completar tus evaluaciones pendientes del cuatrimestre.",
             DateOnly.FromDateTime(DateTime.Today),
             false));
+        return Task.CompletedTask;
     }
 
-    public void MarcarMensajeComoLeido(string id)
+    public Task MarcarMensajeComoLeidoAsync(string id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var mensaje = _mensajes.SingleOrDefault(mensaje => mensaje.Id == id)
             ?? throw new ArgumentException("No se encontró el mensaje del alumno.", nameof(id));
         mensaje.Leido = true;
+        return Task.CompletedTask;
     }
 
-    public void MarcarTodosComoLeidos()
+    public Task MarcarTodosComoLeidosAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         foreach (var mensaje in _mensajes)
         {
             mensaje.Leido = true;
         }
+
+        return Task.CompletedTask;
     }
 
     private string ClaveBorrador(string alumno) =>
@@ -184,7 +221,7 @@ public sealed class AlumnoInMemoryService(
 
     private HashSet<string> ObtenerLlavesValidas()
     {
-        var evaluacion = ObtenerEvaluacion();
+        var evaluacion = ObtenerEvaluacionCore();
         return evaluacion.Preguntas
             .SelectMany(pregunta => evaluacion.Evaluados.Select(evaluado =>
                 EvaluacionAlumno.CrearClaveCalificacion(pregunta.Id, evaluado.Id)))

@@ -25,7 +25,7 @@
         <button type="button"
                 class="boton boton--contorno"
                 aria-expanded="@_mostrarPendientes"
-                @onclick="AlternarPendientes">
+                @onclick="AlternarPendientesAsync">
             @(_mostrarPendientes ? "Ocultar quién falta" : $"Ver quién falta ({Grupo.Faltan})")
         </button>
         <button type="button" class="boton" @onclick="EnviarRecordatorioAsync">Enviar recordatorio</button>
@@ -33,6 +33,14 @@
     @if (_mostrarPendientes)
     {
         <ul class="grupo-participacion__pendientes" aria-label="@($"Alumnos pendientes de {Grupo.Nombre}")">
+            @if (_cargandoPendientes)
+            {
+                <li role="status">Cargando…</li>
+            }
+            else if (_errorPendientes is not null)
+            {
+                <li role="alert">@_errorPendientes</li>
+            }
             @foreach (var alumno in _pendientes)
             {
                 <li>@alumno</li>
@@ -53,6 +61,8 @@
     private bool _mostrarPendientes;
     private IReadOnlyList<string> _pendientes = [];
     private string? _mensaje;
+    private bool _cargandoPendientes;
+    private string? _errorPendientes;
 
     private string ClaseParticipacion => Grupo.Porcentaje < 60
         ? "baja"
@@ -67,17 +77,53 @@
         _ => "5to cuatrimestre"
     };
 
-    private void AlternarPendientes()
+    private async Task AlternarPendientesAsync()
     {
         _mostrarPendientes = !_mostrarPendientes;
-        _pendientes = _mostrarPendientes
-            ? CoordinacionService.ObtenerAlumnosPendientes(Grupo.Id, CarreraId)
-            : [];
+        _errorPendientes = null;
+        if (!_mostrarPendientes)
+        {
+            _pendientes = [];
+            return;
+        }
+
+        _cargandoPendientes = true;
+        try
+        {
+            _pendientes = await CoordinacionService.ObtenerAlumnosPendientesAsync(Grupo.Id, CarreraId);
+        }
+        catch (ArgumentException exception)
+        {
+            _errorPendientes = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _errorPendientes = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _errorPendientes = exception.Message;
+        }
+        finally
+        {
+            _cargandoPendientes = false;
+        }
     }
 
     private async Task EnviarRecordatorioAsync()
     {
-        await OnRecordatorioEnviado.InvokeAsync(Grupo);
-        _mensaje = $"Recordatorio enviado al grupo {Grupo.Nombre}.";
+        try
+        {
+            await OnRecordatorioEnviado.InvokeAsync(Grupo);
+            _mensaje = $"Recordatorio enviado al grupo {Grupo.Nombre}.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            _mensaje = $"No se pudo enviar el recordatorio: {exception.Message}";
+        }
+        catch (HttpRequestException exception)
+        {
+            _mensaje = $"No se pudo enviar el recordatorio: {exception.Message}";
+        }
     }
 }

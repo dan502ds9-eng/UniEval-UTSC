@@ -2,11 +2,11 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface ICatalogosService
 {
-    IReadOnlyList<ElementoCatalogo> Obtener(string tipo);
+    Task<IReadOnlyList<ElementoCatalogo>> ObtenerAsync(string tipo, CancellationToken ct = default);
 
-    void Agregar(string tipo, string nombre, string contexto);
+    Task AgregarAsync(string tipo, string nombre, string contexto, CancellationToken ct = default);
 
-    void CambiarEstado(string tipo, string id);
+    Task CambiarEstadoAsync(string tipo, string id, CancellationToken ct = default);
 
-    ResultadoImportacion Importar(string tipo, IReadOnlyList<IReadOnlyList<string>> filas);
+    Task<ResultadoImportacion> ImportarAsync(string tipo, IReadOnlyList<IReadOnlyList<string>> filas, CancellationToken ct = default);
 }

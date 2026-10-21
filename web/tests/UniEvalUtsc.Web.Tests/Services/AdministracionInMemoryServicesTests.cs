@@ -5,19 +5,19 @@ namespace UniEvalUtsc.Web.Tests.Services;
 public sealed class AdministracionInMemoryServicesTests
 {
     [Fact]
-    public void ObtenerActual_PriorizaPeriodoAbiertoAunqueSeCreeOtroEnPreparacion()
+    public async Task ObtenerActual_PriorizaPeriodoAbiertoAunqueSeCreeOtroEnPreparacion()
     {
         IPeriodosService servicio = new PeriodosInMemoryService();
-        servicio.CrearPeriodo("Nuevo", new DateOnly(2027, 1, 1), new DateOnly(2027, 4, 30));
+        await servicio.CrearPeriodoAsync("Nuevo", new DateOnly(2027, 1, 1), new DateOnly(2027, 4, 30));
 
-        Assert.Equal("sep-dic-2026", servicio.ObtenerActual().Id);
+        Assert.Equal("sep-dic-2026", (await servicio.ObtenerActualAsync()).Id);
     }
 
     [Fact]
-    public void Plantillas_PermitePublicarVersionSiguienteYCrearLaPosterior()
+    public async Task Plantillas_PermitePublicarVersionSiguienteYCrearLaPosterior()
     {
         IPlantillasService servicio = new PlantillasInMemoryService();
-        var borrador = servicio.CrearBorrador("form-ac16");
+        var borrador = await servicio.CrearBorradorAsync("form-ac16");
         var aspectos = borrador.Aspectos
             .Select(aspecto => aspecto with
             {
@@ -25,13 +25,13 @@ public sealed class AdministracionInMemoryServicesTests
             })
             .ToArray();
 
-        servicio.ReemplazarAspectos(borrador.Id, aspectos);
-        servicio.Publicar(borrador.Id);
+        await servicio.ReemplazarAspectosAsync(borrador.Id, aspectos);
+        await servicio.PublicarAsync(borrador.Id);
 
-        var vigente = servicio.Obtener("form-ac16-v2");
+        var vigente = await servicio.ObtenerAsync("form-ac16-v2");
         Assert.True(vigente.Vigente);
         Assert.False(vigente.Borrador);
         Assert.Equal("Texto actualizado", vigente.Aspectos[0].Texto);
-        Assert.Equal("form-ac16-v3", servicio.CrearBorrador(vigente.Id).Id);
+        Assert.Equal("form-ac16-v3", (await servicio.CrearBorradorAsync(vigente.Id)).Id);
     }
 }

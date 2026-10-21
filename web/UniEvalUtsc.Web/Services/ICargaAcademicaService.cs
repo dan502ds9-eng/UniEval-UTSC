@@ -2,11 +2,11 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface ICargaAcademicaService
 {
-    IReadOnlyList<AsignacionCarga> ObtenerAsignaciones();
+    Task<IReadOnlyList<AsignacionCarga>> ObtenerAsignacionesAsync(CancellationToken ct = default);
 
-    IReadOnlyList<string> ObtenerDocentes();
+    Task<IReadOnlyList<string>> ObtenerDocentesAsync(CancellationToken ct = default);
 
-    void CambiarDocente(string asignacionId, string docente);
+    Task CambiarDocenteAsync(string asignacionId, string docente, CancellationToken ct = default);
 
-    ResultadoImportacion Importar(IReadOnlyList<IReadOnlyList<string>> filas);
+    Task<ResultadoImportacion> ImportarAsync(IReadOnlyList<IReadOnlyList<string>> filas, CancellationToken ct = default);
 }

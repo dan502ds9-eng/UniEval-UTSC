@@ -6,6 +6,16 @@
 <ShellAdministrador Seccion="periodos">
     <ChildContent>
         <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
             <h2>@_seleccionado.Nombre</h2>
             <p class="estado-periodo estado-periodo--@EstadoCss">@EstadoTexto</p>
             <p>@DescripcionEstado</p>
@@ -40,8 +50,6 @@
             {
                 <button class="boton" type="button" @onclick="CerrarPeriodo">Cerrar aplicación y liberar resultados</button>
             }
-        </section>
-
         @if (!string.IsNullOrWhiteSpace(_mensaje))
         {
             <p class="resultado-aviso" role="status">@_mensaje</p>
@@ -57,14 +65,16 @@
                 <button class="boton boton--contorno" type="button" @onclick="CrearPeriodo">Crear periodo</button>
             </div>
             <ol class="menor-participacion">
-                @foreach (var periodo in PeriodosService.ObtenerPeriodos())
+                @foreach (var periodo in _periodos)
                 {
                     <li>
                         <span>@periodo.Nombre<small class="tabla-resultados__secundario">@Etiqueta(periodo.Estado)</small></span>
-                        <button class="boton boton--enlace" type="button" @onclick="() => Seleccionar(periodo.Id)">Ver periodo</button>
+                        <button class="boton boton--enlace" type="button" @onclick="() => SeleccionarAsync(periodo.Id)">Ver periodo</button>
                     </li>
                 }
             </ol>
+        </section>
+            }
         </section>
     </ChildContent>
 </ShellAdministrador>
@@ -77,6 +87,8 @@
     private DateOnly _cierreEncuestas;
     private string _mensaje = string.Empty;
     private string _error = string.Empty;
+    private IReadOnlyList<PeriodoAdministrativo> _periodos = [];
+    private bool _cargando = true;
 
     private string EstadoTexto => Etiqueta(_seleccionado.Estado);
     private string EstadoCss => _seleccionado.Estado switch
@@ -92,11 +104,42 @@
         _ => "El periodo está cerrado y sus resultados están disponibles para docentes y tutores."
     };
 
-    protected override void OnInitialized() => Seleccionar(PeriodosService.ObtenerActual().Id);
-
-    private void Seleccionar(string periodoId)
+    protected override async Task OnInitializedAsync()
     {
-        _seleccionado = PeriodosService.ObtenerPeriodos().Single(periodo => periodo.Id == periodoId);
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = string.Empty;
+        try
+        {
+            _periodos = await PeriodosService.ObtenerPeriodosAsync();
+            var actual = await PeriodosService.ObtenerActualAsync();
+            CargarSeleccion(actual.Id);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void CargarSeleccion(string periodoId)
+    {
+        _seleccionado = _periodos.Single(periodo => periodo.Id == periodoId);
         _inicioCaptura = _seleccionado.InicioCaptura;
         _finCaptura = _seleccionado.FinCaptura;
         _inicioEncuestas = _seleccionado.InicioEncuestas;
@@ -105,60 +148,81 @@
         _error = string.Empty;
     }
 
-    private void GuardarFechas()
+    private Task SeleccionarAsync(string periodoId)
     {
-        Ejecutar(() =>
+        CargarSeleccion(periodoId);
+        return Task.CompletedTask;
+    }
+
+    private Task GuardarFechas()
+    {
+        return EjecutarAsync(async () =>
         {
-            PeriodosService.EditarFechas(_seleccionado.Id, _inicioCaptura, _finCaptura, _inicioEncuestas, _cierreEncuestas);
+            await PeriodosService.EditarFechasAsync(
+                _seleccionado.Id,
+                _inicioCaptura,
+                _finCaptura,
+                _inicioEncuestas,
+                _cierreEncuestas);
             _mensaje = "Las fechas se guardaron.";
         });
     }
 
-    private void AbrirPeriodo()
+    private Task AbrirPeriodo()
     {
-        Ejecutar(() =>
+        return EjecutarAsync(async () =>
         {
-            var cantidad = PeriodosService.Abrir(_seleccionado.Id);
+            var cantidad = await PeriodosService.AbrirAsync(_seleccionado.Id);
             _mensaje = $"Se generaron {cantidad} encuestas para este periodo.";
-            Seleccionar(_seleccionado.Id);
+            await RecargarSeleccionAsync(_seleccionado.Id);
         });
     }
 
-    private void CerrarPeriodo()
+    private Task CerrarPeriodo()
     {
-        Ejecutar(() =>
+        return EjecutarAsync(async () =>
         {
-            PeriodosService.Cerrar(_seleccionado.Id);
+            await PeriodosService.CerrarAsync(_seleccionado.Id);
             _mensaje = "La aplicación se cerró y los resultados del periodo quedaron liberados.";
-            Seleccionar(_seleccionado.Id);
+            await RecargarSeleccionAsync(_seleccionado.Id);
         });
     }
 
-    private void CrearPeriodo()
+    private Task CrearPeriodo()
     {
-        Ejecutar(() =>
+        return EjecutarAsync(async () =>
         {
             var fechaInicio = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
             var fechaCierre = fechaInicio.AddMonths(4);
-            var periodo = PeriodosService.CrearPeriodo("Nuevo periodo", fechaInicio, fechaCierre);
-            Seleccionar(periodo.Id);
+            var periodo = await PeriodosService.CrearPeriodoAsync("Nuevo periodo", fechaInicio, fechaCierre);
+            await RecargarSeleccionAsync(periodo.Id);
             _mensaje = "Se creó un periodo en preparación. Ajusta sus fechas antes de abrirlo.";
         });
     }
 
-    private void Ejecutar(Action accion)
+    private async Task RecargarSeleccionAsync(string periodoId)
+    {
+        _periodos = await PeriodosService.ObtenerPeriodosAsync();
+        CargarSeleccion(periodoId);
+    }
+
+    private async Task EjecutarAsync(Func<Task> accion)
     {
         _error = string.Empty;
         _mensaje = string.Empty;
         try
         {
-            accion();
+            await accion();
         }
         catch (ArgumentException exception)
         {
             _error = exception.Message;
         }
         catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
         {
             _error = exception.Message;
         }

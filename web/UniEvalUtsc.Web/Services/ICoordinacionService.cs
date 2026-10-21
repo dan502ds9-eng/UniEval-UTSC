@@ -2,21 +2,23 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface ICoordinacionService
 {
-    ResumenCoordinacion ObtenerResumen(string periodoId, string cuatrimestre, string carreraId);
+    Task<ResumenCoordinacion> ObtenerResumenAsync(string periodoId, string cuatrimestre, string carreraId, CancellationToken ct = default);
 
-    IReadOnlyList<GrupoParticipacion> ObtenerGrupos(string periodoId, string cuatrimestre, string carreraId);
+    Task<IReadOnlyList<GrupoParticipacion>> ObtenerGruposAsync(string periodoId, string cuatrimestre, string carreraId, CancellationToken ct = default);
 
-    IReadOnlyList<string> ObtenerAlumnosPendientes(string grupoId, string carreraId);
+    Task<IReadOnlyList<string>> ObtenerAlumnosPendientesAsync(string grupoId, string carreraId, CancellationToken ct = default);
 
-    IReadOnlyList<ResultadoCoordinacion> ObtenerResultados(
+    Task<IReadOnlyList<ResultadoCoordinacion>> ObtenerResultadosAsync(
         string periodoId,
         string cuatrimestre,
         bool tutores,
-        string carreraId);
+        string carreraId,
+        CancellationToken ct = default);
 
-    IReadOnlyList<IReadOnlyList<string>> ObtenerDatosReporte(
+    Task<IReadOnlyList<IReadOnlyList<string>>> ObtenerDatosReporteAsync(
         string tipo,
         string periodoId,
         string cuatrimestre,
-        string carreraId);
+        string carreraId,
+        CancellationToken ct = default);
 }

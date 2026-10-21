@@ -24,26 +24,36 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
         new("tutoria-dsm05av", "Grupo de tutoría", "DSM05AV · Grupo A", 22, 30)
     ];
 
-    public IReadOnlyList<PeriodoResultado> ObtenerPeriodos() => periodosService is null
-        ? PeriodosPredeterminados
-        : periodosService.ObtenerPeriodos()
-            .Select(periodo => new PeriodoResultado(
+    public async Task<IReadOnlyList<PeriodoResultado>> ObtenerPeriodosAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (periodosService is null)
+        {
+            return PeriodosPredeterminados;
+        }
+
+        var periodos = await periodosService.ObtenerPeriodosAsync(ct);
+        return periodos.Select(periodo => new PeriodoResultado(
                 periodo.Id,
                 periodo.Nombre,
                 periodo.Estado == EstadoPeriodoGestion.Abierto,
                 periodo.Estado == EstadoPeriodoGestion.Cerrado))
             .ToArray();
+    }
 
-    public IReadOnlyList<ElementoResultado> ObtenerElementos(Rol rol) => rol switch
+    public Task<IReadOnlyList<ElementoResultado>> ObtenerElementosAsync(Rol rol, CancellationToken ct = default)
     {
-        Rol.Docente => MateriasDocente,
-        Rol.Tutor => GruposTutor,
-        _ => throw new ArgumentOutOfRangeException(nameof(rol), rol, "El rol debe ser Docente o Tutor.")
-    };
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerElementos(rol));
+    }
 
-    public IReadOnlyList<TarjetaResultado> ObtenerTarjetasInicio(Rol rol, string periodoId)
+    public async Task<IReadOnlyList<TarjetaResultado>> ObtenerTarjetasInicioAsync(
+        Rol rol,
+        string periodoId,
+        CancellationToken ct = default)
     {
-        var periodo = ObtenerPeriodo(periodoId);
+        ct.ThrowIfCancellationRequested();
+        var periodo = await ObtenerPeriodoAsync(periodoId, ct);
         return ObtenerElementos(rol)
             .Select(elemento =>
             {
@@ -58,21 +68,30 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
             .ToArray();
     }
 
-    public ResultadoPersonal? ObtenerResultado(Rol rol, string periodoId, string elementoId)
+    public async Task<ResultadoPersonal?> ObtenerResultadoAsync(
+        Rol rol,
+        string periodoId,
+        string elementoId,
+        CancellationToken ct = default)
     {
-        var periodo = ObtenerPeriodo(periodoId);
+        ct.ThrowIfCancellationRequested();
+        var periodo = await ObtenerPeriodoAsync(periodoId, ct);
         var elemento = ObtenerElementos(rol).SingleOrDefault(item => item.Id == elementoId)
             ?? throw new ArgumentException("No se encontró la materia o el grupo indicado.", nameof(elementoId));
         var resultado = CrearResultado(rol, periodo, elemento);
         return !periodo.Cerrado || resultado.Respuestas < 5 ? null : resultado;
     }
 
-    public IReadOnlyList<PuntoHistorico> ObtenerHistorico(Rol rol, string elementoId)
+    public async Task<IReadOnlyList<PuntoHistorico>> ObtenerHistoricoAsync(
+        Rol rol,
+        string elementoId,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var elemento = ObtenerElementos(rol).SingleOrDefault(item => item.Id == elementoId)
             ?? throw new ArgumentException("No se encontró la materia o el grupo indicado.", nameof(elementoId));
-
-        return ObtenerPeriodos()
+        var periodos = await ObtenerPeriodosAsync(ct);
+        return periodos
             .Where(periodo => periodo.Cerrado && elemento.AlumnosRespondieron >= 5)
             .Select((periodo, indice) =>
             {
@@ -83,10 +102,15 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
             .ToArray();
     }
 
-    public IReadOnlyList<FilaReportePersonal> ObtenerReportes(Rol rol) =>
-        ObtenerElementos(rol)
+    public async Task<IReadOnlyList<FilaReportePersonal>> ObtenerReportesAsync(
+        Rol rol,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var periodos = await ObtenerPeriodosAsync(ct);
+        return ObtenerElementos(rol)
             .Where(elemento => elemento.AlumnosRespondieron >= 5)
-            .SelectMany(elemento => ObtenerPeriodos()
+            .SelectMany(elemento => periodos
                 .Where(periodo => periodo.Cerrado)
                 .Select((periodo, indice) =>
                 {
@@ -103,10 +127,21 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
             .OrderByDescending(reporte => reporte.PeriodoId, StringComparer.Ordinal)
             .ThenBy(reporte => reporte.ElementoNombre, StringComparer.Ordinal)
             .ToArray();
+    }
 
-    private PeriodoResultado ObtenerPeriodo(string periodoId) =>
-        ObtenerPeriodos().SingleOrDefault(periodo => periodo.Id == periodoId)
-        ?? throw new ArgumentException("No se encontró el periodo solicitado.", nameof(periodoId));
+    private async Task<PeriodoResultado> ObtenerPeriodoAsync(string periodoId, CancellationToken ct)
+    {
+        var periodos = await ObtenerPeriodosAsync(ct);
+        return periodos.SingleOrDefault(periodo => periodo.Id == periodoId)
+            ?? throw new ArgumentException("No se encontró el periodo solicitado.", nameof(periodoId));
+    }
+
+    private static IReadOnlyList<ElementoResultado> ObtenerElementos(Rol rol) => rol switch
+    {
+        Rol.Docente => MateriasDocente,
+        Rol.Tutor => GruposTutor,
+        _ => throw new ArgumentOutOfRangeException(nameof(rol), rol, "El rol debe ser Docente o Tutor.")
+    };
 
     private static ResultadoPersonal CrearResultado(
         Rol rol,

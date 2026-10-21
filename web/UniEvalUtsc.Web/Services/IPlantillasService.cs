@@ -2,15 +2,15 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface IPlantillasService
 {
-    IReadOnlyList<PlantillaAdministrativa> ObtenerPlantillas();
+    Task<IReadOnlyList<PlantillaAdministrativa>> ObtenerPlantillasAsync(CancellationToken ct = default);
 
-    PlantillaAdministrativa Obtener(string plantillaId);
+    Task<PlantillaAdministrativa> ObtenerAsync(string plantillaId, CancellationToken ct = default);
 
-    PlantillaAdministrativa CrearBorrador(string plantillaId);
+    Task<PlantillaAdministrativa> CrearBorradorAsync(string plantillaId, CancellationToken ct = default);
 
-    void ReemplazarAspectos(string plantillaId, IReadOnlyList<AspectoPlantilla> aspectos);
+    Task ReemplazarAspectosAsync(string plantillaId, IReadOnlyList<AspectoPlantilla> aspectos, CancellationToken ct = default);
 
-    void Publicar(string plantillaId);
+    Task PublicarAsync(string plantillaId, CancellationToken ct = default);
 
-    void Descartar(string plantillaId);
+    Task DescartarAsync(string plantillaId, CancellationToken ct = default);
 }

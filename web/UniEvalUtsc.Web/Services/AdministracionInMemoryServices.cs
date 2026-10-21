@@ -34,15 +34,28 @@ public sealed class PeriodosInMemoryService(
             new DateOnly(2026, 4, 16))
     ];
 
-    public IReadOnlyList<PeriodoAdministrativo> ObtenerPeriodos() => _periodos;
-
-    public PeriodoAdministrativo ObtenerActual() =>
-        _periodos.FirstOrDefault(periodo => periodo.Estado == EstadoPeriodoGestion.Abierto)
-        ?? _periodos.FirstOrDefault(periodo => periodo.Estado == EstadoPeriodoGestion.EnPreparacion)
-        ?? _periodos.First();
-
-    public PeriodoAdministrativo CrearPeriodo(string nombre, DateOnly inicio, DateOnly cierre)
+    public Task<IReadOnlyList<PeriodoAdministrativo>> ObtenerPeriodosAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<PeriodoAdministrativo>>(_periodos);
+    }
+
+    public Task<PeriodoAdministrativo> ObtenerActualAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(
+            _periodos.FirstOrDefault(periodo => periodo.Estado == EstadoPeriodoGestion.Abierto)
+            ?? _periodos.FirstOrDefault(periodo => periodo.Estado == EstadoPeriodoGestion.EnPreparacion)
+            ?? _periodos.First());
+    }
+
+    public Task<PeriodoAdministrativo> CrearPeriodoAsync(
+        string nombre,
+        DateOnly inicio,
+        DateOnly cierre,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(nombre);
         if (inicio >= cierre)
         {
@@ -58,16 +71,18 @@ public sealed class PeriodosInMemoryService(
             inicio,
             cierre);
         _periodos.Insert(0, periodo);
-        return periodo;
+        return Task.FromResult(periodo);
     }
 
-    public void EditarFechas(
+    public Task EditarFechasAsync(
         string periodoId,
         DateOnly inicioCaptura,
         DateOnly finCaptura,
         DateOnly inicioEncuestas,
-        DateOnly cierreEncuestas)
+        DateOnly cierreEncuestas,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var periodo = Obtener(periodoId);
         if (periodo.Estado != EstadoPeriodoGestion.EnPreparacion)
         {
@@ -84,10 +99,12 @@ public sealed class PeriodosInMemoryService(
         periodo.FinCaptura = finCaptura;
         periodo.InicioEncuestas = inicioEncuestas;
         periodo.CierreEncuestas = cierreEncuestas;
+        return Task.CompletedTask;
     }
 
-    public int Abrir(string periodoId)
+    public async Task<int> AbrirAsync(string periodoId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var periodo = Obtener(periodoId);
         if (periodo.Estado != EstadoPeriodoGestion.EnPreparacion)
         {
@@ -99,22 +116,23 @@ public sealed class PeriodosInMemoryService(
             throw new InvalidOperationException("Ya hay otro periodo abierto. Cierra el periodo actual antes de abrir uno nuevo.");
         }
 
-        var asignaciones = cargaAcademica?.ObtenerAsignaciones() ?? [];
+        var asignaciones = cargaAcademica is null
+            ? []
+            : await cargaAcademica.ObtenerAsignacionesAsync(ct);
         var encuestasDocentes = asignaciones.Count(asignacion => !asignacion.EsTutor) * 30;
         var encuestasTutorGrupo = asignaciones.Count(asignacion => asignacion.EsTutor) * 30;
         var encuestasEstadias = estadias is null
             ? 0
-            : estadias.ObtenerGrupos()
-                .SelectMany(grupo => estadias.ObtenerAsignaciones(grupo.Id))
-                .Count(asignacion => !string.IsNullOrWhiteSpace(asignacion.TutorId));
+            : await ContarEncuestasEstadiasAsync(estadias, ct);
         var cantidadEncuestas = encuestasDocentes + encuestasTutorGrupo + encuestasEstadias;
         periodo.EncuestasGeneradas = cantidadEncuestas;
         periodo.Estado = EstadoPeriodoGestion.Abierto;
         return cantidadEncuestas;
     }
 
-    public void Cerrar(string periodoId)
+    public Task CerrarAsync(string periodoId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var periodo = Obtener(periodoId);
         if (periodo.Estado != EstadoPeriodoGestion.Abierto)
         {
@@ -122,6 +140,20 @@ public sealed class PeriodosInMemoryService(
         }
 
         periodo.Estado = EstadoPeriodoGestion.Cerrado;
+        return Task.CompletedTask;
+    }
+
+    private static async Task<int> ContarEncuestasEstadiasAsync(IEstadiasService estadias, CancellationToken ct)
+    {
+        var grupos = await estadias.ObtenerGruposAsync(ct);
+        var cantidad = 0;
+        foreach (var grupo in grupos)
+        {
+            var asignaciones = await estadias.ObtenerAsignacionesAsync(grupo.Id, ct);
+            cantidad += asignaciones.Count(asignacion => !string.IsNullOrWhiteSpace(asignacion.TutorId));
+        }
+
+        return cantidad;
     }
 
     private PeriodoAdministrativo Obtener(string periodoId) =>
@@ -152,12 +184,21 @@ public sealed class CargaAcademicaInMemoryService : ICargaAcademicaService
         "Martha Laura Esparza Robles"
     ];
 
-    public IReadOnlyList<AsignacionCarga> ObtenerAsignaciones() => _asignaciones;
-
-    public IReadOnlyList<string> ObtenerDocentes() => Docentes;
-
-    public void CambiarDocente(string asignacionId, string docente)
+    public Task<IReadOnlyList<AsignacionCarga>> ObtenerAsignacionesAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<AsignacionCarga>>(_asignaciones);
+    }
+
+    public Task<IReadOnlyList<string>> ObtenerDocentesAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(Docentes);
+    }
+
+    public Task CambiarDocenteAsync(string asignacionId, string docente, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
         if (!Docentes.Contains(docente, StringComparer.Ordinal))
         {
             throw new ArgumentException("Selecciona un docente del catálogo.", nameof(docente));
@@ -170,14 +211,18 @@ public sealed class CargaAcademicaInMemoryService : ICargaAcademicaService
         }
 
         _asignaciones[indice] = _asignaciones[indice] with { Docente = docente };
+        return Task.CompletedTask;
     }
 
-    public ResultadoImportacion Importar(IReadOnlyList<IReadOnlyList<string>> filas)
+    public Task<ResultadoImportacion> ImportarAsync(
+        IReadOnlyList<IReadOnlyList<string>> filas,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var errores = new List<RegistroImportacion>();
         if (filas.Count < 2)
         {
-            return new ResultadoImportacion(0, 0, [new RegistroImportacion(1, "archivo", "El archivo no contiene renglones de carga.")]);
+            return Task.FromResult(new ResultadoImportacion(0, 0, [new RegistroImportacion(1, "archivo", "El archivo no contiene renglones de carga.")]));
         }
 
         var nuevas = new List<AsignacionCarga>();
@@ -226,7 +271,7 @@ public sealed class CargaAcademicaInMemoryService : ICargaAcademicaService
             _asignaciones.AddRange(nuevas);
         }
 
-        return new ResultadoImportacion(filas.Count - 1, errores.Count == 0 ? nuevas.Count : 0, errores);
+        return Task.FromResult(new ResultadoImportacion(filas.Count - 1, errores.Count == 0 ? nuevas.Count : 0, errores));
     }
 }
 
@@ -261,22 +306,35 @@ public sealed class EstadiasInMemoryService : IEstadiasService
         ]
     };
 
-    public IReadOnlyList<GrupoEstadias> ObtenerGrupos() => Grupos;
-
-    public IReadOnlyList<AsignacionTutorEstadias> ObtenerAsignaciones(string grupoId) =>
-        ObtenerAlumnos(grupoId);
-
-    public void AsignarTutorATodoElGrupo(string grupoId, string tutorId)
+    public Task<IReadOnlyList<GrupoEstadias>> ObtenerGruposAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(Grupos);
+    }
+
+    public Task<IReadOnlyList<AsignacionTutorEstadias>> ObtenerAsignacionesAsync(
+        string grupoId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<AsignacionTutorEstadias>>(ObtenerAlumnos(grupoId));
+    }
+
+    public Task AsignarTutorATodoElGrupoAsync(string grupoId, string tutorId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
         ValidarTutor(tutorId);
         foreach (var alumno in ObtenerAlumnos(grupoId))
         {
             alumno.TutorId = tutorId;
         }
+
+        return Task.CompletedTask;
     }
 
-    public void CambiarTutor(string alumnoId, string? tutorId)
+    public Task CambiarTutorAsync(string alumnoId, string? tutorId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (tutorId is not null)
         {
             ValidarTutor(tutorId);
@@ -286,14 +344,21 @@ public sealed class EstadiasInMemoryService : IEstadiasService
             .SingleOrDefault(alumno => alumno.AlumnoId == alumnoId)
             ?? throw new ArgumentException("No se encontró el alumno de estadías.", nameof(alumnoId));
         alumno.TutorId = tutorId;
+        return Task.CompletedTask;
     }
 
-    public void GuardarAsignaciones(string grupoId)
+    public Task GuardarAsignacionesAsync(string grupoId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         _ = ObtenerAlumnos(grupoId);
+        return Task.CompletedTask;
     }
 
-    public IReadOnlyList<string> ObtenerTutores() => Tutores;
+    public Task<IReadOnlyList<string>> ObtenerTutoresAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(Tutores);
+    }
 
     private List<AsignacionTutorEstadias> ObtenerAlumnos(string grupoId) =>
         _alumnos.TryGetValue(grupoId, out var alumnos)
@@ -320,10 +385,15 @@ public sealed class CatalogosInMemoryService : ICatalogosService
         ["alumnos"] = [new("alumno-1", "Alumno de ejemplo", "a***@utsc.edu.mx")]
     };
 
-    public IReadOnlyList<ElementoCatalogo> Obtener(string tipo) => Catalogo(tipo);
-
-    public void Agregar(string tipo, string nombre, string contexto)
+    public Task<IReadOnlyList<ElementoCatalogo>> ObtenerAsync(string tipo, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<ElementoCatalogo>>(Catalogo(tipo));
+    }
+
+    public Task AgregarAsync(string tipo, string nombre, string contexto, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(nombre);
         var catalogo = Catalogo(tipo);
         if (catalogo.Any(elemento => string.Equals(elemento.Nombre, nombre.Trim(), StringComparison.OrdinalIgnoreCase)))
@@ -332,10 +402,12 @@ public sealed class CatalogosInMemoryService : ICatalogosService
         }
 
         catalogo.Add(new ElementoCatalogo(Guid.NewGuid().ToString("N"), nombre.Trim(), contexto.Trim()));
+        return Task.CompletedTask;
     }
 
-    public void CambiarEstado(string tipo, string id)
+    public Task CambiarEstadoAsync(string tipo, string id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var catalogo = Catalogo(tipo);
         var indice = catalogo.FindIndex(elemento => elemento.Id == id);
         if (indice < 0)
@@ -344,14 +416,19 @@ public sealed class CatalogosInMemoryService : ICatalogosService
         }
 
         catalogo[indice] = catalogo[indice] with { Activo = !catalogo[indice].Activo };
+        return Task.CompletedTask;
     }
 
-    public ResultadoImportacion Importar(string tipo, IReadOnlyList<IReadOnlyList<string>> filas)
+    public Task<ResultadoImportacion> ImportarAsync(
+        string tipo,
+        IReadOnlyList<IReadOnlyList<string>> filas,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var errores = new List<RegistroImportacion>();
         if (filas.Count < 2)
         {
-            return new ResultadoImportacion(0, 0, [new RegistroImportacion(1, "archivo", "El archivo no contiene datos.")]);
+            return Task.FromResult(new ResultadoImportacion(0, 0, [new RegistroImportacion(1, "archivo", "El archivo no contiene datos.")]));
         }
 
         var nuevas = new List<ElementoCatalogo>();
@@ -379,7 +456,7 @@ public sealed class CatalogosInMemoryService : ICatalogosService
             Catalogo(tipo).AddRange(nuevas);
         }
 
-        return new ResultadoImportacion(filas.Count - 1, errores.Count == 0 ? nuevas.Count : 0, errores);
+        return Task.FromResult(new ResultadoImportacion(filas.Count - 1, errores.Count == 0 ? nuevas.Count : 0, errores));
     }
 
     private List<ElementoCatalogo> Catalogo(string tipo) =>
@@ -396,13 +473,53 @@ public sealed class PlantillasInMemoryService : IPlantillasService
         Crear("form-ac64", "FORM-AC64 · Desempeño del tutor", 1, true, 7)
     ];
 
-    public IReadOnlyList<PlantillaAdministrativa> ObtenerPlantillas() => _plantillas;
+    public Task<IReadOnlyList<PlantillaAdministrativa>> ObtenerPlantillasAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<PlantillaAdministrativa>>(_plantillas);
+    }
 
-    public PlantillaAdministrativa Obtener(string plantillaId) =>
+    public Task<PlantillaAdministrativa> ObtenerAsync(string plantillaId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerCore(plantillaId));
+    }
+
+    public Task<PlantillaAdministrativa> CrearBorradorAsync(string plantillaId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(CrearBorradorCore(plantillaId));
+    }
+
+    public Task ReemplazarAspectosAsync(
+        string plantillaId,
+        IReadOnlyList<AspectoPlantilla> aspectos,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        ReemplazarAspectosCore(plantillaId, aspectos);
+        return Task.CompletedTask;
+    }
+
+    public Task PublicarAsync(string plantillaId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        PublicarCore(plantillaId);
+        return Task.CompletedTask;
+    }
+
+    public Task DescartarAsync(string plantillaId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        DescartarCore(plantillaId);
+        return Task.CompletedTask;
+    }
+
+    private PlantillaAdministrativa ObtenerCore(string plantillaId) =>
         _plantillas.SingleOrDefault(plantilla => plantilla.Id == plantillaId)
         ?? throw new ArgumentException("No se encontró la plantilla solicitada.", nameof(plantillaId));
 
-    public PlantillaAdministrativa CrearBorrador(string plantillaId)
+    private PlantillaAdministrativa CrearBorradorCore(string plantillaId)
     {
         var vigente = ObtenerPlantillaVigente(plantillaId);
         var indiceVersion = plantillaId.IndexOf("-v", StringComparison.Ordinal);
@@ -426,10 +543,10 @@ public sealed class PlantillasInMemoryService : IPlantillasService
         return borrador;
     }
 
-    public void ReemplazarAspectos(string plantillaId, IReadOnlyList<AspectoPlantilla> aspectos)
+    private void ReemplazarAspectosCore(string plantillaId, IReadOnlyList<AspectoPlantilla> aspectos)
     {
         ArgumentNullException.ThrowIfNull(aspectos);
-        var plantilla = Obtener(plantillaId);
+        var plantilla = ObtenerCore(plantillaId);
         ValidarBorrador(plantilla);
         if (aspectos.Count == 0 || aspectos.Any(aspecto => string.IsNullOrWhiteSpace(aspecto.Texto)))
         {
@@ -439,9 +556,9 @@ public sealed class PlantillasInMemoryService : IPlantillasService
         plantilla.Aspectos = aspectos.Select((aspecto, indice) => new AspectoPlantilla(indice + 1, aspecto.Texto.Trim())).ToArray();
     }
 
-    public void Publicar(string plantillaId)
+    private void PublicarCore(string plantillaId)
     {
-        var borrador = Obtener(plantillaId);
+        var borrador = ObtenerCore(plantillaId);
         ValidarBorrador(borrador);
         var vigente = ObtenerPlantillaVigente(plantillaId[..plantillaId.LastIndexOf("-v", StringComparison.Ordinal)]);
         vigente.Vigente = false;
@@ -449,9 +566,9 @@ public sealed class PlantillasInMemoryService : IPlantillasService
         borrador.Vigente = true;
     }
 
-    public void Descartar(string plantillaId)
+    private void DescartarCore(string plantillaId)
     {
-        var borrador = Obtener(plantillaId);
+        var borrador = ObtenerCore(plantillaId);
         ValidarBorrador(borrador);
         _plantillas.Remove(borrador);
     }

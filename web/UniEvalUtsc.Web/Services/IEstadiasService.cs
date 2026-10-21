@@ -2,15 +2,15 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface IEstadiasService
 {
-    IReadOnlyList<GrupoEstadias> ObtenerGrupos();
+    Task<IReadOnlyList<GrupoEstadias>> ObtenerGruposAsync(CancellationToken ct = default);
 
-    IReadOnlyList<AsignacionTutorEstadias> ObtenerAsignaciones(string grupoId);
+    Task<IReadOnlyList<AsignacionTutorEstadias>> ObtenerAsignacionesAsync(string grupoId, CancellationToken ct = default);
 
-    void AsignarTutorATodoElGrupo(string grupoId, string tutorId);
+    Task AsignarTutorATodoElGrupoAsync(string grupoId, string tutorId, CancellationToken ct = default);
 
-    void CambiarTutor(string alumnoId, string? tutorId);
+    Task CambiarTutorAsync(string alumnoId, string? tutorId, CancellationToken ct = default);
 
-    void GuardarAsignaciones(string grupoId);
+    Task GuardarAsignacionesAsync(string grupoId, CancellationToken ct = default);
 
-    IReadOnlyList<string> ObtenerTutores();
+    Task<IReadOnlyList<string>> ObtenerTutoresAsync(CancellationToken ct = default);
 }

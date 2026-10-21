@@ -6,6 +6,16 @@
 <ShellAdministrador Seccion="catalogos">
     <ChildContent>
         <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (_error is not null)
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
             <h2>Catálogos</h2>
             <div class="catalogos-admin__segmentos" role="group" aria-label="Tipo de catálogo">
                 @foreach (var opcion in TiposCatalogo)
@@ -67,6 +77,7 @@
                     </tbody>
                 </table>
             </div>
+            }
         </section>
     </ChildContent>
 </ShellAdministrador>
@@ -87,27 +98,61 @@
     private string _nuevoContexto = string.Empty;
     private string _mensaje = string.Empty;
     private IReadOnlyList<RegistroImportacion> _errores = [];
+    private IReadOnlyList<ElementoCatalogo> _elementos = [];
+    private bool _cargando = true;
+    private string? _error;
     private string TipoNombre => TiposCatalogo.Single(tipo => tipo.Id == _tipo).Nombre;
-    private IReadOnlyList<ElementoCatalogo> Elementos => CatalogosService.Obtener(_tipo)
+    private IReadOnlyList<ElementoCatalogo> Elementos => _elementos
         .Where(elemento => elemento.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase)
             || elemento.Contexto.Contains(_busqueda, StringComparison.OrdinalIgnoreCase))
         .ToArray();
 
-    private void CambiarTipo(string tipo)
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _elementos = await CatalogosService.ObtenerAsync(_tipo);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CambiarTipo(string tipo)
     {
         _tipo = tipo;
         _mensaje = string.Empty;
         _errores = [];
+        await CargarAsync();
     }
 
-    private void Agregar()
+    private async Task Agregar()
     {
         try
         {
-            CatalogosService.Agregar(_tipo, _nuevoNombre, _nuevoContexto);
+            await CatalogosService.AgregarAsync(_tipo, _nuevoNombre, _nuevoContexto);
             _nuevoNombre = string.Empty;
             _nuevoContexto = string.Empty;
             _mensaje = "El registro se agregó al catálogo.";
+            await CargarAsync();
         }
         catch (ArgumentException exception)
         {
@@ -115,10 +160,11 @@
         }
     }
 
-    private void CambiarEstado(string id)
+    private async Task CambiarEstado(string id)
     {
-        CatalogosService.CambiarEstado(_tipo, id);
+        await CatalogosService.CambiarEstadoAsync(_tipo, id);
         _mensaje = "Se actualizó el estado del registro.";
+        await CargarAsync();
     }
 
     private async Task Importar(InputFileChangeEventArgs evento)
@@ -129,11 +175,12 @@
         try
         {
             var filas = ImportadorTabular.Leer(archivo.OpenReadStream(5 * 1024 * 1024), archivo.Name);
-            var resultado = CatalogosService.Importar(_tipo, filas);
+            var resultado = await CatalogosService.ImportarAsync(_tipo, filas);
             _errores = resultado.Errores;
             _mensaje = $"Renglones procesados: {resultado.Renglones}. Registros importados: {resultado.Importados}.";
+            await CargarAsync();
         }
-        catch (Exception exception) when (exception is IOException or ArgumentException or FormatException)
+        catch (Exception exception) when (exception is IOException or ArgumentException or FormatException or InvalidOperationException or HttpRequestException)
         {
             _mensaje = $"No se pudo importar el archivo: {exception.Message}";
         }

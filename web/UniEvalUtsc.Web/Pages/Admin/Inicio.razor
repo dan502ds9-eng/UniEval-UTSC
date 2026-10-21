@@ -9,36 +9,70 @@
 <PageTitle>Inicio · UniEval UTSC</PageTitle>
 <ShellAdministrador Seccion="inicio">
     <ChildContent>
+        @if (_cargando)
+        {
+            <p role="status">Cargando…</p>
+        }
+        else if (_error is not null)
+        {
+            <p role="alert">@_error</p>
+        }
+        else if (_periodo is not null)
+        {
         <section class="coordinacion-panel">
             <div class="coordinacion-panel__encabezado">
                 <h2>Periodo actual</h2>
                 <span class="estado-periodo estado-periodo--@EstadoCss">@EstadoTexto</span>
             </div>
-            <p>@Periodo.Nombre · cierre de encuestas: @Periodo.CierreEncuestas.ToString("d 'de' MMMM yyyy", CultureInfo.GetCultureInfo("es-MX"))</p>
+            <p>@_periodo.Nombre · cierre de encuestas: @_periodo.CierreEncuestas.ToString("d 'de' MMMM yyyy", CultureInfo.GetCultureInfo("es-MX"))</p>
             <a class="boton boton--enlace" href="/admin/periodos">Administrar periodos →</a>
         </section>
         <IndicadoresGestion Resumen="@_resumen" />
+        }
     </ChildContent>
 </ShellAdministrador>
 
 @code {
-    private PeriodoAdministrativo Periodo => PeriodosService.ObtenerActual();
+    private PeriodoAdministrativo? _periodo;
     private ResumenCoordinacion _resumen = new(0, 0, 0, 0, 0);
-    private string EstadoTexto => Periodo.Estado switch
+    private bool _cargando = true;
+    private string? _error;
+    private string EstadoTexto => _periodo?.Estado switch
     {
         EstadoPeriodoGestion.EnPreparacion => "En preparación",
         EstadoPeriodoGestion.Abierto => "Encuestas abiertas",
         _ => "Cerrado"
     };
-    private string EstadoCss => Periodo.Estado switch
+    private string EstadoCss => _periodo?.Estado switch
     {
         EstadoPeriodoGestion.EnPreparacion => "preparacion",
         EstadoPeriodoGestion.Abierto => "abierto",
         _ => "cerrado"
     };
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _resumen = CoordinacionService.ObtenerResumen(Periodo.Id, "todos", Filtros.CarreraId);
+        try
+        {
+            _periodo = await PeriodosService.ObtenerActualAsync();
+            _resumen = await CoordinacionService.ObtenerResumenAsync(_periodo.Id, "todos", Filtros.CarreraId);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 }

@@ -4,6 +4,16 @@
 @inject UnievalJsInterop JsInterop
 
 <section class="resultados-personal">
+    @if (_cargando)
+    {
+        <p role="status">Cargando…</p>
+    }
+    else if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    else
+    {
     <div class="resultado-filtros">
         <label for="periodo-resultados">Periodo</label>
         <select id="periodo-resultados" value="@_periodoId" @onchange="CambiarPeriodo">
@@ -20,7 +30,7 @@
                     role="tab"
                     aria-selected="@(_elementoId == elemento.Id)"
                     class="@(_elementoId == elemento.Id ? "resultado-segmentado__activo" : null)"
-                    @onclick="() => SeleccionarElemento(elemento.Id)">
+                    @onclick="() => SeleccionarElementoAsync(elemento.Id)">
                 @elemento.Nombre <small>@elemento.Contexto</small>
             </button>
         }
@@ -70,6 +80,7 @@
             <button class="boton boton--contorno" type="button" @onclick="DescargarPdfAsync">Descargar reporte (PDF)</button>
         </section>
     }
+    }
 </section>
 
 @code {
@@ -82,45 +93,98 @@
     private PeriodoResultado? _periodo;
     private ElementoResultado? _elemento;
     private ResultadoPersonal? _resultado;
+    private bool _cargando = true;
+    private string? _error;
 
     private string DiferenciaTexto => _resultado is null
         ? string.Empty
         : $"{(_resultado.DiferenciaCarrera > 0 ? "+" : string.Empty)}{_resultado.DiferenciaCarrera:0.0}";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _periodos = ResultadosService.ObtenerPeriodos();
-        _elementos = ResultadosService.ObtenerElementos(Rol);
-        _periodoId = ObtenerParametro("periodoId")
-            ?? _periodos.FirstOrDefault(periodo => periodo.Abierto)?.Id
-            ?? _periodos.First().Id;
-        _elementoId = ObtenerParametro("elementoId")
-            ?? _elementos.First().Id;
-        ActualizarResultado();
+        await CargarAsync();
     }
 
-    private void CambiarPeriodo(ChangeEventArgs evento)
+    private async Task CambiarPeriodo(ChangeEventArgs evento)
     {
         _periodoId = evento.Value?.ToString()
             ?? throw new InvalidOperationException("El selector de periodo no devolvió una selección.");
-        ActualizarResultado();
+        await ActualizarResultadoAsync();
     }
 
-    private void SeleccionarElemento(string elementoId)
+    private async Task SeleccionarElementoAsync(string elementoId)
     {
         _elementoId = elementoId;
-        ActualizarResultado();
+        await ActualizarResultadoAsync();
     }
 
-    private void ActualizarResultado()
+    private async Task CargarAsync()
     {
-        _periodo = _periodos.SingleOrDefault(periodo => periodo.Id == _periodoId)
-            ?? throw new InvalidOperationException("El periodo seleccionado ya no está disponible.");
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _periodos = await ResultadosService.ObtenerPeriodosAsync();
+            _elementos = await ResultadosService.ObtenerElementosAsync(Rol);
+            _periodoId = ObtenerParametro("periodoId")
+                ?? _periodos.FirstOrDefault(periodo => periodo.Abierto)?.Id
+                ?? _periodos.FirstOrDefault()?.Id
+                ?? throw new InvalidOperationException("No hay periodos disponibles.");
+            _elementoId = ObtenerParametro("elementoId")
+                ?? _elementos.FirstOrDefault()?.Id
+                ?? string.Empty;
+            await ActualizarResultadoAsync();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task ActualizarResultadoAsync()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _periodo = _periodos.SingleOrDefault(periodo => periodo.Id == _periodoId)
+                ?? throw new InvalidOperationException("El periodo seleccionado ya no está disponible.");
         _elemento = _elementos.SingleOrDefault(elemento => elemento.Id == _elementoId)
             ?? _elementos.FirstOrDefault();
         _resultado = _elemento is null
             ? null
-            : ResultadosService.ObtenerResultado(Rol, _periodoId, _elemento.Id);
+                : await ResultadosService.ObtenerResultadoAsync(Rol, _periodoId, _elemento.Id);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 
     private string? ObtenerParametro(string nombre)

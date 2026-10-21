@@ -7,7 +7,15 @@
 <PageTitle>Detalle de resultados · UniEval UTSC</PageTitle>
 <ShellAdministrador Seccion="@Seccion" FiltrosVisibles="true">
     <ChildContent>
-        @if (_resultado is null)
+        @if (_cargando)
+        {
+            <p role="status">Cargando…</p>
+        }
+        else if (_error is not null)
+        {
+            <p role="alert">@_error</p>
+        }
+        else if (_resultado is null)
         {
             <p class="resultado-aviso" role="status">No hay un resultado disponible para mostrar con estos filtros.</p>
         }
@@ -23,24 +31,49 @@
     [Parameter] public string Id { get; set; } = string.Empty;
 
     private ResultadoCoordinacion? _resultado;
+    private bool _cargando = true;
+    private string? _error;
     private bool EsTutor => string.Equals(Tipo, "tutor", StringComparison.OrdinalIgnoreCase);
     private string Seccion => EsTutor ? "resultados-tutores" : "resultados-docentes";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Filtros.InicializarPeriodo(ResultadosService.ObtenerPeriodos());
+        Filtros.InicializarPeriodo(await ResultadosService.ObtenerPeriodosAsync());
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
+        _cargando = true;
+        _error = null;
         if (!string.Equals(Tipo, "docente", StringComparison.OrdinalIgnoreCase) && !EsTutor)
         {
             _resultado = null;
+            _cargando = false;
             return;
         }
 
-        _resultado = CoordinacionService
-            .ObtenerResultados(Filtros.PeriodoId, Filtros.Cuatrimestre, EsTutor, Filtros.CarreraId)
+        try
+        {
+            _resultado = (await CoordinacionService
+            .ObtenerResultadosAsync(Filtros.PeriodoId, Filtros.Cuatrimestre, EsTutor, Filtros.CarreraId))
             .SingleOrDefault(resultado => string.Equals(resultado.Id, Id, StringComparison.Ordinal));
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 }

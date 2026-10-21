@@ -2,15 +2,15 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface IPeriodosService
 {
-    IReadOnlyList<PeriodoAdministrativo> ObtenerPeriodos();
+    Task<IReadOnlyList<PeriodoAdministrativo>> ObtenerPeriodosAsync(CancellationToken ct = default);
 
-    PeriodoAdministrativo ObtenerActual();
+    Task<PeriodoAdministrativo> ObtenerActualAsync(CancellationToken ct = default);
 
-    PeriodoAdministrativo CrearPeriodo(string nombre, DateOnly inicio, DateOnly cierre);
+    Task<PeriodoAdministrativo> CrearPeriodoAsync(string nombre, DateOnly inicio, DateOnly cierre, CancellationToken ct = default);
 
-    void EditarFechas(string periodoId, DateOnly inicioCaptura, DateOnly finCaptura, DateOnly inicioEncuestas, DateOnly cierreEncuestas);
+    Task EditarFechasAsync(string periodoId, DateOnly inicioCaptura, DateOnly finCaptura, DateOnly inicioEncuestas, DateOnly cierreEncuestas, CancellationToken ct = default);
 
-    int Abrir(string periodoId);
+    Task<int> AbrirAsync(string periodoId, CancellationToken ct = default);
 
-    void Cerrar(string periodoId);
+    Task CerrarAsync(string periodoId, CancellationToken ct = default);
 }
