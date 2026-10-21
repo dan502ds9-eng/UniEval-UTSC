@@ -167,6 +167,7 @@ Corrige todo lo que fallen las pruebas.
 
 ## P11 · Contrato de la API (back)
 ```
+Lee docs/DECISIONES.md: sus rutas y contratos (D-01 a D-14) mandan sobre esta lista y sobre el PDF.
 En api/ implementa los endpoints de la sección 10 del PDF siguiendo la arquitectura existente: controladores en UniEvalUtsc.Api/Controllers, casos de uso en Application/Services (como EnviarRespuestaService), DTOs en UniEvalUtsc.Contracts y un middleware que traduzca NoEncontrado→404, AccesoDenegado→403, Validacion→400 y Domain→409. Sobre los repositorios InMemory:
 GET /api/auth/perfil · GET /api/mis-encuestas · GET /api/mis-encuestas/{id} · POST /api/mis-encuestas/{id}/respuestas (400 / 403 / 409 según el PDF)
 GET /api/mis-resultados?periodo= · GET /api/seguimiento?periodo=&carrera=&grupo= · GET /api/resultados/docentes · GET /api/resultados/tutores · GET /api/resultados/exportar?formato=xlsx|pdf
