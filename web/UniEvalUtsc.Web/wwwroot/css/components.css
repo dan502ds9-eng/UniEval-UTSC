@@ -958,6 +958,498 @@ html[data-theme="dark"] .acceso {
     color: var(--mute);
 }
 
+.resultados-personal {
+    display: grid;
+    width: 100%;
+    align-content: start;
+    justify-items: stretch;
+    gap: var(--space-5);
+}
+
+.resultado-periodo,
+.tarjeta-materia,
+.indicador-resultado,
+.resultado-lista,
+.resultado-tarjeta {
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card);
+}
+
+.resultado-periodo {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    padding: var(--space-4);
+}
+
+.resultado-periodo > div {
+    display: grid;
+    align-content: start;
+    gap: var(--space-1);
+}
+
+.resultado-periodo span,
+.resultado-periodo strong,
+.resultado-filtros label,
+.tarjeta-materia__encabezado p,
+.tarjeta-materia__promedio span,
+.indicador-resultado > span,
+.indicador-resultado small,
+.resultado-historico > p,
+.tabla-resultados__secundario {
+    color: var(--mute);
+}
+
+.resultado-periodo strong {
+    color: var(--ink);
+}
+
+.campo-periodo {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.resultados-personal select {
+    width: min(100%, 24rem);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--button-radius);
+    background: var(--card);
+    color: var(--ink);
+}
+
+.resultados-seccion__titulo {
+    font-size: 1.375rem;
+}
+
+.tarjetas-materia {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+    align-items: start;
+    gap: var(--space-4);
+}
+
+.tarjeta-materia {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: var(--space-4);
+    min-width: 0;
+    padding: var(--space-5);
+}
+
+.tarjeta-materia__encabezado {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.tarjeta-materia__encabezado h2 {
+    font-size: 1.125rem;
+}
+
+.tarjeta-materia__encabezado p {
+    margin-top: var(--space-1);
+}
+
+.tarjeta-materia__promedio {
+    display: flex;
+    width: 100%;
+    align-items: baseline;
+    gap: var(--space-3);
+}
+
+.tarjeta-materia__promedio strong {
+    font-size: 1.75rem;
+}
+
+.tarjeta-materia > p,
+.tarjeta-materia__aviso {
+    color: var(--mute);
+}
+
+.tarjeta-materia__aviso {
+    padding: var(--space-3);
+    border-left: 0.25rem solid var(--medium);
+    background: color-mix(in srgb, var(--medium) 15%, var(--card));
+}
+
+.resultado-filtros {
+    display: grid;
+    width: min(100%, 24rem);
+    gap: var(--space-2);
+}
+
+.resultado-segmentado {
+    display: flex;
+    max-width: 100%;
+    gap: var(--space-2);
+    overflow-x: auto;
+    padding: 0.1875rem;
+}
+
+.resultado-segmentado button {
+    display: grid;
+    min-width: max-content;
+    min-height: 2.75rem;
+    align-content: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--button-radius);
+    background: var(--card);
+    color: var(--ink);
+    text-align: left;
+}
+
+.resultado-segmentado button small {
+    color: var(--mute);
+}
+
+.resultado-segmentado button.resultado-segmentado__activo {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 16%, var(--card));
+    font-weight: 700;
+}
+
+.resultado-aviso {
+    padding: var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--button-radius);
+    background: var(--card);
+    color: var(--mute);
+}
+
+.resultado-detalle {
+    display: grid;
+    gap: var(--space-5);
+}
+
+.resultado-indicadores {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--space-4);
+}
+
+.indicador-resultado {
+    display: grid;
+    min-height: 8rem;
+    align-content: start;
+    justify-items: start;
+    gap: var(--space-2);
+    padding: var(--space-4);
+}
+
+.indicador-resultado > span {
+    font-weight: 600;
+}
+
+.indicador-resultado > strong {
+    color: var(--ink);
+    font-size: 1.75rem;
+}
+
+.indicador-resultado > strong.indicador-resultado__valor--positivo {
+    color: var(--ok);
+}
+
+.indicador-resultado > strong.indicador-resultado__valor--negativo {
+    color: var(--bad);
+}
+
+.resultado-listas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--space-4);
+}
+
+.resultado-lista {
+    padding: var(--space-4);
+}
+
+.resultado-lista h2,
+.resultado-historico h2 {
+    margin-bottom: var(--space-3);
+    font-size: 1.25rem;
+}
+
+.resultado-lista ol {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.resultado-lista li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-block: var(--space-2);
+    border-bottom: 1px solid var(--line);
+}
+
+.promedio-aspecto {
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card);
+}
+
+.promedio-aspecto > summary {
+    display: flex;
+    min-height: 4.5rem;
+    align-items: center;
+    padding: var(--space-4);
+    cursor: pointer;
+    list-style-position: inside;
+}
+
+.promedio-aspecto__cabecera > span {
+    display: inline-grid;
+    gap: var(--space-1);
+    vertical-align: middle;
+}
+
+.promedio-aspecto__cabecera small {
+    color: var(--mute);
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+.promedio-aspecto__contenido {
+    display: grid;
+    gap: var(--space-4);
+    padding: 0 var(--space-4) var(--space-4);
+}
+
+.promedio-aspecto__leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--line);
+    color: var(--mute);
+    font-size: 0.8125rem;
+}
+
+.promedio-aspecto__leyenda > span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.promedio-aspecto__muestra,
+.promedio-aspecto__nivel {
+    display: inline-block;
+    width: 1rem;
+    min-width: 1rem;
+    height: 0.625rem;
+    border-radius: 0.125rem;
+    background: var(--high);
+}
+
+.promedio-aspecto__marca {
+    display: inline-block;
+    width: 0.1875rem;
+    min-width: 0.1875rem;
+    height: 1rem;
+    background: var(--ink);
+}
+
+.promedio-aspecto__nivel--bajo { background: var(--low); }
+.promedio-aspecto__nivel--medio { background: var(--medium); }
+.promedio-aspecto__nivel--alto { background: var(--high); }
+
+.promedio-aspecto__fila {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.promedio-aspecto__datos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.promedio-aspecto__nombre {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.promedio-aspecto__nombre > span {
+    color: var(--mute);
+    font-weight: 600;
+}
+
+.promedio-aspecto__valores {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.promedio-aspecto__valores > span {
+    display: grid;
+    justify-items: end;
+}
+
+.promedio-aspecto__valores small {
+    color: var(--mute);
+    font-size: 0.75rem;
+}
+
+.promedio-aspecto__diferencia--positiva {
+    color: var(--ok);
+}
+
+.promedio-aspecto__diferencia--negativa {
+    color: var(--bad);
+}
+
+.promedio-aspecto__barra {
+    position: relative;
+    min-height: 0.75rem;
+    overflow: hidden;
+    border-radius: var(--pill-radius);
+    background: var(--line);
+}
+
+.promedio-aspecto__relleno {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    border-radius: inherit;
+}
+
+.promedio-aspecto__relleno--bajo { background: var(--low); }
+.promedio-aspecto__relleno--medio { background: var(--medium); }
+.promedio-aspecto__relleno--alto { background: var(--high); }
+
+.promedio-aspecto__referencia {
+    position: absolute;
+    z-index: 1;
+    inset-block: 0;
+    width: 0.1875rem;
+    background: var(--ink);
+}
+
+.resultado-tarjeta {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-5);
+}
+
+.resultado-historico > p {
+    margin-top: -var(--space-3);
+}
+
+.grafica-historico {
+    display: block;
+    width: 100%;
+    min-height: 12rem;
+    overflow: visible;
+}
+
+.grafica-historico__eje {
+    stroke: var(--line);
+    stroke-width: 2;
+}
+
+.grafica-historico__linea {
+    fill: none;
+    stroke: var(--link);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.grafica-historico__punto {
+    fill: var(--primary);
+    stroke: var(--ink);
+    stroke-width: 2;
+}
+
+.grafica-historico__valor {
+    fill: var(--ink);
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.grafica-historico__periodo {
+    fill: var(--mute);
+    font-size: 0.75rem;
+}
+
+.tabla-resultados {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+}
+
+.tabla-resultados caption {
+    padding: var(--space-3);
+    color: var(--mute);
+    font-weight: 600;
+    text-align: left;
+}
+
+.tabla-resultados th,
+.tabla-resultados td {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.tabla-resultados th {
+    color: var(--mute);
+    font-size: 0.875rem;
+}
+
+.tabla-resultados__secundario {
+    display: block;
+    font-size: 0.8125rem;
+}
+
+.tabla-resultados .boton {
+    min-height: 2.75rem;
+}
+
+@media print {
+    .topbar,
+    .staff-shell__sidebar,
+    .boton-regresar,
+    .staff-shell__descripcion,
+    .staff-shell__contenido > h1,
+    .resultado-filtros,
+    .resultado-segmentado,
+    .tarjeta-materia button,
+    .resultados-personal > button,
+    .tabla-resultados button {
+        display: none !important;
+    }
+
+    .staff-shell {
+        display: block;
+        width: 100%;
+        padding: 0;
+    }
+
+    .staff-shell__contenido,
+    .resultado-detalle,
+    .resultado-tarjeta {
+        display: block;
+    }
+}
+
 .student-home {
     display: grid;
     width: min(100% - 2rem, var(--content-width));
@@ -966,6 +1458,27 @@ html[data-theme="dark"] .acceso {
     gap: var(--space-4);
     margin-inline: auto;
     padding-block: var(--space-8);
+}
+
+@media (max-width: 48rem) {
+    .resultado-periodo,
+    .resultado-indicadores,
+    .resultado-listas {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .promedio-aspecto__datos {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .promedio-aspecto__valores {
+        justify-content: flex-end;
+    }
+
+    .tabla-resultados {
+        display: block;
+        overflow-x: auto;
+    }
 }
 
 .alumno-pagina {

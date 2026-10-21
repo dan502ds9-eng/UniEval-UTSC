@@ -1,0 +1,71 @@
+@using UniEvalUtsc.Contracts.Enums
+@inject IResultadosService ResultadosService
+@inject NavigationManager Navigation
+
+<section class="resultados-personal">
+    @if (_periodo is not null)
+    {
+        <section class="resultado-periodo" aria-label="Información del periodo">
+            <div><span>Periodo</span><strong>@_periodo.Nombre</strong></div>
+            <div><span>Estado</span><strong>@(_periodo.Abierto ? "ABIERTO" : "CERRADO")</strong></div>
+            <div><span>Privacidad</span><strong>Resultados con 5 o más respuestas</strong></div>
+        </section>
+        <label class="campo-periodo" for="periodo-inicio">Periodo</label>
+        <select id="periodo-inicio" value="@_periodo.Id" @onchange="CambiarPeriodo">
+            @foreach (var periodo in _periodos)
+            {
+                <option value="@periodo.Id">@periodo.Nombre</option>
+            }
+        </select>
+        <h2 class="resultados-seccion__titulo">@(Rol == Rol.Tutor ? "Mi grupo de tutoría" : "Mis materias")</h2>
+        <div class="tarjetas-materia">
+            @foreach (var tarjeta in _tarjetas)
+            {
+                <TarjetaMateria Tarjeta="@tarjeta" Rol="@Rol" OnVerResultados="VerResultados" />
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public Rol Rol { get; set; }
+
+    private IReadOnlyList<PeriodoResultado> _periodos = [];
+    private IReadOnlyList<TarjetaResultado> _tarjetas = [];
+    private PeriodoResultado? _periodo;
+
+    protected override void OnInitialized()
+    {
+        _periodos = ResultadosService.ObtenerPeriodos();
+        _periodo = _periodos.FirstOrDefault(periodo => periodo.Abierto)
+            ?? _periodos.FirstOrDefault();
+        CargarTarjetas();
+    }
+
+    private void CambiarPeriodo(ChangeEventArgs evento)
+    {
+        var id = evento.Value?.ToString();
+        _periodo = _periodos.SingleOrDefault(periodo => periodo.Id == id)
+            ?? throw new InvalidOperationException("El periodo seleccionado ya no está disponible.");
+        CargarTarjetas();
+    }
+
+    private void CargarTarjetas()
+    {
+        _tarjetas = _periodo is null
+            ? []
+            : ResultadosService.ObtenerTarjetasInicio(Rol, _periodo.Id);
+    }
+
+    private void VerResultados(string elementoId)
+    {
+        if (_periodo is null)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"{RutaBase}/resultados?periodoId={Uri.EscapeDataString(_periodo.Id)}&elementoId={Uri.EscapeDataString(elementoId)}");
+    }
+
+    private string RutaBase => Rol == Rol.Tutor ? "/tutor" : "/docente";
+}

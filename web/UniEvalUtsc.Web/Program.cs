@@ -13,6 +13,7 @@ var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
 builder.Services.AddScoped<UnievalJsInterop>();
 builder.Services.AddScoped<IAlumnoService, AlumnoInMemoryService>();
+builder.Services.AddScoped<IResultadosService, ResultadosInMemoryService>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<SimulatedAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(services =>

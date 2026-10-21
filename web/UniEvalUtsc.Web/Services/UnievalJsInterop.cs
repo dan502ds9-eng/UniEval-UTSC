@@ -29,4 +29,7 @@ public sealed class UnievalJsInterop(IJSRuntime jsRuntime)
 
     public ValueTask<bool> SetLocalStorageAsync(string key, string value) =>
         jsRuntime.InvokeAsync<bool>("unieval.setLocalStorage", key, value);
+
+    public ValueTask PrintAsync() =>
+        jsRuntime.InvokeVoidAsync("unieval.print");
 }

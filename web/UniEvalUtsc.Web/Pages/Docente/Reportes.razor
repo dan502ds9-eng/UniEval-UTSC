@@ -1,0 +1,9 @@
+@page "/docente/reportes"
+@attribute [Authorize(Roles = "Docente")]
+
+<PageTitle>Reportes · UniEval UTSC</PageTitle>
+<StaffShell Rol="Rol.Docente" Seccion="reportes">
+    <ChildContent>
+        <VistaReportesPersonal Rol="Rol.Docente" />
+    </ChildContent>
+</StaffShell>

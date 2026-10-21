@@ -1,0 +1,65 @@
+@using UniEvalUtsc.Contracts.Enums
+@inject IResultadosService ResultadosService
+
+<section class="resultados-personal">
+    <div class="resultado-segmentado" role="tablist" aria-label="@(Rol == Rol.Tutor ? "Grupo de tutoría" : "Materia y grupo")">
+        @foreach (var elemento in _elementos)
+        {
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(_elementoId == elemento.Id)"
+                    class="@(_elementoId == elemento.Id ? "resultado-segmentado__activo" : null)"
+                    @onclick="() => SeleccionarElemento(elemento.Id)">
+                @elemento.Nombre <small>@elemento.Contexto</small>
+            </button>
+        }
+    </div>
+    @if (_elemento is not null)
+    {
+        <section class="resultado-tarjeta resultado-historico">
+            <h2>Promedio general por periodo</h2>
+            <p>@_elemento.Nombre · @_elemento.Contexto</p>
+            <GraficaHistorico Puntos="@_puntos" />
+            <table class="tabla-resultados">
+                <caption>Histórico de resultados por periodo</caption>
+                <thead>
+                    <tr><th scope="col">Periodo</th><th scope="col">Promedio</th><th scope="col">Nivel</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var punto in _puntos)
+                    {
+                        <tr><td>@punto.Periodo</td><td>@punto.Promedio.ToString("0.0")</td><td><Pill Value="@punto.Promedio" MostrarValor="false" /></td></tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public Rol Rol { get; set; }
+
+    private IReadOnlyList<ElementoResultado> _elementos = [];
+    private IReadOnlyList<PuntoHistorico> _puntos = [];
+    private string _elementoId = string.Empty;
+    private ElementoResultado? _elemento;
+
+    protected override void OnInitialized()
+    {
+        _elementos = ResultadosService.ObtenerElementos(Rol);
+        _elementoId = _elementos.FirstOrDefault()?.Id ?? string.Empty;
+        ActualizarHistorico();
+    }
+
+    private void SeleccionarElemento(string elementoId)
+    {
+        _elementoId = elementoId;
+        ActualizarHistorico();
+    }
+
+    private void ActualizarHistorico()
+    {
+        _elemento = _elementos.SingleOrDefault(elemento => elemento.Id == _elementoId);
+        _puntos = _elemento is null ? [] : ResultadosService.ObtenerHistorico(Rol, _elemento.Id);
+    }
+}

@@ -1,0 +1,142 @@
+@using UniEvalUtsc.Contracts.Enums
+@inject IResultadosService ResultadosService
+@inject NavigationManager Navigation
+@inject UnievalJsInterop JsInterop
+
+<section class="resultados-personal">
+    <div class="resultado-filtros">
+        <label for="periodo-resultados">Periodo</label>
+        <select id="periodo-resultados" value="@_periodoId" @onchange="CambiarPeriodo">
+            @foreach (var periodo in _periodos)
+            {
+                <option value="@periodo.Id">@periodo.Nombre@(periodo.Abierto ? " · Abierto" : string.Empty)</option>
+            }
+        </select>
+    </div>
+    <div class="resultado-segmentado" role="tablist" aria-label="@(Rol == Rol.Tutor ? "Grupo de tutoría" : "Materia y grupo")">
+        @foreach (var elemento in _elementos)
+        {
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(_elementoId == elemento.Id)"
+                    class="@(_elementoId == elemento.Id ? "resultado-segmentado__activo" : null)"
+                    @onclick="() => SeleccionarElemento(elemento.Id)">
+                @elemento.Nombre <small>@elemento.Contexto</small>
+            </button>
+        }
+    </div>
+    @if (_periodo is { Abierto: true })
+    {
+        <p class="resultado-aviso" role="status">Disponible al cierre del periodo.</p>
+    }
+    else if (_resultado is null)
+    {
+        <p class="resultado-aviso" role="status">No se muestran resultados con menos de 5 respuestas (RN-10).</p>
+    }
+    else
+    {
+        <section class="resultado-detalle" aria-label="Resultados de @(_elemento?.Nombre)">
+            <div class="resultado-indicadores">
+                <IndicadorResultado Titulo="Promedio general" Valor="@_resultado.PromedioGeneral.ToString("0.0")">
+                    <Pill Value="@_resultado.PromedioGeneral" />
+                </IndicadorResultado>
+                <IndicadorResultado Titulo="Respuestas" Valor="@_resultado.Respuestas.ToString()" Detalle="@($"de {_resultado.TotalAlumnos} alumnos")" />
+                <IndicadorResultado Titulo="Contra la carrera"
+                                    Valor="@DiferenciaTexto"
+                                    ClaseValor="@(_resultado.DiferenciaCarrera >= 0 ? "positivo" : "negativo")"
+                                    Detalle="@($"Promedio carrera {_resultado.PromedioCarrera:0.0}")" />
+            </div>
+            <div class="resultado-listas">
+                <section class="resultado-lista">
+                    <h2>Áreas de oportunidad</h2>
+                    <ol>
+                        @foreach (var aspecto in _resultado.AreasOportunidad)
+                        {
+                            <li><span>@aspecto.Texto</span><strong>@aspecto.Promedio.ToString("0.0")</strong></li>
+                        }
+                    </ol>
+                </section>
+                <section class="resultado-lista">
+                    <h2>Fortalezas</h2>
+                    <ol>
+                        @foreach (var aspecto in _resultado.Fortalezas)
+                        {
+                            <li><span>@aspecto.Texto</span><strong>@aspecto.Promedio.ToString("0.0")</strong></li>
+                        }
+                    </ol>
+                </section>
+            </div>
+            <PromedioPorAspecto Aspectos="@_resultado.Aspectos" />
+            <button class="boton boton--contorno" type="button" @onclick="DescargarPdfAsync">Descargar reporte (PDF)</button>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public Rol Rol { get; set; }
+
+    private IReadOnlyList<PeriodoResultado> _periodos = [];
+    private IReadOnlyList<ElementoResultado> _elementos = [];
+    private string _periodoId = string.Empty;
+    private string _elementoId = string.Empty;
+    private PeriodoResultado? _periodo;
+    private ElementoResultado? _elemento;
+    private ResultadoPersonal? _resultado;
+
+    private string DiferenciaTexto => _resultado is null
+        ? string.Empty
+        : $"{(_resultado.DiferenciaCarrera > 0 ? "+" : string.Empty)}{_resultado.DiferenciaCarrera:0.0}";
+
+    protected override void OnInitialized()
+    {
+        _periodos = ResultadosService.ObtenerPeriodos();
+        _elementos = ResultadosService.ObtenerElementos(Rol);
+        _periodoId = ObtenerParametro("periodoId")
+            ?? _periodos.FirstOrDefault(periodo => periodo.Abierto)?.Id
+            ?? _periodos.First().Id;
+        _elementoId = ObtenerParametro("elementoId")
+            ?? _elementos.First().Id;
+        ActualizarResultado();
+    }
+
+    private void CambiarPeriodo(ChangeEventArgs evento)
+    {
+        _periodoId = evento.Value?.ToString()
+            ?? throw new InvalidOperationException("El selector de periodo no devolvió una selección.");
+        ActualizarResultado();
+    }
+
+    private void SeleccionarElemento(string elementoId)
+    {
+        _elementoId = elementoId;
+        ActualizarResultado();
+    }
+
+    private void ActualizarResultado()
+    {
+        _periodo = _periodos.SingleOrDefault(periodo => periodo.Id == _periodoId)
+            ?? throw new InvalidOperationException("El periodo seleccionado ya no está disponible.");
+        _elemento = _elementos.SingleOrDefault(elemento => elemento.Id == _elementoId)
+            ?? _elementos.FirstOrDefault();
+        _resultado = _elemento is null
+            ? null
+            : ResultadosService.ObtenerResultado(Rol, _periodoId, _elemento.Id);
+    }
+
+    private string? ObtenerParametro(string nombre)
+    {
+        var query = new Uri(Navigation.Uri).Query.TrimStart('?');
+        foreach (var parametro in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var partes = parametro.Split('=', 2);
+            if (Uri.UnescapeDataString(partes[0]) == nombre)
+            {
+                return partes.Length == 2 ? Uri.UnescapeDataString(partes[1]) : string.Empty;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task DescargarPdfAsync() => await JsInterop.PrintAsync();
+}

@@ -22,6 +22,7 @@
         }
         <h1 tabindex="-1">@TituloActual</h1>
         <p class="staff-shell__descripcion">@DescripcionActual</p>
+        @ChildContent
     </main>
 </div>
 
@@ -29,6 +30,7 @@
     [Inject] private AuthService AuthService { get; set; } = default!;
     [Parameter, EditorRequired] public Rol Rol { get; set; }
     [Parameter] public string? Seccion { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string SeccionActual => string.IsNullOrWhiteSpace(Seccion)
         ? "inicio"

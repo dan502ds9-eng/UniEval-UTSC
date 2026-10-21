@@ -1,0 +1,10 @@
+@page "/docente"
+@page "/docente/inicio"
+@attribute [Authorize(Roles = "Docente")]
+
+<PageTitle>Inicio · UniEval UTSC</PageTitle>
+<StaffShell Rol="Rol.Docente" Seccion="inicio">
+    <ChildContent>
+        <InicioResultadosPersonal Rol="Rol.Docente" />
+    </ChildContent>
+</StaffShell>

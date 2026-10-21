@@ -1,0 +1,9 @@
+@page "/docente/historico"
+@attribute [Authorize(Roles = "Docente")]
+
+<PageTitle>Histórico · UniEval UTSC</PageTitle>
+<StaffShell Rol="Rol.Docente" Seccion="historico">
+    <ChildContent>
+        <VistaHistoricoPersonal Rol="Rol.Docente" />
+    </ChildContent>
+</StaffShell>

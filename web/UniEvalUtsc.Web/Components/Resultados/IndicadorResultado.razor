@@ -1,0 +1,17 @@
+<article class="indicador-resultado">
+    <span>@Titulo</span>
+    <strong class="@(ClaseValor is null ? null : $"indicador-resultado__valor--{ClaseValor}")">@Valor</strong>
+    @if (!string.IsNullOrWhiteSpace(Detalle))
+    {
+        <small>@Detalle</small>
+    }
+    @ChildContent
+</article>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Valor { get; set; } = string.Empty;
+    [Parameter] public string? Detalle { get; set; }
+    [Parameter] public string? ClaseValor { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
