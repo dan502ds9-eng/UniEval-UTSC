@@ -22,3 +22,44 @@ jobs:
         run: dotnet build UniEvalUtsc.slnx -warnaserror
       - name: Test
         run: dotnet test UniEvalUtsc.slnx
+
+  e2e:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build E2E tests
+        run: dotnet build web/tests/UniEvalUtsc.E2E -c Release
+      - name: Publish web app
+        run: dotnet publish web/UniEvalUtsc.Web -c Release -o publicado
+      - name: Install static server
+        run: dotnet tool install --global dotnet-serve
+      - name: Start static server
+        run: |
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+          "$HOME/.dotnet/tools/dotnet-serve" -d publicado/wwwroot -p 5199 --fallback-file index.html > /tmp/unieval-web.log 2>&1 &
+          echo $! > /tmp/unieval-web.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:5199/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/unieval-web.log
+          exit 1
+      - name: Install Chromium
+        run: pwsh web/tests/UniEvalUtsc.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Run E2E tests
+        env:
+          UNIEVAL_WEB_URL: http://localhost:5199
+        run: dotnet test web/tests/UniEvalUtsc.E2E -c Release --no-build
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: web/tests/UniEvalUtsc.E2E/bin/Release/net10.0/PlaywrightTraces/*.zip
+          if-no-files-found: warn

@@ -57,6 +57,7 @@ public sealed class AccesibilidadTests
         foreach (var (rol, rutas) in RutasPorRol)
         {
             var contexto = await CrearContextoAsync(navegador, rol);
+            var traza = await PlaywrightTrace.StartAsync(contexto, $"axe-{rol}");
             var pagina = await contexto.NewPageAsync();
             try
             {
@@ -99,6 +100,7 @@ public sealed class AccesibilidadTests
             }
             finally
             {
+                await PlaywrightTrace.StopAsync(contexto, traza);
                 await contexto.CloseAsync();
             }
         }
@@ -117,6 +119,7 @@ public sealed class AccesibilidadTests
         foreach (var (rol, rutas) in RutasPorRol)
         {
             var contexto = await CrearContextoAsync(navegador, rol);
+            var traza = await PlaywrightTrace.StartAsync(contexto, $"zoom-{rol}");
             var pagina = await contexto.NewPageAsync();
             try
             {
@@ -219,6 +222,7 @@ public sealed class AccesibilidadTests
             }
             finally
             {
+                await PlaywrightTrace.StopAsync(contexto, traza);
                 await contexto.CloseAsync();
             }
         }
@@ -237,64 +241,73 @@ public sealed class AccesibilidadTests
             ViewportSize = new ViewportSize { Width = 390, Height = 844 },
             ReducedMotion = ReducedMotion.Reduce
         });
+        var traza = await PlaywrightTrace.StartAsync(contexto, "flujo-alumno-teclado");
         var pagina = await contexto.NewPageAsync();
-        await pagina.GotoAsync(url);
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Tu opinión mejora la UTSC" })).ToBeFocusedAsync();
+        try
+        {
+            await pagina.GotoAsync(url);
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Tu opinión mejora la UTSC" })).ToBeFocusedAsync();
 
-        var iniciarSesion = pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión con Microsoft 365" });
-        await EnfocarConTabAsync(pagina, iniciarSesion);
-        await pagina.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno$"));
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Mis encuestas" })).ToBeFocusedAsync();
+            var iniciarSesion = pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión con Microsoft 365" });
+            await EnfocarConTabAsync(pagina, iniciarSesion);
+            await pagina.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno$"));
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Mis encuestas" })).ToBeFocusedAsync();
 
-        var notificaciones = pagina.Locator(".topbar__notificaciones");
-        await EnfocarConTabAsync(pagina, notificaciones);
-        await pagina.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeVisibleAsync();
-        await pagina.Keyboard.PressAsync("Escape");
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeHiddenAsync();
-        await Assertions.Expect(notificaciones).ToBeFocusedAsync();
+            var notificaciones = pagina.Locator(".topbar__notificaciones");
+            await EnfocarConTabAsync(pagina, notificaciones);
+            await pagina.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeVisibleAsync();
+            await pagina.Keyboard.PressAsync("Escape");
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeHiddenAsync();
+            await Assertions.Expect(notificaciones).ToBeFocusedAsync();
 
-        var asistente = pagina.GetByRole(AriaRole.Button, new() { Name = "Abrir asistente Correcaminos IA" });
-        await EnfocarConTabAsync(pagina, asistente);
-        await pagina.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeVisibleAsync();
-        await pagina.Keyboard.PressAsync("Escape");
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeHiddenAsync();
-        await Assertions.Expect(asistente).ToBeFocusedAsync();
+            var asistente = pagina.GetByRole(AriaRole.Button, new() { Name = "Abrir asistente Correcaminos IA" });
+            await EnfocarConTabAsync(pagina, asistente);
+            await pagina.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeVisibleAsync();
+            await pagina.Keyboard.PressAsync("Escape");
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeHiddenAsync();
+            await Assertions.Expect(asistente).ToBeFocusedAsync();
 
-        var contestar = pagina.GetByRole(AriaRole.Button, new() { Name = "Contestar evaluación" });
-        await EnfocarConTabAsync(pagina, contestar);
-        await pagina.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno/encuesta$"));
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Evaluación del cuatrimestre" })).ToBeFocusedAsync();
+            var contestar = pagina.GetByRole(AriaRole.Button, new() { Name = "Contestar evaluación" });
+            await EnfocarConTabAsync(pagina, contestar);
+            await pagina.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno/encuesta$"));
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Evaluación del cuatrimestre" })).ToBeFocusedAsync();
 
-        await CompletarEncuestaConTecladoAsync(pagina, url);
-        var enviar = pagina.Locator("#boton-enviar-evaluacion");
-        await Assertions.Expect(enviar).ToBeFocusedAsync();
-        await pagina.Keyboard.PressAsync("Enter");
+            await CompletarEncuestaConTecladoAsync(pagina, url);
+            var enviar = pagina.Locator("#boton-enviar-evaluacion");
+            await Assertions.Expect(enviar).ToBeFocusedAsync();
+            await pagina.Keyboard.PressAsync("Enter");
 
-        var dialogo = pagina.GetByRole(AriaRole.Dialog);
-        await Assertions.Expect(dialogo).ToBeVisibleAsync();
-        var cerrarDialogo = dialogo.GetByRole(AriaRole.Button, new() { Name = "Cerrar diálogo" });
-        await Assertions.Expect(cerrarDialogo).ToBeFocusedAsync();
-        await pagina.Keyboard.PressAsync("Shift+Tab");
-        await Assertions.Expect(dialogo.GetByRole(AriaRole.Button, new() { Name = "Confirmar envío" })).ToBeFocusedAsync();
-        await pagina.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(cerrarDialogo).ToBeFocusedAsync();
-        await pagina.Keyboard.PressAsync("Escape");
-        await Assertions.Expect(dialogo).ToBeHiddenAsync();
-        await Assertions.Expect(enviar).ToBeFocusedAsync();
+            var dialogo = pagina.GetByRole(AriaRole.Dialog);
+            await Assertions.Expect(dialogo).ToBeVisibleAsync();
+            var cerrarDialogo = dialogo.GetByRole(AriaRole.Button, new() { Name = "Cerrar diálogo" });
+            await Assertions.Expect(cerrarDialogo).ToBeFocusedAsync();
+            await pagina.Keyboard.PressAsync("Shift+Tab");
+            await Assertions.Expect(dialogo.GetByRole(AriaRole.Button, new() { Name = "Confirmar envío" })).ToBeFocusedAsync();
+            await pagina.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(cerrarDialogo).ToBeFocusedAsync();
+            await pagina.Keyboard.PressAsync("Escape");
+            await Assertions.Expect(dialogo).ToBeHiddenAsync();
+            await Assertions.Expect(enviar).ToBeFocusedAsync();
 
-        await pagina.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(cerrarDialogo).ToBeFocusedAsync();
-        await pagina.Keyboard.PressAsync("Tab");
-        await pagina.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(dialogo.GetByRole(AriaRole.Button, new() { Name = "Confirmar envío" })).ToBeFocusedAsync();
-        await pagina.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno/comprobante$"));
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "¡Gracias!" })).ToBeFocusedAsync();
-        await Assertions.Expect(pagina).ToHaveTitleAsync("¡Gracias! · UniEval UTSC");
+            await pagina.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(cerrarDialogo).ToBeFocusedAsync();
+            await pagina.Keyboard.PressAsync("Tab");
+            await pagina.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(dialogo.GetByRole(AriaRole.Button, new() { Name = "Confirmar envío" })).ToBeFocusedAsync();
+            await pagina.Keyboard.PressAsync("Enter");
+            await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno/comprobante$"));
+            await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "¡Gracias!" })).ToBeFocusedAsync();
+            await Assertions.Expect(pagina).ToHaveTitleAsync("¡Gracias! · UniEval UTSC");
+        }
+        finally
+        {
+            await PlaywrightTrace.StopAsync(contexto, traza);
+            await contexto.CloseAsync();
+        }
     }
 
     private static async Task CompletarEncuestaConTecladoAsync(IPage pagina, string url)
