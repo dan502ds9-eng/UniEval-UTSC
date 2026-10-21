@@ -1,4 +1,4 @@
-# Decisiones de diseño — respuesta a la sección 4 de `docs/PLAN.md`
+# Decisiones de diseño — respuesta a la sección 4 de `docs/proceso/PLAN.md`
 
 Este documento **manda sobre el PDF y sobre la demo** cuando haya diferencias. `AGENTS.md` lo referencia.
 Equipo 2 · 21 oct 2026.

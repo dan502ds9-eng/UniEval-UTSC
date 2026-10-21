@@ -1,6 +1,15 @@
 # UniEval UTSC
 
-Aplicación PWA para las encuestas de desempeño docente y de tutor de la UTSC. La solución principal se encuentra en `api/UniEvalUtsc.slnx`.
+Aplicación PWA para las encuestas de desempeño docente y de tutor de la UTSC. La solución principal es `UniEvalUtsc.slnx`.
+
+## Mapa de carpetas
+
+- `web/`: interfaz Blazor y pruebas del cliente (front: Eve y Kat).
+- `api/`: API, dominio, aplicación, infraestructura y pruebas (back: Dan).
+- `db/`: scripts y esquema de MariaDB (BD: Karen).
+- `shared/`: contratos DTO y enums compartidos entre API y cliente.
+- `docs/diseno/`: prototipo y documento de diseño.
+- `docs/proceso/`: plan, decisiones y prompts de trabajo.
 
 ## Requisitos
 
@@ -9,10 +18,10 @@ Aplicación PWA para las encuestas de desempeño docente y de tutor de la UTSC. 
 
 ## Ejecutar API y cliente web
 
-Restaura y compila la solución:
+Restaura y compila la solución desde la raíz:
 
 ```powershell
-dotnet build api/UniEvalUtsc.slnx
+dotnet build UniEvalUtsc.slnx
 ```
 
 Abre dos terminales desde la raíz del repositorio.
@@ -20,13 +29,13 @@ Abre dos terminales desde la raíz del repositorio.
 Terminal 1 — API (Swagger en `/swagger`; el proveedor predeterminado es `InMemory`):
 
 ```powershell
-dotnet run --project api/src/UniEvalUtsc.Api/UniEvalUtsc.Api.csproj --launch-profile https
+dotnet run --project api/src/UniEvalUtsc.Api
 ```
 
 Terminal 2 — cliente Blazor WebAssembly PWA:
 
 ```powershell
-dotnet run --project web/UniEvalUtsc.Web/UniEvalUtsc.Web.csproj --launch-profile http
+dotnet run --project web/UniEvalUtsc.Web
 ```
 
 La web queda disponible en `http://localhost:5186` y toma la dirección de la API de `web/UniEvalUtsc.Web/wwwroot/appsettings.json`. El origen de desarrollo está permitido por CORS en la configuración de Development de la API.
@@ -34,7 +43,7 @@ La web queda disponible en `http://localhost:5186` y toma la dirección de la AP
 ## Pruebas
 
 ```powershell
-dotnet test api/UniEvalUtsc.slnx
+dotnet test UniEvalUtsc.slnx
 ```
 
 Las pruebas de componentes usan xUnit y bUnit. Las pruebas E2E usan xUnit y Microsoft.Playwright; para ejecutarlas contra una web iniciada, configura `UNIEVAL_WEB_URL` con su URL y asegúrate de tener instalado el navegador Chromium de Playwright.

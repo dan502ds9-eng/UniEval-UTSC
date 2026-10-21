@@ -1,0 +1,1 @@
+Espacio reservado para la futura aplicación móvil nativa; por ahora la experiencia móvil vive en la PWA de `web/`.

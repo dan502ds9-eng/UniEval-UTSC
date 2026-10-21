@@ -1,10 +1,10 @@
 # Prompts para Codex — UniEval UTSC
 
 **Cómo usarlos**
-1. Descomprime el paquete en la raíz del repo `UniEval-UTSC` (`AGENTS.md` en la raíz; `docs/prototipo/`, `docs/assets/` y este archivo en `docs/`). Pon también el PDF del documento de diseño en `docs/`. Codex lee `AGENTS.md` solo cada vez que trabaja en el repo.
+1. Descomprime el paquete en la raíz del repo `UniEval-UTSC` (`AGENTS.md` en la raíz; `docs/diseno/` contiene el prototipo y el PDF, y este archivo vive en `docs/proceso/`). Codex lee `AGENTS.md` cada vez que trabaja en el repo.
 2. Da los prompts **en orden, uno por uno**. No pases al siguiente hasta que compile, las pruebas pasen y revises la pantalla contra la demo.
 3. Haz un commit por prompt en su rama (`feature/...`) y únela a `main` cuando quede bien.
-4. Si Codex se desvía, recuérdale: *"Revisa AGENTS.md y compáralo con docs/prototipo/unieval-demo.html"*.
+4. Si Codex se desvía, recuérdale: *"Revisa AGENTS.md y compáralo con docs/diseno/prototipo/unieval-demo.html"*.
 
 > Reparto sugerido: P1 → Dan o el front · P2 a P10 → Eve y Kat (`web/`) · P11 → Dan (`api/`) · P12 → Dan con Karen (`db/`).
 
@@ -12,30 +12,30 @@
 
 ## P0 · Lectura y plan (sin escribir código)
 ```
-Lee AGENTS.md completo, abre docs/prototipo/unieval-demo.html y revisa el PDF de diseño en docs/.
+Lee AGENTS.md completo, abre docs/diseno/prototipo/unieval-demo.html y revisa docs/diseno/Diseno_Sistema_Encuestas_Desempeno_UTSC.pdf.
 No escribas código todavía. Entrégame:
 1) Un mapa de pantallas por rol (alumno, docente, tutor, coordinador, administrador) con sus rutas Blazor.
 2) La lista de componentes reutilizables que vas a crear, con sus parámetros.
 3) La lista de endpoints de la API que necesita cada pantalla.
 4) Las dudas o contradicciones que encuentres entre la demo, AGENTS.md y el PDF.
-Guárdalo en docs/PLAN.md.
+Guárdalo en docs/proceso/PLAN.md.
 ```
 
 ## P1 · Proyecto web dentro del repo existente
 ```
-El back ya existe en api/ (UniEvalUtsc.slnx con Domain, Application, Infrastructure, Api y tests). No cambies su arquitectura ni rompas sus pruebas.
-1) Crea api/src/UniEvalUtsc.Contracts (classlib net10.0) con DTOs como records y enums compartidos (Rol, EstadoPeriodo, TipoEncuesta, EstadoEncuesta, Nivel)
+El back ya existe en `api/` y la solución `UniEvalUtsc.slnx` agrupa Domain, Application, Infrastructure, Api y tests. No cambies su arquitectura ni rompas sus pruebas.
+1) Crea shared/UniEvalUtsc.Contracts (classlib net10.0) con DTOs como records y enums compartidos (Rol, EstadoPeriodo, TipoEncuesta, EstadoEncuesta, Nivel)
    y constantes de reglas (MinimoRespuestas = 5, EscalaMin = 1, EscalaMax = 10). Que lo referencien Api y Web.
 2) Crea web/UniEvalUtsc.Web con la plantilla Blazor WebAssembly PWA de .NET 10 (manifest: nombre "UniEval UTSC", short_name "UniEval", theme_color #FF8200, background_color #FFF3E6, lang es-MX).
    Quita las páginas de ejemplo (Counter, Weather) y Bootstrap.
 3) Crea web/tests/UniEvalUtsc.Web.Tests (xUnit + bUnit) y web/tests/UniEvalUtsc.E2E (xUnit + Microsoft.Playwright).
-4) Agrega los cuatro proyectos nuevos a api/UniEvalUtsc.slnx (Contracts en /src/; los de web en una carpeta /web/).
+4) Agrega los cuatro proyectos nuevos a `UniEvalUtsc.slnx` (Contracts en `/shared/`; los de web en `/web/` y `/web/tests/`).
 5) Configura el cliente: HttpClient con BaseAddress desde wwwroot/appsettings.json (ApiBaseUrl = https://localhost:7133) y en la API una política CORS para el origen del cliente en desarrollo.
 6) En Infrastructure agrega implementaciones InMemory de las interfaces existentes (IPeriodoRepository, IPlantillaRepository, IEncuestaAsignadaRepository, IRespuestaRepository, IUnitOfWork) y de IReloj,
    con datos semilla idénticos a la demo: grupo DSM05AV con sus 7 materias y docentes, la tutora Mónica Janeth Rodríguez Reyna, [Grupo 5to B], [Grupo 6to A] y [Grupo 10mo A] en estadías,
    periodo Sep–Dic 2026 abierto y 3 cerrados, plantillas FORM-AC16 (10 aspectos) y FORM-AC64 (7) con los textos del anexo del PDF. Regístralas según Datos:Proveedor = InMemory.
 7) Actualiza el README raíz con cómo correr la API y la web a la vez (dos terminales o perfil de inicio múltiple en Visual Studio).
-Criterio: dotnet build api/UniEvalUtsc.slnx y dotnet test en verde (incluidas las pruebas existentes); la web abre en blanco con el layout base; Swagger sigue en /swagger.
+Criterio: `dotnet build UniEvalUtsc.slnx` y `dotnet test UniEvalUtsc.slnx` en verde (incluidas las pruebas existentes); la web abre en blanco con el layout base; Swagger sigue en /swagger.
 ```
 
 ## P2 · Sistema de diseño (CSS + componentes base)
@@ -48,7 +48,7 @@ Implementa el sistema de diseño de la sección 6 de AGENTS.md en web/UniEvalUts
   Acordeon (details/summary accesible), Dialogo (modal con trampa de foco, Esc y regreso del foco), PanelLateral (entra desde la derecha), Toast (role=status), BarraProgreso (role=progressbar), RegionViva (aria-live).
 - wwwroot/js/unieval.js + servicio de interop: trapFocus/releaseFocus, focusElement, speak/cancelSpeech (es-MX), get/set de localStorage con try/catch.
 - Una página /dev/componentes que muestre todos los componentes en ambos temas.
-Copia los colores, radios y espaciados de docs/prototipo/unieval-demo.html; no inventes otros.
+Copia los colores, radios y espaciados de docs/diseno/prototipo/unieval-demo.html; no inventes otros.
 Pruebas bUnit: Pill calcula el nivel correcto (4.9 → Bajo, 5 → Medio, 7.9 → Medio, 8 → Alto) y Dialogo devuelve el foco al cerrarse.
 ```
 
@@ -167,7 +167,7 @@ Corrige todo lo que fallen las pruebas.
 
 ## P11 · Contrato de la API (back)
 ```
-Lee docs/DECISIONES.md: sus rutas y contratos (D-01 a D-14) mandan sobre esta lista y sobre el PDF.
+Lee docs/proceso/DECISIONES.md: sus rutas y contratos (D-01 a D-14) mandan sobre esta lista y sobre el PDF.
 En api/ implementa los endpoints de la sección 10 del PDF siguiendo la arquitectura existente: controladores en UniEvalUtsc.Api/Controllers, casos de uso en Application/Services (como EnviarRespuestaService), DTOs en UniEvalUtsc.Contracts y un middleware que traduzca NoEncontrado→404, AccesoDenegado→403, Validacion→400 y Domain→409. Sobre los repositorios InMemory:
 GET /api/auth/perfil · GET /api/mis-encuestas · GET /api/mis-encuestas/{id} · POST /api/mis-encuestas/{id}/respuestas (400 / 403 / 409 según el PDF)
 GET /api/mis-resultados?periodo= · GET /api/seguimiento?periodo=&carrera=&grupo= · GET /api/resultados/docentes · GET /api/resultados/tutores · GET /api/resultados/exportar?formato=xlsx|pdf
@@ -197,6 +197,6 @@ más las de estadías (asignación de tutor por alumno) y mensajes.
 
 ### Prompt corto para correcciones de interfaz
 ```
-Compara la pantalla <ruta> con su equivalente en docs/prototipo/unieval-demo.html (rol <rol>, sección <sección>) en 390 px y 1280 px, en claro y oscuro.
+Compara la pantalla <ruta> con su equivalente en docs/diseno/prototipo/unieval-demo.html (rol <rol>, sección <sección>) en 390 px y 1280 px, en claro y oscuro.
 Lista las diferencias de estructura, textos, colores, espaciados y comportamiento, y corrígelas siguiendo AGENTS.md.
 ```

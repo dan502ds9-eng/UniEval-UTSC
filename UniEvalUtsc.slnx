@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/api/src/">
+    <Project Path="api/src/UniEvalUtsc.Api/UniEvalUtsc.Api.csproj" />
+    <Project Path="api/src/UniEvalUtsc.Application/UniEvalUtsc.Application.csproj" />
+    <Project Path="api/src/UniEvalUtsc.Domain/UniEvalUtsc.Domain.csproj" />
+    <Project Path="api/src/UniEvalUtsc.Infrastructure/UniEvalUtsc.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/api/tests/">
+    <Project Path="api/tests/UniEvalUtsc.Tests/UniEvalUtsc.Tests.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/UniEvalUtsc.Contracts/UniEvalUtsc.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/web/">
+    <Project Path="web/UniEvalUtsc.Web/UniEvalUtsc.Web.csproj" />
+  </Folder>
+  <Folder Name="/web/tests/">
+    <Project Path="web/tests/UniEvalUtsc.Web.Tests/UniEvalUtsc.Web.Tests.csproj" />
+    <Project Path="web/tests/UniEvalUtsc.E2E/UniEvalUtsc.E2E.csproj" />
+  </Folder>
+</Solution>

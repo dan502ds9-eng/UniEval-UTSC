@@ -5,15 +5,15 @@ Contexto permanente para Codex. Léelo completo antes de cualquier tarea en este
 ## 1. Qué es el proyecto
 **UniEval UTSC** (nombre interno del sistema: SAIIUT) sustituye los formatos de Excel **FORM-AC16** (Desempeño Docente, 10 aspectos) y **FORM-AC64** (Desempeño del Tutor, 7 aspectos) de la Universidad Tecnológica Santa Catarina. Es una aplicación web responsiva, instalable como PWA, que los alumnos contestan desde el celular.
 
-- **Referencia visual obligatoria:** `docs/prototipo/unieval-demo.html`. Es la simulación aprobada por el equipo y la subdirección. Ábrela en el navegador y replica su estructura, comportamiento, textos y estilo. Si este documento y la demo difieren, manda este documento.
-- **Decisiones del equipo:** `docs/DECISIONES.md` resuelve las dudas de `docs/PLAN.md` (D-01 a D-14). **Manda sobre el PDF y la demo**; léelo antes de cada prompt.
-- **Documento de diseño:** `docs/Diseno_Sistema_Encuestas_Desempeno_UTSC.pdf` define reglas (RN), requerimientos (RF/RNF), pantallas (P-01 a P-12) y API.
+- **Referencia visual obligatoria:** `docs/diseno/prototipo/unieval-demo.html`. Es la simulación aprobada por el equipo y la subdirección. Ábrela en el navegador y replica su estructura, comportamiento, textos y estilo. Si este documento y la demo difieren, manda este documento.
+- **Decisiones del equipo:** `docs/proceso/DECISIONES.md` resuelve las dudas de `docs/proceso/PLAN.md` (D-01 a D-14). **Manda sobre el PDF y la demo**; léelo antes de cada prompt.
+- **Documento de diseño:** `docs/diseno/Diseno_Sistema_Encuestas_Desempeno_UTSC.pdf` define reglas (RN), requerimientos (RF/RNF), pantallas (P-01 a P-12) y API.
 - Los datos de la demo son **de ejemplo**. Nunca los dejes fijos en el código de producción: van en datos semilla (seed) o en servicios simulados (mock).
 
 ## 2. Stack
 | Capa | Tecnología |
 |---|---|
-| Lenguaje principal | **C#** sobre **.NET 10** (el que ya usa `api/`) |
+| Lenguaje principal | **C#** sobre **.NET 10** |
 | Cliente (interfaz) | **Blazor WebAssembly PWA** (`blazorwasm --pwa`), componentes `.razor` + CSS aislado (`.razor.css`) |
 | API | **ASP.NET Core Web API** ya existente en `api/` (Microsoft.AspNetCore.OpenApi + Swagger UI en `/swagger`) |
 | Datos | **MariaDB** con **EF Core** (proveedor Pomelo; verifica la versión compatible con el .NET instalado) |
@@ -27,26 +27,28 @@ No agregues librerías de componentes (MudBlazor, Radzen, Bootstrap, etc.). El d
 ```
 UniEval-UTSC/
 ├─ AGENTS.md
+├─ UniEvalUtsc.slnx                       ← solución principal
 ├─ api/                                   ← back (Dan) · NO cambiar su arquitectura
-│  ├─ UniEvalUtsc.slnx                    ← solución principal (agrega aquí los proyectos de web/ en la carpeta /web/)
 │  ├─ src/UniEvalUtsc.Domain/             ← entidades con setters privados, fábricas y DomainException/ValidacionException
 │  ├─ src/UniEvalUtsc.Application/        ← servicios de caso de uso, interfaces de repositorio, IUnitOfWork, IReloj
 │  ├─ src/UniEvalUtsc.Infrastructure/     ← Persistence (EF Core/MariaDB), Repositories, Auth
 │  ├─ src/UniEvalUtsc.Api/                ← Controllers, Middleware, Extensions, Program.cs
-│  ├─ src/UniEvalUtsc.Contracts/          ← NUEVO: DTOs (records) y enums compartidos por Api y Web
 │  └─ tests/UniEvalUtsc.Tests/            ← xUnit (Unit/)
+├─ shared/UniEvalUtsc.Contracts/          ← DTOs (records) y enums compartidos por Api y Web
 ├─ web/                                   ← front (Eve y Kat)
 │  ├─ UniEvalUtsc.Web/                    ← Blazor WebAssembly PWA
 │  │  ├─ Layout/ (MainLayout, Header, StaffShell)
-│  │  ├─ Pages/Alumno|Docente|Coordinador|Admin|Acceso/
-│  │  ├─ Components/Ui/  Components/Encuesta/
+│  │  ├─ Pages/Alumno|Docente|Tutor|Coordinador|Admin|Acceso/
+│  │  ├─ Components/Ui/  Components/Encuesta/  Components/Resultados/
 │  │  ├─ Services/ (clientes HTTP tipados + simulados)
 │  │  └─ wwwroot/ (css/, js/unieval.js, img/, manifest.webmanifest, service-worker.js)
 │  └─ tests/UniEvalUtsc.Web.Tests/        ← bUnit  ·  tests/UniEvalUtsc.E2E/ ← Playwright + axe
 ├─ db/                                    ← scripts de MariaDB (Karen)
 ├─ mobile/                                ← reservado; la app móvil es la PWA de web/
 ├─ infra/  ·  .github/                    ← despliegue y CI
-└─ docs/  (api/, prototipo/unieval-demo.html, assets/, PROMPTS_CODEX.md, PDF de diseño)
+└─ docs/
+   ├─ diseno/ (prototipo/, assets/, PDF de diseño)
+   └─ proceso/ (PLAN.md, DECISIONES.md, PROMPTS_CODEX.md)
 ```
 **Reglas de dependencias:**
 - `UniEvalUtsc.Web` solo referencia `UniEvalUtsc.Contracts`; nunca a Domain, Application ni Infrastructure.
@@ -121,7 +123,7 @@ Etiquetas exactas en la interfaz: "Alumno", "Docente", "Tutor", "Coordinador", "
 - Código en inglés técnico solo donde es estándar (`Program.cs`, `Controllers`); **nombres de dominio, textos de interfaz y comentarios en español de México**.
 - C#: `nullable enable`, `record` para DTOs, servicios por inyección de dependencias, `async` de punta a punta.
 - Rutas del cliente: `/`, `/alumno`, `/alumno/encuesta`, `/alumno/comprobante`, `/docente/{seccion}`, `/tutor/{seccion}`, `/coordinador/{seccion}`, `/admin/{seccion}`, `/acceso/{rol}`.
-- Rutas de la API: prefijo `/api`, según la sección 10 del documento de diseño (más las extensiones en `docs/PROMPTS_CODEX.md`). En desarrollo, la API corre en `http://localhost:5291` / `https://localhost:7133` (ver `launchSettings.json`).
+- Rutas de la API: prefijo `/api`, según la sección 10 del documento de diseño (más las extensiones en `docs/proceso/PROMPTS_CODEX.md`). En desarrollo, la API corre en `http://localhost:5291` / `https://localhost:7133` (ver `launchSettings.json`).
 - Nunca guardes contraseñas. Los correos de otros usuarios se muestran enmascarados (`d***@utsc.edu.mx`) salvo para el Administrador.
-- Antes de terminar una tarea: `dotnet build api/UniEvalUtsc.slnx` sin errores ni advertencias nuevas y `dotnet test api/UniEvalUtsc.slnx` en verde. No borres ni rompas las pruebas existentes de `api/tests`.
+- Antes de terminar una tarea: `dotnet build UniEvalUtsc.slnx` sin errores ni advertencias nuevas y `dotnet test UniEvalUtsc.slnx` en verde. No borres ni rompas las pruebas existentes de `api/tests`.
 - Commits pequeños por funcionalidad, en ramas `feature/<modulo>` (front: `feature/web-<modulo>`), con PR a `main`.
