@@ -16,6 +16,8 @@ public interface IAlumnoService
 
     int MensajesSinLeer { get; }
 
+    void CrearRecordatorio(string grupoId, string nombreGrupo);
+
     void MarcarMensajeComoLeido(string id);
 
     void MarcarTodosComoLeidos();

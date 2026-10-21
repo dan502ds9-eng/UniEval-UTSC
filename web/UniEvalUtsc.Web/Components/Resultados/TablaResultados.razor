@@ -1,0 +1,38 @@
+<div class="tabla-resultados-contenedor">
+    <table class="tabla-resultados">
+        <caption>@Caption</caption>
+        <thead>
+            <tr>
+                <th scope="col">Docente / tutor</th>
+                <th scope="col">Materia / grupo</th>
+                <th scope="col">Periodo</th>
+                <th scope="col">Promedio</th>
+                <th scope="col">Respuestas</th>
+                <th scope="col">Detalle</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var resultado in Resultados.OrderBy(item => item.Promedio).ThenBy(item => item.Nombre, StringComparer.Ordinal))
+            {
+                <tr>
+                    <td><strong>@resultado.Nombre</strong></td>
+                    <td>@resultado.Contexto</td>
+                    <td>@resultado.Periodo</td>
+                    <td><Pill Value="@resultado.Promedio" /></td>
+                    <td>@resultado.Respuestas</td>
+                    <td>
+                        <button class="boton boton--enlace" type="button" @onclick="() => OnVerDetalle.InvokeAsync(resultado)">
+                            Ver detalle →
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter] public string Caption { get; set; } = "Resultados por evaluado";
+    [Parameter] public IReadOnlyList<ResultadoCoordinacion> Resultados { get; set; } = [];
+    [Parameter] public EventCallback<ResultadoCoordinacion> OnVerDetalle { get; set; }
+}

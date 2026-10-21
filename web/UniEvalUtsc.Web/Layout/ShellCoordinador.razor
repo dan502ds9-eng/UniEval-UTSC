@@ -1,0 +1,48 @@
+@inject IResultadosService ResultadosService
+@inject FiltrosState Filtros
+
+<StaffShell Rol="Rol.Coordinador" Seccion="@Seccion">
+    <ChildContent>
+        <FiltrosResultados Periodos="@_periodos"
+                           PeriodoId="@Filtros.PeriodoId"
+                           Cuatrimestre="@Filtros.Cuatrimestre"
+                           CarreraId="@Filtros.CarreraId"
+                           CarreraCambiada="CambiarCarrera"
+                           PeriodoCambiado="CambiarPeriodo"
+                           CuatrimestreCambiado="CambiarCuatrimestre" />
+        @ChildContent
+        <p class="coordinacion-privacidad">Ves participación y promedios. Nunca qué calificó cada alumno (RN-09).</p>
+    </ChildContent>
+</StaffShell>
+
+@code {
+    [Parameter, EditorRequired] public string Seccion { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyList<PeriodoResultado> _periodos = [];
+
+    protected override void OnInitialized()
+    {
+        _periodos = ResultadosService.ObtenerPeriodos();
+        Filtros.InicializarPeriodo(_periodos);
+        Filtros.CambiarCarrera("dsm");
+    }
+
+    private Task CambiarPeriodo(string periodoId)
+    {
+        Filtros.CambiarPeriodo(periodoId, _periodos);
+        return Task.CompletedTask;
+    }
+
+    private Task CambiarCuatrimestre(string cuatrimestre)
+    {
+        Filtros.CambiarCuatrimestre(cuatrimestre);
+        return Task.CompletedTask;
+    }
+
+    private Task CambiarCarrera(string carreraId)
+    {
+        Filtros.CambiarCarrera(carreraId);
+        return Task.CompletedTask;
+    }
+}

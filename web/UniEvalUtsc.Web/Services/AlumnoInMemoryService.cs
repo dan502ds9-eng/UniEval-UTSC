@@ -140,6 +140,26 @@ public sealed class AlumnoInMemoryService(
 
     public int MensajesSinLeer => _mensajes.Count(mensaje => !mensaje.Leido);
 
+    public void CrearRecordatorio(string grupoId, string nombreGrupo)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(grupoId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(nombreGrupo);
+
+        var grupoAsignado = configuration["Alumno:GrupoId"] ?? "dsm05av-a";
+        if (!string.Equals(grupoAsignado, grupoId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _mensajes.Insert(0, new MensajeAlumno(
+            $"recordatorio-{Guid.NewGuid():N}",
+            "Coordinación DSM",
+            $"Recordatorio de evaluación · {nombreGrupo}",
+            "Te invitamos a completar tus evaluaciones pendientes del cuatrimestre.",
+            DateOnly.FromDateTime(DateTime.Today),
+            false));
+    }
+
     public void MarcarMensajeComoLeido(string id)
     {
         var mensaje = _mensajes.SingleOrDefault(mensaje => mensaje.Id == id)

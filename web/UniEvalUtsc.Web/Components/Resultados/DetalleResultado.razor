@@ -1,0 +1,74 @@
+@inject IExportadorReportes Exportador
+
+<section class="resultado-detalle" aria-label="@($"Detalle de {Resultado.Nombre}")">
+    <div class="detalle-coordinacion__encabezado">
+        <div>
+            <p>@(Resultado.EsTutorEstadias ? "Tutor de estadías" : EsTutor ? "Tutor" : "Docente")</p>
+            <h2>@Resultado.Nombre</h2>
+            <p>@Resultado.Contexto · @Resultado.Periodo</p>
+        </div>
+        <button class="boton boton--contorno" type="button" @onclick="ExportarPdfAsync">Exportar PDF</button>
+    </div>
+    <div class="resultado-indicadores">
+        <IndicadorResultado Titulo="Promedio general" Valor="@Resultado.Promedio.ToString("0.0")">
+            <Pill Value="@Resultado.Promedio" />
+        </IndicadorResultado>
+        <IndicadorResultado Titulo="Respuestas" Valor="@Resultado.Respuestas.ToString()" />
+        <IndicadorResultado Titulo="Contra la carrera"
+                            Valor="@DiferenciaTexto"
+                            ClaseValor="@(Resultado.DiferenciaCarrera >= 0 ? "positivo" : "negativo")"
+                            Detalle="@($"Promedio carrera {Resultado.PromedioCarrera:0.0}")" />
+    </div>
+    <div class="resultado-listas">
+        <section class="resultado-lista">
+            <h2>Áreas de oportunidad</h2>
+            <ol>
+                @foreach (var aspecto in Resultado.AreasOportunidad)
+                {
+                    <li><span>@aspecto.Texto</span><strong>@aspecto.Promedio.ToString("0.0")</strong></li>
+                }
+            </ol>
+        </section>
+        <section class="resultado-lista">
+            <h2>Fortalezas</h2>
+            <ol>
+                @foreach (var aspecto in Resultado.Fortalezas)
+                {
+                    <li><span>@aspecto.Texto</span><strong>@aspecto.Promedio.ToString("0.0")</strong></li>
+                }
+            </ol>
+        </section>
+    </div>
+    <PromedioPorAspecto Aspectos="@Resultado.Aspectos" />
+</section>
+
+@code {
+    [Parameter, EditorRequired] public ResultadoCoordinacion Resultado { get; set; } = default!;
+    [Parameter] public bool EsTutor { get; set; }
+
+    private string DiferenciaTexto =>
+        $"{(Resultado.DiferenciaCarrera > 0 ? "+" : string.Empty)}{Resultado.DiferenciaCarrera:0.0}";
+
+    private Task ExportarPdfAsync()
+    {
+        IReadOnlyList<IReadOnlyList<string>> filas =
+        [
+            ["Evaluado", Resultado.Nombre],
+            ["Tipo", Resultado.EsTutorEstadias ? "Tutor de estadías" : EsTutor ? "Tutor" : "Docente"],
+            ["Contexto", Resultado.Contexto],
+            ["Periodo", Resultado.Periodo],
+            ["Promedio general", Resultado.Promedio.ToString("0.0")],
+            ["Respuestas", Resultado.Respuestas.ToString()],
+            ["Contra la carrera", DiferenciaTexto],
+            ["Aspecto", "Promedio", "Carrera"],
+            .. Resultado.Aspectos.OrderBy(aspecto => aspecto.Promedio).Select(aspecto =>
+                (IReadOnlyList<string>)[
+                    aspecto.Texto,
+                    aspecto.Promedio.ToString("0.0"),
+                    aspecto.PromedioCarrera.ToString("0.0")
+                ])
+        ];
+
+        return Exportador.ExportarPdfAsync($"Resultado - {Resultado.Nombre}", filas);
+    }
+}

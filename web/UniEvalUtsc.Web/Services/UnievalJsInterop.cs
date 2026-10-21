@@ -32,4 +32,10 @@ public sealed class UnievalJsInterop(IJSRuntime jsRuntime)
 
     public ValueTask PrintAsync() =>
         jsRuntime.InvokeVoidAsync("unieval.print");
+
+    public ValueTask DescargarArchivoAsync(string nombre, string contenidoBase64, string tipo) =>
+        jsRuntime.InvokeVoidAsync("unieval.downloadFile", nombre, contenidoBase64, tipo);
+
+    public ValueTask<bool> ImprimirReporteAsync(string nombre, IReadOnlyList<IReadOnlyList<string>> filas) =>
+        jsRuntime.InvokeAsync<bool>("unieval.printReport", nombre, filas);
 }

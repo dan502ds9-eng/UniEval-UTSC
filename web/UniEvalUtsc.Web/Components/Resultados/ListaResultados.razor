@@ -1,0 +1,44 @@
+@inject ICoordinacionService CoordinacionService
+@inject NavigationManager Navigation
+
+<section class="coordinacion-contenido">
+    @if (!Tutores && Cuatrimestre is ("6" or "10"))
+    {
+        <p class="resultado-aviso" role="status">
+            En @(Cuatrimestre == "6" ? "6to" : "10mo") · estadías, los alumnos solo evalúan a su tutor de estadías.
+            <a href="@RutaResultadosTutores">Consultar Resultados de tutores →</a>
+        </p>
+    }
+    else if (_resultados.Count == 0)
+    {
+        <p class="resultado-aviso" role="status">No hay resultados disponibles para estos filtros.</p>
+    }
+    else
+    {
+        <TablaResultados Caption="@(Tutores ? "Resultados de tutores, ordenados de menor a mayor promedio" : "Resultados de docentes, ordenados de menor a mayor promedio")"
+                         Resultados="@_resultados"
+                         OnVerDetalle="VerDetalle" />
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string PeriodoId { get; set; } = string.Empty;
+    [Parameter] public string Cuatrimestre { get; set; } = "todos";
+    [Parameter] public bool Tutores { get; set; }
+    [Parameter] public string CarreraId { get; set; } = FiltrosState.CarreraCoordinadorId;
+    [Parameter] public string RutaDetalleBase { get; set; } = "/coordinador/detalle";
+    [Parameter] public string RutaResultadosTutores { get; set; } = "/coordinador/resultados-tutores";
+
+    private IReadOnlyList<ResultadoCoordinacion> _resultados = [];
+
+    protected override void OnParametersSet()
+    {
+        _resultados = CoordinacionService.ObtenerResultados(PeriodoId, Cuatrimestre, Tutores, CarreraId);
+    }
+
+    private void VerDetalle(ResultadoCoordinacion resultado)
+    {
+        var tipo = Tutores ? "tutor" : "docente";
+        Navigation.NavigateTo($"{RutaDetalleBase}/{tipo}/{Uri.EscapeDataString(resultado.Id)}");
+    }
+}

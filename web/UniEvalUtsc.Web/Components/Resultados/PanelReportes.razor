@@ -1,0 +1,50 @@
+@inject ICoordinacionService CoordinacionService
+@inject IExportadorReportes Exportador
+
+<section class="coordinacion-contenido reportes-coordinacion">
+    <div class="reportes-coordinacion__lista">
+        @foreach (var reporte in Reportes)
+        {
+            <article class="reporte-coordinacion">
+                <div>
+                    <h2>@reporte.Titulo</h2>
+                    <p>@reporte.Descripcion</p>
+                </div>
+                <div class="reporte-coordinacion__acciones">
+                    <button type="button" class="boton boton--contorno" @onclick="() => ExportarExcelAsync(reporte)">
+                        Excel
+                    </button>
+                    <button type="button" class="boton boton--contorno" @onclick="() => ExportarPdfAsync(reporte)">
+                        PDF
+                    </button>
+                </div>
+            </article>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string PeriodoId { get; set; } = string.Empty;
+    [Parameter] public string Cuatrimestre { get; set; } = "todos";
+    [Parameter] public string CarreraId { get; set; } = FiltrosState.CarreraCoordinadorId;
+
+    private static IReadOnlyList<DefinicionReporte> Reportes { get; } =
+    [
+        new("docente", "Resultado por docente", "Promedios y respuestas por docente."),
+        new("tutor", "Resultado por tutor", "Promedios y respuestas por tutor."),
+        new("concentrado", "Concentrado por carrera", "Vista general de los resultados de la carrera."),
+        new("participacion", "Participación", "Alumnos que contestaron y pendientes por grupo."),
+        new("historico", "Comparativo histórico", "Comparativo de promedios entre periodos.")
+    ];
+
+    private IReadOnlyList<IReadOnlyList<string>> ObtenerFilas(DefinicionReporte reporte) =>
+        CoordinacionService.ObtenerDatosReporte(reporte.Tipo, PeriodoId, Cuatrimestre, CarreraId);
+
+    private Task ExportarExcelAsync(DefinicionReporte reporte) =>
+        Exportador.ExportarExcelAsync($"{reporte.Tipo}-{PeriodoId}", ObtenerFilas(reporte));
+
+    private Task ExportarPdfAsync(DefinicionReporte reporte) =>
+        Exportador.ExportarPdfAsync($"{reporte.Titulo} · {PeriodoId}", ObtenerFilas(reporte));
+
+    private sealed record DefinicionReporte(string Tipo, string Titulo, string Descripcion);
+}
