@@ -3,10 +3,10 @@
 ## Alcance y fuentes revisadas
 
 - `AGENTS.md`: arquitectura, rutas previstas, roles, reglas de negocio, diseño y accesibilidad.
-- `docs/prototipo/unieval-demo.html`: prototipo abierto y recorrido de acceso, evaluación del alumno y navegación por roles.
-- `docs/Diseno_Sistema_Encuestas_Desempeno_UTSC.pdf`: catálogo P-01 a P-12, requisitos y sección 10 (API REST).
+- `docs/diseno/prototipo/unieval-demo.html`: prototipo abierto y recorrido de acceso, evaluación del alumno y navegación por roles.
+- `docs/diseno/Diseno_Sistema_Encuestas_Desempeno_UTSC.pdf`: catálogo P-01 a P-12, requisitos y sección 10 (API REST).
 
-El directorio de controladores de `api/src/UniEvalUtsc.Api/` y `docs/api/` solo contiene `.gitkeep`; no hay endpoints implementados que deban tratarse como contrato vigente. Las rutas de este plan se basan en la sección 10 del PDF y son **propuestas por documentar e implementar**, no una descripción de una API ya disponible. Todas llevan el prefijo `/api`; el PDF indica que requieren el token de Microsoft 365. El modo simulado debe seguir siendo configurable y no guardar contraseñas.
+El directorio de controladores de `api/src/UniEvalUtsc.Api/` solo contiene `.gitkeep`; no hay endpoints implementados que deban tratarse como contrato vigente. Las rutas de este plan se basan en la sección 10 del PDF y son **propuestas por documentar e implementar**, no una descripción de una API ya disponible. Todas llevan el prefijo `/api`; el PDF indica que requieren el token de Microsoft 365. El modo simulado debe seguir siendo configurable y no guardar contraseñas.
 
 ## 1. Mapa de pantallas por rol
 

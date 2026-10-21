@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\api\src\UniEvalUtsc.Contracts\UniEvalUtsc.Contracts.csproj" />
+    <ProjectReference Include="..\..\shared\UniEvalUtsc.Contracts\UniEvalUtsc.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
