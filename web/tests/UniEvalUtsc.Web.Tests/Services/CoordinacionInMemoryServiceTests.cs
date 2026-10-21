@@ -75,5 +75,6 @@ public sealed class CoordinacionInMemoryServiceTests
         Assert.Empty(_servicio.ObtenerGrupos("sep-dic-2026", "todos", "otra-carrera"));
         Assert.Empty(_servicio.ObtenerResultados("sep-dic-2026", "todos", tutores: false, "otra-carrera"));
         Assert.Empty(_servicio.ObtenerAlumnosPendientes("dsm05av-a", "otra-carrera"));
+        Assert.Empty(_servicio.ObtenerAlumnosPendientes("mti05-a", "dsm"));
     }
 }

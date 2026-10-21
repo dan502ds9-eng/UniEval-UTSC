@@ -1,0 +1,15 @@
+@page "/admin/resultados-tutores"
+@attribute [Authorize(Roles = "Administrador")]
+@inject FiltrosState Filtros
+
+<PageTitle>Resultados de tutores · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="resultados-tutores" FiltrosVisibles="true">
+    <ChildContent>
+        <ListaResultados PeriodoId="@Filtros.PeriodoId"
+                         Cuatrimestre="@Filtros.Cuatrimestre"
+                         CarreraId="@Filtros.CarreraId"
+                         Tutores="true"
+                         RutaDetalleBase="/admin/detalle"
+                         RutaResultadosTutores="/admin/resultados-tutores" />
+    </ChildContent>
+</ShellAdministrador>

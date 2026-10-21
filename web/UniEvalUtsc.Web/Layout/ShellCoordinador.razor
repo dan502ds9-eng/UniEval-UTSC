@@ -7,6 +7,7 @@
                            PeriodoId="@Filtros.PeriodoId"
                            Cuatrimestre="@Filtros.Cuatrimestre"
                            CarreraId="@Filtros.CarreraId"
+                           HabilitarCarrera="false"
                            CarreraCambiada="CambiarCarrera"
                            PeriodoCambiado="CambiarPeriodo"
                            CuatrimestreCambiado="CambiarCuatrimestre" />
@@ -42,7 +43,7 @@
 
     private Task CambiarCarrera(string carreraId)
     {
-        Filtros.CambiarCarrera(carreraId);
+        Filtros.CambiarCarrera(FiltrosState.CarreraCoordinadorId);
         return Task.CompletedTask;
     }
 }

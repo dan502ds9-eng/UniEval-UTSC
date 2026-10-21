@@ -1,0 +1,46 @@
+@page "/admin/detalle/{Tipo}/{Id}"
+@attribute [Authorize(Roles = "Administrador")]
+@inject FiltrosState Filtros
+@inject ICoordinacionService CoordinacionService
+@inject IResultadosService ResultadosService
+
+<PageTitle>Detalle de resultados · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="@Seccion" FiltrosVisibles="true">
+    <ChildContent>
+        @if (_resultado is null)
+        {
+            <p class="resultado-aviso" role="status">No hay un resultado disponible para mostrar con estos filtros.</p>
+        }
+        else
+        {
+            <DetalleResultado Resultado="@_resultado" EsTutor="@EsTutor" />
+        }
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    [Parameter] public string Tipo { get; set; } = string.Empty;
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    private ResultadoCoordinacion? _resultado;
+    private bool EsTutor => string.Equals(Tipo, "tutor", StringComparison.OrdinalIgnoreCase);
+    private string Seccion => EsTutor ? "resultados-tutores" : "resultados-docentes";
+
+    protected override void OnInitialized()
+    {
+        Filtros.InicializarPeriodo(ResultadosService.ObtenerPeriodos());
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(Tipo, "docente", StringComparison.OrdinalIgnoreCase) && !EsTutor)
+        {
+            _resultado = null;
+            return;
+        }
+
+        _resultado = CoordinacionService
+            .ObtenerResultados(Filtros.PeriodoId, Filtros.Cuatrimestre, EsTutor, Filtros.CarreraId)
+            .SingleOrDefault(resultado => string.Equals(resultado.Id, Id, StringComparison.Ordinal));
+    }
+}

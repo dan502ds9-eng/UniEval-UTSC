@@ -25,9 +25,9 @@
             </button>
         }
     </div>
-    @if (_periodo is { Abierto: true })
+    @if (_periodo is { Cerrado: false })
     {
-        <p class="resultado-aviso" role="status">Disponible al cierre del periodo.</p>
+        <p class="resultado-aviso" role="status">Disponible cuando el administrador cierre el periodo.</p>
     }
     else if (_resultado is null)
     {

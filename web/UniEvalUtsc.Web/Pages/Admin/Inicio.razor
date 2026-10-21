@@ -1,0 +1,44 @@
+@page "/admin"
+@page "/admin/inicio"
+@attribute [Authorize(Roles = "Administrador")]
+@using System.Globalization
+@inject IPeriodosService PeriodosService
+@inject ICoordinacionService CoordinacionService
+@inject FiltrosState Filtros
+
+<PageTitle>Inicio · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="inicio">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            <div class="coordinacion-panel__encabezado">
+                <h2>Periodo actual</h2>
+                <span class="estado-periodo estado-periodo--@EstadoCss">@EstadoTexto</span>
+            </div>
+            <p>@Periodo.Nombre · cierre de encuestas: @Periodo.CierreEncuestas.ToString("d 'de' MMMM yyyy", CultureInfo.GetCultureInfo("es-MX"))</p>
+            <a class="boton boton--enlace" href="/admin/periodos">Administrar periodos →</a>
+        </section>
+        <IndicadoresGestion Resumen="@_resumen" />
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private PeriodoAdministrativo Periodo => PeriodosService.ObtenerActual();
+    private ResumenCoordinacion _resumen = new(0, 0, 0, 0, 0);
+    private string EstadoTexto => Periodo.Estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "En preparación",
+        EstadoPeriodoGestion.Abierto => "Encuestas abiertas",
+        _ => "Cerrado"
+    };
+    private string EstadoCss => Periodo.Estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "preparacion",
+        EstadoPeriodoGestion.Abierto => "abierto",
+        _ => "cerrado"
+    };
+
+    protected override void OnInitialized()
+    {
+        _resumen = CoordinacionService.ObtenerResumen(Periodo.Id, "todos", Filtros.CarreraId);
+    }
+}

@@ -3,11 +3,11 @@ using UniEvalUtsc.Contracts.Enums;
 
 namespace UniEvalUtsc.Web.Services;
 
-public sealed class ResultadosInMemoryService : IResultadosService
+public sealed class ResultadosInMemoryService(IPeriodosService? periodosService = null) : IResultadosService
 {
-    private static readonly IReadOnlyList<PeriodoResultado> Periodos =
+    private static readonly IReadOnlyList<PeriodoResultado> PeriodosPredeterminados =
     [
-        new("sep-dic-2026", "Sep–Dic 2026", true),
+        new("sep-dic-2026", "Sep–Dic 2026", true, false),
         new("may-ago-2026", "May–Ago 2026", false),
         new("ene-abr-2026", "Ene–Abr 2026", false)
     ];
@@ -24,7 +24,15 @@ public sealed class ResultadosInMemoryService : IResultadosService
         new("tutoria-dsm05av", "Grupo de tutoría", "DSM05AV · Grupo A", 22, 30)
     ];
 
-    public IReadOnlyList<PeriodoResultado> ObtenerPeriodos() => Periodos;
+    public IReadOnlyList<PeriodoResultado> ObtenerPeriodos() => periodosService is null
+        ? PeriodosPredeterminados
+        : periodosService.ObtenerPeriodos()
+            .Select(periodo => new PeriodoResultado(
+                periodo.Id,
+                periodo.Nombre,
+                periodo.Estado == EstadoPeriodoGestion.Abierto,
+                periodo.Estado == EstadoPeriodoGestion.Cerrado))
+            .ToArray();
 
     public IReadOnlyList<ElementoResultado> ObtenerElementos(Rol rol) => rol switch
     {
@@ -40,7 +48,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
             .Select(elemento =>
             {
                 var resultado = CrearResultado(rol, periodo, elemento);
-                var mensaje = periodo.Abierto
+                var mensaje = !periodo.Cerrado
                     ? "Disponible al cierre del periodo."
                     : resultado.Respuestas < 5
                         ? "No se muestran resultados con menos de 5 respuestas (RN-10)."
@@ -56,7 +64,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
         var elemento = ObtenerElementos(rol).SingleOrDefault(item => item.Id == elementoId)
             ?? throw new ArgumentException("No se encontró la materia o el grupo indicado.", nameof(elementoId));
         var resultado = CrearResultado(rol, periodo, elemento);
-        return periodo.Abierto || resultado.Respuestas < 5 ? null : resultado;
+        return !periodo.Cerrado || resultado.Respuestas < 5 ? null : resultado;
     }
 
     public IReadOnlyList<PuntoHistorico> ObtenerHistorico(Rol rol, string elementoId)
@@ -64,8 +72,8 @@ public sealed class ResultadosInMemoryService : IResultadosService
         var elemento = ObtenerElementos(rol).SingleOrDefault(item => item.Id == elementoId)
             ?? throw new ArgumentException("No se encontró la materia o el grupo indicado.", nameof(elementoId));
 
-        return Periodos
-            .Where(periodo => !periodo.Abierto && elemento.AlumnosRespondieron >= 5)
+        return ObtenerPeriodos()
+            .Where(periodo => periodo.Cerrado && elemento.AlumnosRespondieron >= 5)
             .Select((periodo, indice) =>
             {
                 var promedio = PromedioBase(rol, elemento, indice + 1);
@@ -78,8 +86,8 @@ public sealed class ResultadosInMemoryService : IResultadosService
     public IReadOnlyList<FilaReportePersonal> ObtenerReportes(Rol rol) =>
         ObtenerElementos(rol)
             .Where(elemento => elemento.AlumnosRespondieron >= 5)
-            .SelectMany(elemento => Periodos
-                .Where(periodo => !periodo.Abierto)
+            .SelectMany(elemento => ObtenerPeriodos()
+                .Where(periodo => periodo.Cerrado)
                 .Select((periodo, indice) =>
                 {
                     var promedio = PromedioBase(rol, elemento, indice + 1);
@@ -96,8 +104,8 @@ public sealed class ResultadosInMemoryService : IResultadosService
             .ThenBy(reporte => reporte.ElementoNombre, StringComparer.Ordinal)
             .ToArray();
 
-    private static PeriodoResultado ObtenerPeriodo(string periodoId) =>
-        Periodos.SingleOrDefault(periodo => periodo.Id == periodoId)
+    private PeriodoResultado ObtenerPeriodo(string periodoId) =>
+        ObtenerPeriodos().SingleOrDefault(periodo => periodo.Id == periodoId)
         ?? throw new ArgumentException("No se encontró el periodo solicitado.", nameof(periodoId));
 
     private static ResultadoPersonal CrearResultado(
@@ -111,7 +119,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
             .Select(indice =>
             {
                 var variacion = ((semilla / (indice + 3) + indice * 17) % 31 - 15) / 10m;
-                var promedio = Math.Clamp(7.3m + variacion + (periodo.Abierto ? 0 : 0.4m), 1m, 10m);
+                var promedio = Math.Clamp(7.3m + variacion + (periodo.Cerrado ? 0.4m : 0), 1m, 10m);
                 var promedioCarrera = Math.Clamp(promedio + ((indice % 3) - 1) * 0.4m, 1m, 10m);
                 return new AspectoResultado(
                     indice,
@@ -122,7 +130,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
             })
             .ToArray();
         var general = Niveles.Redondear(aspectos.Average(aspecto => aspecto.Promedio));
-        var respuestas = periodo.Abierto ? Math.Max(0, elemento.AlumnosRespondieron - 3) : elemento.AlumnosRespondieron;
+        var respuestas = periodo.Cerrado ? elemento.AlumnosRespondieron : Math.Max(0, elemento.AlumnosRespondieron - 3);
 
         return new ResultadoPersonal(
             elemento,
@@ -184,7 +192,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
     }
 }
 
-public sealed record PeriodoResultado(string Id, string Nombre, bool Abierto);
+public sealed record PeriodoResultado(string Id, string Nombre, bool Abierto, bool Cerrado = true);
 
 public sealed record ElementoResultado(
     string Id,

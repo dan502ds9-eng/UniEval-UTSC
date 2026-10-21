@@ -5,13 +5,13 @@ namespace UniEvalUtsc.Web.Tests.Services;
 public sealed class FiltrosStateTests
 {
     [Fact]
-    public void CambiarCarrera_MantieneLaCarreraAsignadaAlCoordinador()
+    public void CambiarCarrera_ActualizaLaCarreraParaAdministrador()
     {
         var filtros = new FiltrosState();
 
-        filtros.CambiarCarrera("otra-carrera");
+        filtros.CambiarCarrera("mti");
 
-        Assert.Equal("dsm", filtros.CarreraId);
+        Assert.Equal("mti", filtros.CarreraId);
     }
 
     [Fact]

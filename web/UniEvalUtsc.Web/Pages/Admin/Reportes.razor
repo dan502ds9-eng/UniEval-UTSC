@@ -1,0 +1,12 @@
+@page "/admin/reportes"
+@attribute [Authorize(Roles = "Administrador")]
+@inject FiltrosState Filtros
+
+<PageTitle>Reportes · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="reportes" FiltrosVisibles="true">
+    <ChildContent>
+        <PanelReportes PeriodoId="@Filtros.PeriodoId"
+                       Cuatrimestre="@Filtros.Cuatrimestre"
+                       CarreraId="@Filtros.CarreraId" />
+    </ChildContent>
+</ShellAdministrador>

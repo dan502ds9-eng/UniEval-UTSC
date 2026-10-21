@@ -1,0 +1,221 @@
+@page "/admin/plantillas"
+@attribute [Authorize(Roles = "Administrador")]
+@inject IPlantillasService PlantillasService
+
+<PageTitle>Plantillas · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="plantillas">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            <h2>Plantillas de evaluación</h2>
+            <label class="campo">
+                <span class="campo__etiqueta">Formulario</span>
+                <select class="campo__entrada" value="@_plantillaId" @onchange="Seleccionar">
+                    @foreach (var plantilla in PlantillasService.ObtenerPlantillas())
+                    {
+                        <option value="@plantilla.Id">@plantilla.Nombre · versión @plantilla.Version · @Etiqueta(plantilla)</option>
+                    }
+                </select>
+            </label>
+            <p>Los cambios publicados se aplicarán a partir del siguiente periodo (RN-12).</p>
+            <ol class="plantillas-admin__aspectos">
+                @for (var indice = 0; indice < _aspectos.Count; indice++)
+                {
+                    var index = indice;
+                    <li>
+                        <div class="plantillas-admin__acciones">
+                            <button class="boton boton--enlace" type="button" aria-label="@($"Mover aspecto {index + 1} hacia arriba")"
+                                    disabled="@(index == 0 || !EsBorrador)" @onclick="() => Mover(index, -1)">↑</button>
+                            <button class="boton boton--enlace" type="button" aria-label="@($"Mover aspecto {index + 1} hacia abajo")"
+                                    disabled="@(index == _aspectos.Count - 1 || !EsBorrador)" @onclick="() => Mover(index, 1)">↓</button>
+                            <button class="boton boton--enlace" type="button" disabled="@(!EsBorrador)"
+                                    @onclick="() => CambiarModoEdicion(index)">
+                                @(_editandoIndice == index ? "Listo" : "Editar")
+                            </button>
+                            <button class="boton boton--enlace" type="button" disabled="@(!EsBorrador || _aspectos.Count <= 1)"
+                                    @onclick="() => Eliminar(index)">Eliminar</button>
+                        </div>
+                        @if (EsBorrador && _editandoIndice == index)
+                        {
+                            <label class="campo">
+                                <span class="campo__etiqueta">Aspecto @(index + 1)</span>
+                                <textarea class="campo__entrada" rows="2" value="@_aspectos[index].Texto"
+                                          @onchange="evento => Editar(index, evento.Value?.ToString() ?? string.Empty)"></textarea>
+                            </label>
+                        }
+                        else
+                        {
+                            <p><strong>Aspecto @(index + 1):</strong> @_aspectos[index].Texto</p>
+                        }
+                    </li>
+                }
+            </ol>
+            <div class="plantillas-admin__acciones">
+                <button class="boton boton--contorno" type="button" disabled="@EsBorrador" @onclick="CrearBorrador">Crear borrador</button>
+                <button class="boton boton--contorno" type="button" disabled="@(!EsBorrador)" @onclick="AgregarAspecto">Agregar aspecto</button>
+                <button class="boton" type="button" disabled="@(!EsBorrador || !_cambios)" @onclick="Publicar">Publicar versión @_plantilla?.Version</button>
+                <button class="boton boton--contorno" type="button" disabled="@(!EsBorrador)" @onclick="Descartar">Descartar cambios</button>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_mensaje))
+            {
+                <p role="status">@_mensaje</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p class="resultado-aviso" role="alert">@_error</p>
+            }
+        </section>
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private string _plantillaId = string.Empty;
+    private PlantillaAdministrativa? _plantilla;
+    private List<AspectoPlantilla> _aspectos = [];
+    private int _editandoIndice = -1;
+    private bool _cambios;
+    private string _mensaje = string.Empty;
+    private string _error = string.Empty;
+    private bool EsBorrador => _plantilla?.Borrador == true;
+    private string IdBase
+    {
+        get
+        {
+            var indice = _plantillaId.IndexOf("-v", StringComparison.Ordinal);
+            return indice < 0 ? _plantillaId : _plantillaId[..indice];
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _plantillaId = PlantillasService.ObtenerPlantillas().First().Id;
+        CargarPlantilla();
+    }
+
+    private void Seleccionar(ChangeEventArgs evento)
+    {
+        _plantillaId = evento.Value?.ToString()
+            ?? throw new InvalidOperationException("Selecciona una plantilla.");
+        CargarPlantilla();
+    }
+
+    private void CargarPlantilla()
+    {
+        _plantilla = PlantillasService.Obtener(_plantillaId);
+        _aspectos = _plantilla.Aspectos.ToList();
+        _editandoIndice = -1;
+        _cambios = false;
+        _mensaje = string.Empty;
+        _error = string.Empty;
+    }
+
+    private void CrearBorrador()
+    {
+        Ejecutar(() =>
+        {
+            _plantilla = PlantillasService.CrearBorrador(IdBase);
+            _plantillaId = _plantilla.Id;
+            CargarPlantilla();
+            _mensaje = "Se creó un borrador editable.";
+        });
+    }
+
+    private void Editar(int indice, string texto)
+    {
+        _aspectos[indice] = _aspectos[indice] with { Texto = texto };
+        GuardarCambios();
+    }
+
+    private void Mover(int indice, int desplazamiento)
+    {
+        var destino = indice + desplazamiento;
+        (_aspectos[indice], _aspectos[destino]) = (_aspectos[destino], _aspectos[indice]);
+        if (_editandoIndice == indice)
+        {
+            _editandoIndice = destino;
+        }
+        else if (_editandoIndice == destino)
+        {
+            _editandoIndice = indice;
+        }
+
+        GuardarCambios();
+    }
+
+    private void Eliminar(int indice)
+    {
+        _aspectos.RemoveAt(indice);
+        if (_editandoIndice == indice)
+        {
+            _editandoIndice = -1;
+        }
+        else if (_editandoIndice > indice)
+        {
+            _editandoIndice--;
+        }
+
+        GuardarCambios();
+    }
+
+    private void AgregarAspecto()
+    {
+        _aspectos.Add(new AspectoPlantilla(_aspectos.Count + 1, "Nuevo aspecto"));
+        _editandoIndice = _aspectos.Count - 1;
+        GuardarCambios();
+    }
+
+    private void CambiarModoEdicion(int indice) =>
+        _editandoIndice = _editandoIndice == indice ? -1 : indice;
+
+    private void GuardarCambios()
+    {
+        try
+        {
+            PlantillasService.ReemplazarAspectos(_plantillaId, _aspectos);
+            _plantilla = PlantillasService.Obtener(_plantillaId);
+            _aspectos = _plantilla.Aspectos.ToList();
+            _cambios = true;
+            _error = string.Empty;
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private void Publicar() => Ejecutar(() =>
+    {
+        PlantillasService.Publicar(_plantillaId);
+        CargarPlantilla();
+        _mensaje = "La nueva versión quedó publicada y se aplicará a partir del siguiente periodo.";
+    });
+
+    private void Descartar() => Ejecutar(() =>
+    {
+        PlantillasService.Descartar(_plantillaId);
+        _plantillaId = PlantillasService.ObtenerPlantillas().First(plantilla => plantilla.Id == IdBase).Id;
+        CargarPlantilla();
+        _mensaje = "Se descartó el borrador.";
+    });
+
+    private void Ejecutar(Action accion)
+    {
+        _mensaje = string.Empty;
+        _error = string.Empty;
+        try
+        {
+            accion();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private static string Etiqueta(PlantillaAdministrativa plantilla) => plantilla.Borrador
+        ? "Borrador"
+        : plantilla.Vigente ? "Vigente" : "Anterior";
+}

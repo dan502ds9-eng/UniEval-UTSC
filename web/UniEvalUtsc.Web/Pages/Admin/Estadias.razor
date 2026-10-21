@@ -1,0 +1,100 @@
+@page "/admin/estadias"
+@attribute [Authorize(Roles = "Administrador")]
+@inject IEstadiasService EstadiasService
+
+<PageTitle>Estadías · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="estadias">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            <h2>Asignación de tutor de estadías</h2>
+            <label class="campo">
+                <span class="campo__etiqueta">Grupo</span>
+                <select class="campo__entrada" value="@_grupoId" @onchange="CambiarGrupo">
+                    @foreach (var grupo in EstadiasService.ObtenerGrupos())
+                    {
+                        <option value="@grupo.Id">@grupo.Nombre</option>
+                    }
+                </select>
+            </label>
+            <label class="campo">
+                <span class="campo__etiqueta">Tutor para todo el grupo</span>
+                <select class="campo__entrada" @onchange="AsignarGrupo">
+                    <option value="">Selecciona tutor</option>
+                    @foreach (var tutor in EstadiasService.ObtenerTutores())
+                    {
+                        <option value="@tutor">@tutor</option>
+                    }
+                </select>
+            </label>
+            <div class="tabla-resultados-contenedor">
+                <table class="tabla-resultados">
+                    <caption>Alumnos y asignaciones de estadías</caption>
+                    <thead><tr><th scope="col">Alumno</th><th scope="col">Correo institucional</th><th scope="col">Empresa</th><th scope="col">Tutor de estadías</th></tr></thead>
+                    <tbody>
+                        @foreach (var alumno in Alumnos)
+                        {
+                            <tr>
+                                <td>@alumno.Nombre</td>
+                                <td>@alumno.Correo</td>
+                                <td>@alumno.Empresa</td>
+                                <td>
+                                    <select class="campo__entrada" aria-label="@($"Tutor de estadías de {alumno.Nombre}")"
+                                            value="@alumno.TutorId"
+                                            @onchange="evento => CambiarTutor(alumno.AlumnoId, evento)">
+                                        <option value="">Sin asignar</option>
+                                        @foreach (var tutor in EstadiasService.ObtenerTutores())
+                                        {
+                                            <option value="@tutor">@tutor</option>
+                                        }
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p class="resultado-aviso" role="status">@_sinTutor alumnos sin tutor de estadías: no se les generará encuesta.</p>
+            <button class="boton" type="button" @onclick="Guardar">Guardar asignaciones</button>
+            @if (!string.IsNullOrWhiteSpace(_mensaje))
+            {
+                <p role="status">@_mensaje</p>
+            }
+        </section>
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private string _grupoId = string.Empty;
+    private string _mensaje = string.Empty;
+    private IReadOnlyList<AsignacionTutorEstadias> Alumnos => EstadiasService.ObtenerAsignaciones(_grupoId);
+    private int _sinTutor => Alumnos.Count(alumno => string.IsNullOrWhiteSpace(alumno.TutorId));
+
+    protected override void OnInitialized() =>
+        _grupoId = EstadiasService.ObtenerGrupos().FirstOrDefault()?.Id ?? string.Empty;
+
+    private void CambiarGrupo(ChangeEventArgs evento)
+    {
+        _grupoId = evento.Value?.ToString() ?? throw new InvalidOperationException("Selecciona un grupo.");
+        _mensaje = string.Empty;
+    }
+
+    private void AsignarGrupo(ChangeEventArgs evento)
+    {
+        var tutorId = evento.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(tutorId))
+        {
+            EstadiasService.AsignarTutorATodoElGrupo(_grupoId, tutorId);
+        }
+    }
+
+    private void CambiarTutor(string alumnoId, ChangeEventArgs evento) =>
+        EstadiasService.CambiarTutor(alumnoId, string.IsNullOrWhiteSpace(evento.Value?.ToString())
+            ? null
+            : evento.Value.ToString());
+
+    private void Guardar()
+    {
+        EstadiasService.GuardarAsignaciones(_grupoId);
+        _mensaje = "Las asignaciones de estadías se guardaron.";
+    }
+}

@@ -1,0 +1,173 @@
+@page "/admin/periodos"
+@attribute [Authorize(Roles = "Administrador")]
+@inject IPeriodosService PeriodosService
+
+<PageTitle>Periodos · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="periodos">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            <h2>@_seleccionado.Nombre</h2>
+            <p class="estado-periodo estado-periodo--@EstadoCss">@EstadoTexto</p>
+            <p>@DescripcionEstado</p>
+            @if (_seleccionado.Estado != EstadoPeriodoGestion.EnPreparacion)
+            {
+                <p>Encuestas generadas: @_seleccionado.EncuestasGeneradas</p>
+            }
+            <div class="formulario-admin__rejilla">
+                <label class="campo">
+                    <span class="campo__etiqueta">Inicio del periodo</span>
+                    <input class="campo__entrada" type="date" @bind="_inicioCaptura" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Fin del periodo</span>
+                    <input class="campo__entrada" type="date" @bind="_finCaptura" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Inicio de encuestas</span>
+                    <input class="campo__entrada" type="date" @bind="_inicioEncuestas" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Cierre de encuestas</span>
+                    <input class="campo__entrada" type="date" @bind="_cierreEncuestas" />
+                </label>
+            </div>
+            @if (_seleccionado.Estado == EstadoPeriodoGestion.EnPreparacion)
+            {
+                <button class="boton boton--contorno" type="button" @onclick="GuardarFechas">Guardar fechas</button>
+                <button class="boton" type="button" @onclick="AbrirPeriodo">Abrir aplicación de encuestas</button>
+            }
+            else if (_seleccionado.Estado == EstadoPeriodoGestion.Abierto)
+            {
+                <button class="boton" type="button" @onclick="CerrarPeriodo">Cerrar aplicación y liberar resultados</button>
+            }
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(_mensaje))
+        {
+            <p class="resultado-aviso" role="status">@_mensaje</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <p class="resultado-aviso" role="alert">@_error</p>
+        }
+
+        <section class="coordinacion-panel">
+            <div class="coordinacion-panel__encabezado">
+                <h2>Periodos anteriores</h2>
+                <button class="boton boton--contorno" type="button" @onclick="CrearPeriodo">Crear periodo</button>
+            </div>
+            <ol class="menor-participacion">
+                @foreach (var periodo in PeriodosService.ObtenerPeriodos())
+                {
+                    <li>
+                        <span>@periodo.Nombre<small class="tabla-resultados__secundario">@Etiqueta(periodo.Estado)</small></span>
+                        <button class="boton boton--enlace" type="button" @onclick="() => Seleccionar(periodo.Id)">Ver periodo</button>
+                    </li>
+                }
+            </ol>
+        </section>
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private PeriodoAdministrativo _seleccionado = default!;
+    private DateOnly _inicioCaptura;
+    private DateOnly _finCaptura;
+    private DateOnly _inicioEncuestas;
+    private DateOnly _cierreEncuestas;
+    private string _mensaje = string.Empty;
+    private string _error = string.Empty;
+
+    private string EstadoTexto => Etiqueta(_seleccionado.Estado);
+    private string EstadoCss => _seleccionado.Estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "preparacion",
+        EstadoPeriodoGestion.Abierto => "abierto",
+        _ => "cerrado"
+    };
+    private string DescripcionEstado => _seleccionado.Estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "Configura las fechas y abre la aplicación para generar las encuestas del periodo.",
+        EstadoPeriodoGestion.Abierto => "Las encuestas están disponibles para los alumnos. Al cerrar, se liberarán los resultados para docentes y tutores.",
+        _ => "El periodo está cerrado y sus resultados están disponibles para docentes y tutores."
+    };
+
+    protected override void OnInitialized() => Seleccionar(PeriodosService.ObtenerActual().Id);
+
+    private void Seleccionar(string periodoId)
+    {
+        _seleccionado = PeriodosService.ObtenerPeriodos().Single(periodo => periodo.Id == periodoId);
+        _inicioCaptura = _seleccionado.InicioCaptura;
+        _finCaptura = _seleccionado.FinCaptura;
+        _inicioEncuestas = _seleccionado.InicioEncuestas;
+        _cierreEncuestas = _seleccionado.CierreEncuestas;
+        _mensaje = string.Empty;
+        _error = string.Empty;
+    }
+
+    private void GuardarFechas()
+    {
+        Ejecutar(() =>
+        {
+            PeriodosService.EditarFechas(_seleccionado.Id, _inicioCaptura, _finCaptura, _inicioEncuestas, _cierreEncuestas);
+            _mensaje = "Las fechas se guardaron.";
+        });
+    }
+
+    private void AbrirPeriodo()
+    {
+        Ejecutar(() =>
+        {
+            var cantidad = PeriodosService.Abrir(_seleccionado.Id);
+            _mensaje = $"Se generaron {cantidad} encuestas para este periodo.";
+            Seleccionar(_seleccionado.Id);
+        });
+    }
+
+    private void CerrarPeriodo()
+    {
+        Ejecutar(() =>
+        {
+            PeriodosService.Cerrar(_seleccionado.Id);
+            _mensaje = "La aplicación se cerró y los resultados del periodo quedaron liberados.";
+            Seleccionar(_seleccionado.Id);
+        });
+    }
+
+    private void CrearPeriodo()
+    {
+        Ejecutar(() =>
+        {
+            var fechaInicio = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+            var fechaCierre = fechaInicio.AddMonths(4);
+            var periodo = PeriodosService.CrearPeriodo("Nuevo periodo", fechaInicio, fechaCierre);
+            Seleccionar(periodo.Id);
+            _mensaje = "Se creó un periodo en preparación. Ajusta sus fechas antes de abrirlo.";
+        });
+    }
+
+    private void Ejecutar(Action accion)
+    {
+        _error = string.Empty;
+        _mensaje = string.Empty;
+        try
+        {
+            accion();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private static string Etiqueta(EstadoPeriodoGestion estado) => estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "En preparación",
+        EstadoPeriodoGestion.Abierto => "Encuestas abiertas",
+        _ => "Cerrado"
+    };
+}

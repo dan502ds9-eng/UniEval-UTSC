@@ -8,7 +8,8 @@ namespace UniEvalUtsc.Web.Services;
 public sealed class AlumnoInMemoryService(
     IConfiguration configuration,
     UnievalJsInterop jsInterop,
-    ILogger<AlumnoInMemoryService> logger) : IAlumnoService
+    ILogger<AlumnoInMemoryService> logger,
+    IPeriodosService? periodosService = null) : IAlumnoService
 {
     private const string PeriodoId = "sep-dic-2026";
     private const string PeriodoNombre = "Sep–Dic 2026";
@@ -23,7 +24,10 @@ public sealed class AlumnoInMemoryService(
     public EvaluacionAlumno ObtenerEvaluacion()
     {
         var esEstadia = configuration.GetValue("Alumno:EsEstadia", false);
-        var periodoAbierto = configuration.GetValue("Alumno:PeriodoAbierto", true);
+        var periodoActual = periodosService?.ObtenerActual();
+        var periodoAbierto = periodoActual is null
+            ? configuration.GetValue("Alumno:PeriodoAbierto", true)
+            : periodoActual.Estado == EstadoPeriodoGestion.Abierto;
         IReadOnlyList<PreguntaAlumno> preguntas = esEstadia
             ? PreguntasEstadia
             : PreguntasDocente;
@@ -32,8 +36,8 @@ public sealed class AlumnoInMemoryService(
             : EvaluadosDocentes;
 
         return new EvaluacionAlumno(
-            PeriodoId,
-            PeriodoNombre,
+            periodoActual?.Id ?? PeriodoId,
+            periodoActual?.Nombre ?? PeriodoNombre,
             esEstadia ? "Grupo 10mo A · estadías" : "Grupo DSM05AV",
             periodoAbierto,
             esEstadia,

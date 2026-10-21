@@ -1,0 +1,113 @@
+@page "/admin/carga-academica"
+@attribute [Authorize(Roles = "Administrador")]
+@inject ICargaAcademicaService CargaService
+
+<PageTitle>Carga académica · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="carga-academica">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            <h2>Carga académica por grupo</h2>
+            <label class="campo">
+                <span class="campo__etiqueta">Grupo</span>
+                <select class="campo__entrada" value="@_grupoId" @onchange="CambiarGrupo">
+                    @foreach (var grupo in Grupos)
+                    {
+                        <option value="@grupo.Id">@grupo.Nombre</option>
+                    }
+                </select>
+            </label>
+            <div class="tabla-resultados-contenedor">
+                <table class="tabla-resultados">
+                    <caption>Materias, docentes y tutor del grupo @_grupoNombre</caption>
+                    <thead><tr><th scope="col">Materia</th><th scope="col">Docente</th></tr></thead>
+                    <tbody>
+                        @foreach (var asignacion in Asignaciones)
+                        {
+                            <tr>
+                                <td>@asignacion.Materia</td>
+                                <td>
+                                    <select class="campo__entrada" aria-label="@($"Docente de {asignacion.Materia}")"
+                                            value="@asignacion.Docente"
+                                            @onchange="evento => CambiarDocente(asignacion.Id, evento)">
+                                        @foreach (var docente in CargaService.ObtenerDocentes())
+                                        {
+                                            <option value="@docente">@docente</option>
+                                        }
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p>@(_cantidadMaterias) materias + 1 tutor = @(_cantidadMaterias + 1) encuestas por alumno.</p>
+        </section>
+
+        <section class="coordinacion-panel">
+            <h2>Importar carga desde Excel/CSV</h2>
+            <label class="campo">
+                <span class="campo__etiqueta">Archivo de carga</span>
+                <InputFile OnChange="Importar" accept=".csv,.xlsx" />
+            </label>
+            @if (!string.IsNullOrWhiteSpace(_mensaje))
+            {
+                <p role="status">@_mensaje</p>
+            }
+            @if (_errores.Count > 0)
+            {
+                <ul class="resultado-aviso" role="alert">
+                    @foreach (var error in _errores)
+                    {
+                        <li>Renglón @error.Renglon · @error.Campo: @error.Mensaje</li>
+                    }
+                </ul>
+            }
+        </section>
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private string _grupoId = string.Empty;
+    private string _mensaje = string.Empty;
+    private IReadOnlyList<RegistroImportacion> _errores = [];
+    private IReadOnlyList<AsignacionCarga> Asignaciones => CargaService.ObtenerAsignaciones()
+        .Where(asignacion => asignacion.GrupoId == _grupoId).ToArray();
+    private IReadOnlyList<(string Id, string Nombre)> Grupos => CargaService.ObtenerAsignaciones()
+        .GroupBy(asignacion => asignacion.GrupoId)
+        .Select(grupo => (grupo.Key, grupo.First().Grupo))
+        .ToArray();
+    private string _grupoNombre => Grupos.FirstOrDefault(grupo => grupo.Id == _grupoId).Nombre ?? string.Empty;
+    private int _cantidadMaterias => Asignaciones.Count(asignacion => !asignacion.EsTutor);
+
+    protected override void OnInitialized() => _grupoId = Grupos.FirstOrDefault().Id ?? string.Empty;
+
+    private void CambiarGrupo(ChangeEventArgs evento)
+    {
+        _grupoId = evento.Value?.ToString() ?? throw new InvalidOperationException("Selecciona un grupo.");
+    }
+
+    private void CambiarDocente(string asignacionId, ChangeEventArgs evento)
+    {
+        var docente = evento.Value?.ToString()
+            ?? throw new InvalidOperationException("Selecciona un docente.");
+        CargaService.CambiarDocente(asignacionId, docente);
+    }
+
+    private async Task Importar(InputFileChangeEventArgs evento)
+    {
+        _mensaje = string.Empty;
+        _errores = [];
+        var archivo = evento.File;
+        try
+        {
+            var filas = ImportadorTabular.Leer(archivo.OpenReadStream(5 * 1024 * 1024), archivo.Name);
+            var resultado = CargaService.Importar(filas);
+            _errores = resultado.Errores;
+            _mensaje = $"Renglones procesados: {resultado.Renglones}. Asignaciones importadas: {resultado.Importados}.";
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException or FormatException)
+        {
+            _mensaje = $"No se pudo importar el archivo: {exception.Message}";
+        }
+    }
+}
