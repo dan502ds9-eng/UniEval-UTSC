@@ -18,8 +18,10 @@ public sealed class AlmacenEvaluacionInMemory
     {
         lock (_sincronizacion)
         {
-            var periodoActual = _periodos.Values.Single(periodo => periodo.Estado == EstadoPeriodo.Abierto);
-            return DatosSemillaDemo.Grupos.Any(grupo => grupo.Id == grupoId) ? periodoActual : null;
+            var periodoActual = _periodos.Values.Where(periodo => periodo.Estado == EstadoPeriodo.Abierto)
+                .OrderByDescending(periodo => periodo.FechaFin).FirstOrDefault()
+                ?? _periodos.Values.OrderByDescending(periodo => periodo.FechaFin).FirstOrDefault();
+            return periodoActual is not null && DatosSemillaDemo.Grupos.Any(grupo => grupo.Id == grupoId) ? periodoActual : null;
         }
     }
 

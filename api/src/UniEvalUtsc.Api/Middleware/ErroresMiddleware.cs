@@ -22,7 +22,8 @@ public sealed class ErroresMiddleware(RequestDelegate next, ILogger<ErroresMiddl
             if (status == 500) logger.LogError(ex, "Error no controlado en la API");
             context.Response.StatusCode = status;
             context.Response.ContentType = "application/problem+json; charset=utf-8";
-            await context.Response.WriteAsJsonAsync(new ProblemDetails { Status = status, Title = titulo, Detail = ex.Message, Instance = context.Request.Path });
+            var detalle = status == 500 ? "Ocurrió un error inesperado." : ex.Message;
+            await context.Response.WriteAsJsonAsync(new ProblemDetails { Status = status, Title = titulo, Detail = detalle, Instance = context.Request.Path });
         }
     }
 }

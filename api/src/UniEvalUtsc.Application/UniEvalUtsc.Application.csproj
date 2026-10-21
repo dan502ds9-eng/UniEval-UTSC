@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UniEvalUtsc.Domain\UniEvalUtsc.Domain.csproj" />
+    <ProjectReference Include="..\..\..\shared\UniEvalUtsc.Contracts\UniEvalUtsc.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

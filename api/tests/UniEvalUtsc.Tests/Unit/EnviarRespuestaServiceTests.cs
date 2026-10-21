@@ -41,6 +41,25 @@ public sealed class EnviarRespuestaServiceTests
         Assert.Empty(almacen.ObtenerRespuestas());
     }
 
+    [Fact]
+    public async Task Enviar_SiGuardarFalla_ReversaEstadoYNoGuardaRespuesta()
+    {
+        var almacen = new AlmacenEvaluacionInMemory();
+        var encuesta = almacen.ObtenerEncuesta(1)!;
+        var repositorioRespuesta = new RepositorioRespuestaInMemory(almacen);
+        var unidad = new UnidadDeTrabajoInMemory(repositorioRespuesta) { FallarAlGuardar = true };
+        var servicio = new EnviarRespuestaService(new RepositorioEncuestaAsignadaInMemory(almacen),
+            new RepositorioPlantillaInMemory(almacen), new RepositorioPeriodoInMemory(almacen), repositorioRespuesta,
+            unidad, new RelojPrueba(new DateTime(2026, 10, 21, 12, 0, 0)));
+        var calificaciones = Enumerable.Range(1, 10).Select(id => new UniEvalUtsc.Domain.Entities.CalificacionAspecto(id, 8)).ToArray();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.EnviarAsync(1, 1, calificaciones));
+
+        Assert.Equal(UniEvalUtsc.Domain.Enums.EstadoEncuesta.Pendiente, encuesta.Estado);
+        Assert.Null(encuesta.FechaContestada);
+        Assert.Empty(almacen.ObtenerRespuestas());
+    }
+
     private static (EnviarRespuestaService Servicio, AlmacenEvaluacionInMemory Almacen) Crear(DateTime? ahora = null)
     {
         var almacen = new AlmacenEvaluacionInMemory();

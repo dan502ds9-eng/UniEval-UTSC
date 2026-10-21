@@ -31,10 +31,12 @@ public class EnviarRespuestaService(
             preparadas.Add((encuesta, Respuesta.Crear(encuesta, plantilla, item.Calificaciones)));
         }
         foreach (var (encuesta, respuesta) in preparadas)
+        {
             respuestas.Agregar(respuesta);
-        await unidadDeTrabajo.GuardarCambiosAsync(ct);
-        foreach (var (encuesta, _) in preparadas)
+            unidadDeTrabajo.RegistrarReversion(encuesta.RevertirContestacion);
             encuesta.MarcarContestada(reloj.Hoy);
+        }
+        await unidadDeTrabajo.GuardarCambiosAsync(ct);
     }
 
     public async Task EnviarAsync(int encuestaId, int alumnoId,
@@ -64,7 +66,8 @@ public class EnviarRespuestaService(
 
         // 6. Todo o nada (RNF-07)
         respuestas.Agregar(respuesta);
-        await unidadDeTrabajo.GuardarCambiosAsync(ct);
+        unidadDeTrabajo.RegistrarReversion(encuesta.RevertirContestacion);
         encuesta.MarcarContestada(reloj.Hoy);
+        await unidadDeTrabajo.GuardarCambiosAsync(ct);
     }
 }
