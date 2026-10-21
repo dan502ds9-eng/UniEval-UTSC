@@ -1,0 +1,22 @@
+<section class="alumno-resumen" aria-label="Resumen de la evaluación">
+    <div class="alumno-resumen__bloque">
+        <span class="alumno-resumen__icono" aria-hidden="true">▣</span>
+        <div><small>Periodo actual</small><strong>@Periodo</strong><span>Cuatrimestre en curso</span></div>
+    </div>
+    <div class="alumno-resumen__bloque">
+        <span class="alumno-resumen__icono" aria-hidden="true">▤</span>
+        <div><small>Preguntas</small><strong>@Preguntas</strong><span>Formato @Formato</span></div>
+    </div>
+    <div class="alumno-resumen__bloque">
+        <span class="alumno-resumen__icono" aria-hidden="true">♙</span>
+        <div><small>Evaluados</small><strong>@Evaluados.Count</strong><span>@(EsEstadia ? "Tutor de estadías" : $"{Evaluados.Count - 1} docentes · 1 tutora")</span></div>
+    </div>
+</section>
+
+@code {
+    [Parameter] public string Periodo { get; set; } = string.Empty;
+    [Parameter] public int Preguntas { get; set; }
+    [Parameter] public IReadOnlyList<EvaluadoAlumno> Evaluados { get; set; } = [];
+    [Parameter] public string Formato { get; set; } = "FORM-AC16";
+    [Parameter] public bool EsEstadia { get; set; }
+}

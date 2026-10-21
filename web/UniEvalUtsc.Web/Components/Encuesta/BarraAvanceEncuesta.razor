@@ -1,0 +1,19 @@
+<section class="alumno-avance alumno-avance--sticky" aria-label="Avance de la evaluación">
+    <div class="alumno-avance__encabezado">
+        <strong>@Avance de @Total respondidas</strong>
+        <button class="boton-enlace" type="button" @onclick="OnSiguientePendiente" disabled="@(!HayPendientes)">
+            Ir a la siguiente pendiente →
+        </button>
+    </div>
+    <BarraProgreso Valor="@Avance" Maximo="@Total" Label="Avance de la evaluación" />
+    <div class="alumno-leyenda" aria-label="Escala: 1 a 4 bajo, 5 a 7 medio, 8 a 10 alto">
+        <span>Escala:</span><span class="alumno-leyenda__bajo">1–4 Bajo</span><span class="alumno-leyenda__medio">5–7 Medio</span><span class="alumno-leyenda__alto">8–10 Alto</span>
+    </div>
+</section>
+
+@code {
+    [Parameter] public int Avance { get; set; }
+    [Parameter] public int Total { get; set; }
+    [Parameter] public bool HayPendientes { get; set; }
+    [Parameter] public EventCallback OnSiguientePendiente { get; set; }
+}

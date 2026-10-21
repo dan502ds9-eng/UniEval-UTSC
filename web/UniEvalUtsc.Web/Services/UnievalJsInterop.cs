@@ -15,6 +15,9 @@ public sealed class UnievalJsInterop(IJSRuntime jsRuntime)
     public ValueTask FocusElementAsync(ElementReference element) =>
         jsRuntime.InvokeVoidAsync("unieval.focusElement", element);
 
+    public ValueTask FocusByIdAsync(string id) =>
+        jsRuntime.InvokeVoidAsync("unieval.focusById", id);
+
     public ValueTask<bool> SpeakAsync(string text) =>
         jsRuntime.InvokeAsync<bool>("unieval.speak", text);
 

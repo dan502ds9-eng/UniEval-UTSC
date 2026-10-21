@@ -1,0 +1,46 @@
+<fieldset class="alumno-calificacion-grupo" role="radiogroup" aria-label="@Etiqueta">
+    <legend class="sr-only">@Etiqueta</legend>
+    <div class="alumno-calificaciones">
+        @for (var calificacion = 1; calificacion <= 10; calificacion++)
+        {
+            var valor = calificacion;
+            <label class="alumno-calificacion alumno-calificacion--@valor" for="@Id(valor)">
+                <input id="@Id(valor)"
+                       type="radio"
+                       name="@Name"
+                       value="@valor"
+                       checked="@(Value == valor)"
+                       aria-label="@($"{valor} de 10, {Nivel(valor)}")"
+                       @onchange="() => ValueChanged.InvokeAsync(valor)"
+                       @onkeydown="ManejarTeclaNumeroAsync" />
+                <span aria-hidden="true">@valor</span>
+            </label>
+        }
+    </div>
+</fieldset>
+
+@code {
+    private readonly string _id = $"calificacion-{Guid.NewGuid():N}";
+
+    [Parameter] public int? Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+    [Parameter] public string Etiqueta { get; set; } = "Calificación";
+    [Parameter] public EventCallback<int> OnTeclaNumero { get; set; }
+    [Parameter] public string Name { get; set; } = "calificacion";
+    [Parameter] public string? IdPrefix { get; set; }
+
+    private string Id(int valor) => $"{IdPrefix ?? _id}-{valor}";
+
+    private static string Nivel(int valor) => valor <= 4 ? "bajo" : valor <= 7 ? "medio" : "alto";
+
+    private Task ManejarTeclaNumeroAsync(KeyboardEventArgs evento)
+    {
+        if (evento.Key.Length != 1 || evento.Key[0] is < '0' or > '9')
+        {
+            return Task.CompletedTask;
+        }
+
+        var valor = evento.Key == "0" ? 10 : int.Parse(evento.Key, System.Globalization.CultureInfo.InvariantCulture);
+        return OnTeclaNumero.InvokeAsync(valor);
+    }
+}

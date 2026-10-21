@@ -1,0 +1,39 @@
+@page "/alumno/comprobante"
+@attribute [Authorize(Roles = "Alumno")]
+@inject NavigationManager Navigation
+@inject IAlumnoService AlumnoService
+
+<PageTitle>Comprobante · UniEval UTSC</PageTitle>
+
+@if (_comprobante is not null)
+{
+    <main class="student-home alumno-pagina alumno-comprobante">
+        <span class="alumno-comprobante__sello">COMPROBANTE</span>
+        <h1 tabindex="-1">¡Gracias!</h1>
+        <p>Contestaste las @_comprobante.EncuestasContestadas de @_comprobante.TotalEncuestas encuestas del cuatrimestre. Puedes mostrar esta pantalla a tu tutor.</p>
+        @if (_comprobante.FechaEnvio is { } fechaEnvio)
+        {
+            <p class="alumno-comprobante__fecha">@fechaEnvio.ToString("dd/MM/yyyy") · @_comprobante.Periodo</p>
+        }
+        else
+        {
+            <p class="alumno-comprobante__fecha">@_comprobante.Periodo</p>
+        }
+        <button class="boton boton--contorno" type="button" @onclick="VolverAEncuestas">← Mis encuestas</button>
+    </main>
+}
+
+@code {
+    private ComprobanteAlumno? _comprobante;
+
+    protected override void OnInitialized()
+    {
+        _comprobante = AlumnoService.ObtenerComprobante();
+        if (_comprobante is null)
+        {
+            Navigation.NavigateTo("/alumno");
+        }
+    }
+
+    private void VolverAEncuestas() => Navigation.NavigateTo("/alumno");
+}

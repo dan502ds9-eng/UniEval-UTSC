@@ -177,6 +177,10 @@
             element?.focus();
         },
 
+        focusById(id) {
+            document.getElementById(id)?.focus();
+        },
+
         speak(text) {
             if (!("speechSynthesis" in window)) {
                 return false;
