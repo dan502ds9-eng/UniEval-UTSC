@@ -1,5 +1,6 @@
 @implements IDisposable
 @inject AuthService AuthService
+@inject AlumnoInMemoryService AlumnoService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -12,12 +13,19 @@
     <nav class="topbar__acciones" aria-label="Preferencias y cuenta">
         @if (AuthService.CurrentUser?.Role == Rol.Alumno)
         {
-            <button class="topbar__boton topbar__notificaciones" type="button" aria-label="Notificaciones, 0 pendientes">
+            <button class="topbar__boton topbar__notificaciones"
+                    type="button"
+                    aria-label="@($"Notificaciones, {AlumnoService.MensajesSinLeer} mensajes sin leer")"
+                    aria-haspopup="dialog"
+                    @onclick="AbrirMensajes">
                 <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                     <path d="M10 21h4" />
                 </svg>
-                <span class="topbar__campana-conteo">0</span>
+                @if (AlumnoService.MensajesSinLeer > 0)
+                {
+                    <span class="topbar__campana-conteo">@AlumnoService.MensajesSinLeer</span>
+                }
             </button>
         }
 
@@ -82,6 +90,41 @@
             </div>
         }
     </nav>
+    @if (_notificacionEmergente)
+    {
+        <div class="topbar__notificacion-emergente" role="status">
+            <p>Tienes @AlumnoService.MensajesSinLeer mensajes sin leer.</p>
+            <button type="button" @onclick="AbrirMensajes">Ver mensaje</button>
+            <button type="button" aria-label="Cerrar notificación" @onclick="() => _notificacionEmergente = false">Cerrar</button>
+        </div>
+    }
+    <PanelLateral @bind-IsOpen="_panelMensajesAbierto" Title="Mensajes">
+        <div class="alumno-mensajes__encabezado">
+            <p role="status">@(AlumnoService.MensajesSinLeer == 0 ? "Todo leído" : $"{AlumnoService.MensajesSinLeer} mensajes sin leer")</p>
+            @if (AlumnoService.MensajesSinLeer > 0)
+            {
+                <button class="boton-enlace" type="button" @onclick="MarcarTodosComoLeidos">Marcar todos como leídos</button>
+            }
+        </div>
+        <ul class="alumno-mensajes">
+            @foreach (var mensaje in AlumnoService.ObtenerMensajes())
+            {
+                <li class="@(mensaje.Leido ? null : "alumno-mensajes__nuevo")">
+                    <small>@mensaje.Remitente · @mensaje.Fecha.ToString("dd/MM/yyyy") @if (!mensaje.Leido) { <strong>· Nuevo</strong> }</small>
+                    <h3>@mensaje.Titulo</h3>
+                    <p>@mensaje.Cuerpo</p>
+                    @if (!mensaje.Leido)
+                    {
+                        <button class="boton-enlace" type="button" @onclick="() => MarcarComoLeido(mensaje.Id)">Marcar como leído</button>
+                    }
+                </li>
+            }
+            @if (AlumnoService.ObtenerMensajes().Count == 0)
+            {
+                <li><p>No tienes mensajes.</p></li>
+            }
+        </ul>
+    </PanelLateral>
 </header>
 
 @code {
@@ -95,6 +138,8 @@
     private bool _usuarioVinculado;
     private bool _textoAbierto;
     private bool _usuarioAbierto;
+    private bool _notificacionEmergente;
+    private bool _panelMensajesAbierto;
     private string _tema = "light";
     private int _escala = 100;
     private string CssClass => Navigation.ToBaseRelativePath(Navigation.Uri) is ""
@@ -113,6 +158,8 @@
     {
         AuthenticationStateProvider.AuthenticationStateChanged += HandleAuthenticationChanged;
         Navigation.LocationChanged += HandleLocationChanged;
+        _notificacionEmergente = AuthService.CurrentUser?.Role == Rol.Alumno &&
+            AlumnoService.MensajesSinLeer > 0;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -158,6 +205,22 @@
     {
         _usuarioAbierto = !_usuarioAbierto;
         _textoAbierto = false;
+    }
+
+    private void AbrirMensajes()
+    {
+        _notificacionEmergente = false;
+        _panelMensajesAbierto = true;
+    }
+
+    private void MarcarComoLeido(string id)
+    {
+        AlumnoService.MarcarMensajeComoLeido(id);
+    }
+
+    private void MarcarTodosComoLeidos()
+    {
+        AlumnoService.MarcarTodosComoLeidos();
     }
 
     private async Task CambiarEscala(int escala)
@@ -213,6 +276,8 @@
     private void HandleAuthenticationChanged(Task<AuthenticationState> authenticationState)
     {
         _ = authenticationState;
+        _notificacionEmergente = AuthService.CurrentUser?.Role == Rol.Alumno &&
+            AlumnoService.MensajesSinLeer > 0;
         _ = InvokeAsync(StateHasChanged);
     }
 
