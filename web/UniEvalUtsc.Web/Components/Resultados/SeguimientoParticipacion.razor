@@ -1,11 +1,14 @@
 @inject ICoordinacionService CoordinacionService
 
 <section class="coordinacion-contenido">
-    <IndicadoresCoordinacion Resumen="@_resumen" />
+    <IndicadoresGestion Resumen="@_resumen" />
     <div class="tarjetas-participacion">
         @foreach (var grupo in _grupos)
         {
-            <TarjetaParticipacionGrupo @key="grupo.Id" Grupo="@grupo" OnRecordatorioEnviado="OnRecordatorioEnviado" />
+            <TarjetaParticipacionGrupo @key="grupo.Id"
+                                       Grupo="@grupo"
+                                       CarreraId="@CarreraId"
+                                       OnRecordatorioEnviado="OnRecordatorioEnviado" />
         }
     </div>
 </section>
@@ -13,6 +16,7 @@
 @code {
     [Parameter, EditorRequired] public string PeriodoId { get; set; } = string.Empty;
     [Parameter] public string Cuatrimestre { get; set; } = "todos";
+    [Parameter] public string CarreraId { get; set; } = FiltrosState.CarreraCoordinadorId;
     [Parameter] public EventCallback<GrupoParticipacion> OnRecordatorioEnviado { get; set; }
 
     private IReadOnlyList<GrupoParticipacion> _grupos = [];
@@ -20,7 +24,7 @@
 
     protected override void OnParametersSet()
     {
-        _resumen = CoordinacionService.ObtenerResumen(PeriodoId, Cuatrimestre);
-        _grupos = CoordinacionService.ObtenerGrupos(PeriodoId, Cuatrimestre);
+        _resumen = CoordinacionService.ObtenerResumen(PeriodoId, Cuatrimestre, CarreraId);
+        _grupos = CoordinacionService.ObtenerGrupos(PeriodoId, Cuatrimestre, CarreraId);
     }
 }

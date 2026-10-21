@@ -207,6 +207,40 @@
             window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         },
 
+        printReport(title, rows) {
+            const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+                return false;
+            }
+
+            const document = printWindow.document;
+            document.title = title;
+            const style = document.createElement("style");
+            style.textContent = "body{font-family:Arial,sans-serif;color:#14110f;padding:2rem}h1{font-size:1.5rem}table{width:100%;border-collapse:collapse}th,td{border:1px solid #777;padding:.5rem;text-align:left}th{background:#f2ebE3}";
+            document.head.append(style);
+            const heading = document.createElement("h1");
+            heading.textContent = title;
+            document.body.append(heading);
+            const table = document.createElement("table");
+            for (const [index, row] of rows.entries()) {
+                const tableRow = document.createElement("tr");
+                for (const value of row) {
+                    const cell = document.createElement(index === 0 ? "th" : "td");
+                    if (index === 0) {
+                        cell.scope = "col";
+                    }
+                    cell.textContent = value;
+                    tableRow.append(cell);
+                }
+                table.append(tableRow);
+            }
+            document.body.append(table);
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+            return true;
+        },
+
         speak(text) {
             if (!("speechSynthesis" in window)) {
                 return false;

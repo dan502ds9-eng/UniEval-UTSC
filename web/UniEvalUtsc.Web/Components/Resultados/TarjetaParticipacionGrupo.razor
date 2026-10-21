@@ -47,6 +47,7 @@
 
 @code {
     [Parameter, EditorRequired] public GrupoParticipacion Grupo { get; set; } = default!;
+    [Parameter] public string CarreraId { get; set; } = FiltrosState.CarreraCoordinadorId;
     [Parameter] public EventCallback<GrupoParticipacion> OnRecordatorioEnviado { get; set; }
 
     private bool _mostrarPendientes;
@@ -70,7 +71,7 @@
     {
         _mostrarPendientes = !_mostrarPendientes;
         _pendientes = _mostrarPendientes
-            ? CoordinacionService.ObtenerAlumnosPendientes(Grupo.Id)
+            ? CoordinacionService.ObtenerAlumnosPendientes(Grupo.Id, CarreraId)
             : [];
     }
 

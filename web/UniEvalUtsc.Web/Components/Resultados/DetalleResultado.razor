@@ -1,4 +1,4 @@
-@inject UnievalJsInterop JsInterop
+@inject IExportadorReportes Exportador
 
 <section class="resultado-detalle" aria-label="@($"Detalle de {Resultado.Nombre}")">
     <div class="detalle-coordinacion__encabezado">
@@ -7,7 +7,7 @@
             <h2>@Resultado.Nombre</h2>
             <p>@Resultado.Contexto · @Resultado.Periodo</p>
         </div>
-        <button class="boton boton--contorno" type="button" @onclick="DescargarPdfAsync">Exportar PDF</button>
+        <button class="boton boton--contorno" type="button" @onclick="ExportarPdfAsync">Exportar PDF</button>
     </div>
     <div class="resultado-indicadores">
         <IndicadorResultado Titulo="Promedio general" Valor="@Resultado.Promedio.ToString("0.0")">
@@ -49,5 +49,26 @@
     private string DiferenciaTexto =>
         $"{(Resultado.DiferenciaCarrera > 0 ? "+" : string.Empty)}{Resultado.DiferenciaCarrera:0.0}";
 
-    private async Task DescargarPdfAsync() => await JsInterop.PrintAsync();
+    private Task ExportarPdfAsync()
+    {
+        IReadOnlyList<IReadOnlyList<string>> filas =
+        [
+            ["Evaluado", Resultado.Nombre],
+            ["Tipo", Resultado.EsTutorEstadias ? "Tutor de estadías" : EsTutor ? "Tutor" : "Docente"],
+            ["Contexto", Resultado.Contexto],
+            ["Periodo", Resultado.Periodo],
+            ["Promedio general", Resultado.Promedio.ToString("0.0")],
+            ["Respuestas", Resultado.Respuestas.ToString()],
+            ["Contra la carrera", DiferenciaTexto],
+            ["Aspecto", "Promedio", "Carrera"],
+            .. Resultado.Aspectos.OrderBy(aspecto => aspecto.Promedio).Select(aspecto =>
+                (IReadOnlyList<string>)[
+                    aspecto.Texto,
+                    aspecto.Promedio.ToString("0.0"),
+                    aspecto.PromedioCarrera.ToString("0.0")
+                ])
+        ];
+
+        return Exportador.ExportarPdfAsync($"Resultado - {Resultado.Nombre}", filas);
+    }
 }

@@ -1,0 +1,12 @@
+@page "/coordinador/reportes"
+@attribute [Authorize(Roles = "Coordinador")]
+@inject FiltrosState Filtros
+
+<PageTitle>Reportes · UniEval UTSC</PageTitle>
+<ShellCoordinador Seccion="reportes">
+    <ChildContent>
+        <PanelReportes PeriodoId="@Filtros.PeriodoId"
+                       Cuatrimestre="@Filtros.Cuatrimestre"
+                       CarreraId="@Filtros.CarreraId" />
+    </ChildContent>
+</ShellCoordinador>

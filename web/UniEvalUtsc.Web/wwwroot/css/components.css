@@ -1649,10 +1649,6 @@ html[data-theme="dark"] .acceso {
     margin-top: var(--space-1);
 }
 
-.coordinador-reporte-impresion {
-    display: none;
-}
-
 @media print {
     .topbar,
     .staff-shell__sidebar,
@@ -1681,13 +1677,6 @@ html[data-theme="dark"] .acceso {
         display: block;
     }
 
-    .reportes-coordinacion__lista {
-        display: none;
-    }
-
-    .coordinador-reporte-impresion {
-        display: block;
-    }
 }
 
 .student-home {

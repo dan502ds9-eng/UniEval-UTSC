@@ -15,6 +15,8 @@ builder.Services.AddScoped<UnievalJsInterop>();
 builder.Services.AddScoped<IAlumnoService, AlumnoInMemoryService>();
 builder.Services.AddScoped<IResultadosService, ResultadosInMemoryService>();
 builder.Services.AddScoped<ICoordinacionService, CoordinacionInMemoryService>();
+builder.Services.AddScoped<FiltrosState>();
+builder.Services.AddScoped<IExportadorReportes, ExportadorLocal>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<SimulatedAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(services =>

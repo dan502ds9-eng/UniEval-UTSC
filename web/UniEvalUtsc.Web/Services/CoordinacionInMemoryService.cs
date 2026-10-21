@@ -47,13 +47,13 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
         "Isabel Flores Lozano"
     ];
 
-    public ResumenCoordinacion ObtenerResumen(string periodoId, string cuatrimestre)
+    public ResumenCoordinacion ObtenerResumen(string periodoId, string cuatrimestre, string carreraId)
     {
-        var grupos = ObtenerGrupos(periodoId, cuatrimestre);
+        var grupos = ObtenerGrupos(periodoId, cuatrimestre, carreraId);
         var total = grupos.Sum(grupo => grupo.Total);
         var contestaron = grupos.Sum(grupo => grupo.Contestaron);
-        var docentes = ObtenerResultados(periodoId, cuatrimestre, tutores: false);
-        var tutores = ObtenerResultados(periodoId, cuatrimestre, tutores: true);
+        var docentes = ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId);
+        var tutores = ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId);
         var promedio = docentes.Count == 0 ? 0 : docentes.Average(resultado => resultado.Promedio);
 
         return new ResumenCoordinacion(
@@ -64,9 +64,14 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
             docentes.Concat(tutores).Count(resultado => resultado.Promedio < 8));
     }
 
-    public IReadOnlyList<GrupoParticipacion> ObtenerGrupos(string periodoId, string cuatrimestre)
+    public IReadOnlyList<GrupoParticipacion> ObtenerGrupos(string periodoId, string cuatrimestre, string carreraId)
     {
         ValidarPeriodo(periodoId);
+        if (!EsCarreraDisponible(carreraId))
+        {
+            return [];
+        }
+
         var cuatrimestres = ObtenerCuatrimestres(cuatrimestre);
         return Grupos
             .Where(grupo => cuatrimestres is null || cuatrimestres.Contains(grupo.Cuatrimestre))
@@ -74,8 +79,13 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
             .ToArray();
     }
 
-    public IReadOnlyList<string> ObtenerAlumnosPendientes(string grupoId)
+    public IReadOnlyList<string> ObtenerAlumnosPendientes(string grupoId, string carreraId)
     {
+        if (!EsCarreraDisponible(carreraId))
+        {
+            return [];
+        }
+
         var grupo = Grupos.SingleOrDefault(item => item.Id == grupoId)
             ?? throw new ArgumentException("No se encontró el grupo solicitado.", nameof(grupoId));
 
@@ -87,9 +97,15 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
     public IReadOnlyList<ResultadoCoordinacion> ObtenerResultados(
         string periodoId,
         string cuatrimestre,
-        bool tutores)
+        bool tutores,
+        string carreraId)
     {
         ValidarPeriodo(periodoId);
+        if (!EsCarreraDisponible(carreraId))
+        {
+            return [];
+        }
+
         var cuatrimestres = ObtenerCuatrimestres(cuatrimestre);
         if (!tutores && cuatrimestre is ("6" or "10"))
         {
@@ -113,18 +129,19 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
     public IReadOnlyList<IReadOnlyList<string>> ObtenerDatosReporte(
         string tipo,
         string periodoId,
-        string cuatrimestre)
+        string cuatrimestre,
+        string carreraId)
     {
         return tipo switch
         {
-            "docente" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: false)),
-            "tutor" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: true)),
+            "docente" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)),
+            "tutor" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId)),
             "concentrado" => FilasResultados(
-                ObtenerResultados(periodoId, cuatrimestre, tutores: false)
-                    .Concat(ObtenerResultados(periodoId, cuatrimestre, tutores: true))
+                ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)
+                    .Concat(ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId))
                     .OrderBy(resultado => resultado.Promedio)),
-            "participacion" => FilasParticipacion(ObtenerGrupos(periodoId, cuatrimestre)),
-            "historico" => FilasHistorico(ObtenerResultados(periodoId, cuatrimestre, tutores: false)),
+            "participacion" => FilasParticipacion(ObtenerGrupos(periodoId, cuatrimestre, carreraId)),
+            "historico" => FilasHistorico(ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)),
             _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "El tipo de reporte no es válido.")
         };
     }
@@ -227,6 +244,13 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
         {
             throw new ArgumentException("No se encontró el periodo solicitado.", nameof(periodoId));
         }
+    }
+
+    private static bool EsCarreraDisponible(string carreraId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(carreraId);
+        return string.Equals(carreraId, FiltrosState.CarreraCoordinadorId, StringComparison.Ordinal)
+            || string.Equals(carreraId, "todas", StringComparison.Ordinal);
     }
 
     private static string NombrePeriodo(string periodoId) => periodoId switch

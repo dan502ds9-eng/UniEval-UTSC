@@ -1,0 +1,22 @@
+@page "/coordinador/seguimiento"
+@attribute [Authorize(Roles = "Coordinador")]
+@inject FiltrosState Filtros
+@inject IAlumnoService AlumnoService
+
+<PageTitle>Seguimiento · UniEval UTSC</PageTitle>
+<ShellCoordinador Seccion="seguimiento">
+    <ChildContent>
+        <SeguimientoParticipacion PeriodoId="@Filtros.PeriodoId"
+                                  Cuatrimestre="@Filtros.Cuatrimestre"
+                                  CarreraId="@Filtros.CarreraId"
+                                  OnRecordatorioEnviado="EnviarRecordatorio" />
+    </ChildContent>
+</ShellCoordinador>
+
+@code {
+    private Task EnviarRecordatorio(GrupoParticipacion grupo)
+    {
+        AlumnoService.CrearRecordatorio(grupo.Id, grupo.Nombre);
+        return Task.CompletedTask;
+    }
+}

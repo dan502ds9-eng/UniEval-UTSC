@@ -1,0 +1,13 @@
+@page "/coordinador"
+@page "/coordinador/inicio"
+@attribute [Authorize(Roles = "Coordinador")]
+@inject FiltrosState Filtros
+
+<PageTitle>Inicio · UniEval UTSC</PageTitle>
+<ShellCoordinador Seccion="inicio">
+    <ChildContent>
+        <InicioGestion PeriodoId="@Filtros.PeriodoId"
+                       Cuatrimestre="@Filtros.Cuatrimestre"
+                       CarreraId="@Filtros.CarreraId" />
+    </ChildContent>
+</ShellCoordinador>
