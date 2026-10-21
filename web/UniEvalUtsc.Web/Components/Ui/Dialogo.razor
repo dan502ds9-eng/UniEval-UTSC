@@ -1,0 +1,76 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+@if (IsOpen)
+{
+    <div class="dialogo__fondo" @onclick="CloseAsync">
+        <section @ref="_dialog"
+                 class="dialogo"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="@_titleId"
+                 tabindex="-1"
+                 @onclick:stopPropagation="true">
+            <header class="dialogo__encabezado">
+                <h2 id="@_titleId">@Title</h2>
+                <button class="dialogo__cerrar" type="button" aria-label="Cerrar diálogo" @onclick="CloseAsync">×</button>
+            </header>
+            <div class="dialogo__contenido">@ChildContent</div>
+            @if (Footer is not null)
+            {
+                <footer class="dialogo__pie">@Footer</footer>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private readonly string _titleId = $"dialogo-titulo-{Guid.NewGuid():N}";
+    private ElementReference _dialog;
+    private DotNetObjectReference<Dialogo>? _callback;
+    private bool _focoAtrapado;
+
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen && !_focoAtrapado)
+        {
+            _callback ??= DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("unieval.trapFocus", _dialog, _callback);
+            _focoAtrapado = true;
+        }
+        else if (!IsOpen && _focoAtrapado)
+        {
+            await JSRuntime.InvokeVoidAsync("unieval.releaseFocus", _dialog);
+            _focoAtrapado = false;
+        }
+    }
+
+    [JSInvokable]
+    public Task CerrarPorEscape() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!IsOpen)
+        {
+            return;
+        }
+
+        _focoAtrapado = false;
+        await IsOpenChanged.InvokeAsync(false);
+        await JSRuntime.InvokeVoidAsync("unieval.releaseFocus", _dialog);
+        await OnClosed.InvokeAsync();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _callback?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

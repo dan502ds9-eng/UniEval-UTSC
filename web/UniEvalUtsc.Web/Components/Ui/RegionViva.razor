@@ -1,0 +1,9 @@
+<div class="region-viva" role="@Role" aria-live="@Politeness" aria-atomic="true">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Role { get; set; } = "status";
+    [Parameter] public string Politeness { get; set; } = "polite";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

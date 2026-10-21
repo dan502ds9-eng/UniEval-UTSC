@@ -1,0 +1,69 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+@if (IsOpen)
+{
+    <div class="panel-lateral__fondo" @onclick="CloseAsync">
+        <aside @ref="_panel"
+               class="panel-lateral"
+               role="dialog"
+               aria-modal="true"
+               aria-labelledby="@_titleId"
+               tabindex="-1"
+               @onclick:stopPropagation="true">
+            <header class="panel-lateral__encabezado">
+                <h2 id="@_titleId">@Title</h2>
+                <button class="panel-lateral__cerrar" type="button" aria-label="Cerrar panel" @onclick="CloseAsync">×</button>
+            </header>
+            <div class="panel-lateral__contenido">@ChildContent</div>
+        </aside>
+    </div>
+}
+
+@code {
+    private readonly string _titleId = $"panel-titulo-{Guid.NewGuid():N}";
+    private ElementReference _panel;
+    private DotNetObjectReference<PanelLateral>? _callback;
+    private bool _focoAtrapado;
+
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen && !_focoAtrapado)
+        {
+            _callback ??= DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("unieval.trapFocus", _panel, _callback);
+            _focoAtrapado = true;
+        }
+        else if (!IsOpen && _focoAtrapado)
+        {
+            await JSRuntime.InvokeVoidAsync("unieval.releaseFocus", _panel);
+            _focoAtrapado = false;
+        }
+    }
+
+    [JSInvokable]
+    public Task CerrarPorEscape() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!IsOpen)
+        {
+            return;
+        }
+
+        _focoAtrapado = false;
+        await IsOpenChanged.InvokeAsync(false);
+        await JSRuntime.InvokeVoidAsync("unieval.releaseFocus", _panel);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _callback?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

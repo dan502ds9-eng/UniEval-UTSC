@@ -1,0 +1,407 @@
+.galeria-componentes {
+    width: min(100% - 2rem, var(--content-width));
+    margin-inline: auto;
+    padding-block: var(--space-8);
+}
+
+.galeria-componentes__encabezado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.galeria-componentes__encabezado h1 {
+    font-size: 2rem;
+}
+
+.galeria-componentes__temas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+    align-items: start;
+    gap: var(--space-5);
+}
+
+.tema-muestra {
+    display: grid;
+    align-content: start;
+    gap: var(--space-4);
+    min-width: 0;
+    padding: var(--space-5);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--bg);
+    color: var(--ink);
+}
+
+.tema-muestra h2 {
+    font-size: 1.5rem;
+}
+
+.tema-muestra__fila,
+.tema-muestra__grupo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.tema-muestra__grupo {
+    display: grid;
+    align-items: start;
+}
+
+.tema-muestra .toast {
+    position: static;
+    max-width: 100%;
+    box-shadow: none;
+}
+
+.boton {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--button-radius);
+    background: var(--primary);
+    color: var(--primary-ink);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.25;
+    text-decoration: none;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.boton:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.boton:disabled {
+    opacity: 0.65;
+}
+
+.boton--contorno {
+    border-color: var(--line);
+    background: transparent;
+    color: var(--link);
+}
+
+.boton--contorno:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.boton--enlace {
+    min-height: 2.75rem;
+    padding-inline: var(--space-2);
+    background: transparent;
+    color: var(--link);
+}
+
+.boton--enlace:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.boton--pequeno {
+    min-height: 2.25rem;
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.875rem;
+}
+
+.tarjeta {
+    min-width: 0;
+    padding: var(--space-5);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card);
+    color: var(--ink);
+}
+
+.tarjeta__titulo {
+    margin-bottom: var(--space-3);
+    font-size: 1.25rem;
+}
+
+.pill {
+    display: inline-flex;
+    min-height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--pill-radius);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.pill--bajo {
+    background: var(--low);
+    color: #FFFFFF;
+}
+
+.pill--medio {
+    background: var(--medium);
+    color: var(--on-medium);
+}
+
+.pill--alto {
+    background: var(--high);
+    color: #FFFFFF;
+}
+
+[data-theme="dark"] .pill--bajo,
+[data-theme="dark"] .pill--alto {
+    color: #14110F;
+}
+
+.etiqueta {
+    display: inline-flex;
+    min-height: 1.75rem;
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--pill-radius);
+    background: var(--card);
+    color: var(--ink);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.campo {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.campo__etiqueta {
+    color: var(--ink);
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.campo__entrada {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--button-radius);
+    background: var(--card);
+    color: var(--ink);
+    font-size: 1rem;
+}
+
+.campo__entrada::placeholder {
+    color: var(--mute);
+    opacity: 1;
+}
+
+.campo__ayuda {
+    color: var(--mute);
+    font-size: 0.8125rem;
+}
+
+.boton-regresar {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--link);
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.acordeon {
+    min-width: 0;
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card);
+    color: var(--ink);
+}
+
+.acordeon__resumen {
+    display: flex;
+    min-height: 3.25rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    list-style: none;
+}
+
+.acordeon__resumen::-webkit-details-marker {
+    display: none;
+}
+
+.acordeon__indicador::after {
+    content: "+";
+    color: var(--link);
+    font-size: 1.25rem;
+}
+
+.acordeon[open] .acordeon__indicador::after {
+    content: "−";
+}
+
+.acordeon__contenido {
+    padding: 0 var(--space-4) var(--space-4);
+}
+
+.dialogo__fondo,
+.panel-lateral__fondo {
+    position: fixed;
+    z-index: 1100;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    background: rgb(20 17 15 / 62%);
+}
+
+.dialogo {
+    width: min(100%, 34rem);
+    max-height: min(90vh, 48rem);
+    overflow: auto;
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 1rem 3rem rgb(0 0 0 / 24%);
+}
+
+.dialogo__encabezado,
+.panel-lateral__encabezado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    border-bottom: 1px solid var(--line);
+}
+
+.dialogo__encabezado h2,
+.panel-lateral__encabezado h2 {
+    font-size: 1.375rem;
+}
+
+.dialogo__cerrar,
+.panel-lateral__cerrar {
+    display: grid;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--card);
+    color: var(--ink);
+    font-size: 1.25rem;
+}
+
+.dialogo__contenido,
+.dialogo__pie {
+    padding: var(--space-5);
+}
+
+.dialogo__pie {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    border-top: 1px solid var(--line);
+}
+
+.panel-lateral__fondo {
+    justify-content: flex-end;
+    padding: 0;
+}
+
+.panel-lateral {
+    width: min(100%, 30rem);
+    height: 100%;
+    overflow: auto;
+    border-left: var(--card-border);
+    background: var(--card);
+    color: var(--ink);
+    animation: panel-entra 180ms ease-out;
+}
+
+.panel-lateral__contenido {
+    padding: var(--space-5);
+}
+
+@keyframes panel-entra {
+    from {
+        transform: translateX(1rem);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.toast {
+    position: fixed;
+    z-index: 1200;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    max-width: min(28rem, calc(100vw - 2rem));
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--button-radius);
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 16%);
+}
+
+.barra-progreso {
+    width: 100%;
+    min-height: 0.625rem;
+    overflow: hidden;
+    border-radius: var(--pill-radius);
+    background: var(--line);
+}
+
+.barra-progreso__relleno {
+    display: block;
+    min-height: 0.625rem;
+    border-radius: inherit;
+    background: var(--primary);
+    transition: width 180ms ease;
+}
+
+.region-viva {
+    color: var(--mute);
+    font-size: 0.875rem;
+}
+
+@media (max-width: 48rem) {
+    .galeria-componentes {
+        width: min(100% - 1.5rem, var(--content-width));
+    }
+
+    .tema-muestra {
+        padding: var(--space-4);
+    }
+
+    .dialogo__fondo {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .dialogo {
+        width: 100%;
+        max-height: 92vh;
+        border-radius: var(--card-radius) var(--card-radius) 0 0;
+    }
+}

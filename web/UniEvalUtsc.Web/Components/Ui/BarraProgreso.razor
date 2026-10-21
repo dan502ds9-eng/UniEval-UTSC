@@ -1,0 +1,19 @@
+<div class="barra-progreso"
+     role="progressbar"
+     aria-label="@Label"
+     aria-valuemin="0"
+     aria-valuemax="@MaximoSeguro"
+     aria-valuenow="@ValorSeguro"
+     aria-valuetext="@($"{Valor} de {Maximo}")">
+    <span class="barra-progreso__relleno" style="@($"width: {Porcentaje}%")"></span>
+</div>
+
+@code {
+    [Parameter] public int Valor { get; set; }
+    [Parameter] public int Maximo { get; set; }
+    [Parameter] public string Label { get; set; } = "Progreso";
+
+    private int MaximoSeguro => Math.Max(1, Maximo);
+    private int ValorSeguro => Math.Clamp(Valor, 0, MaximoSeguro);
+    private int Porcentaje => Maximo <= 0 ? 0 : (int)((double)ValorSeguro / MaximoSeguro * 100);
+}

@@ -1,22 +1,89 @@
-:root {
-    color-scheme: light;
-    font-family: Inter, sans-serif;
-    background: #FFF3E6;
-    color: #14110F;
-}
+@import url("tokens.css");
+@import url("components.css");
 
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
-html,
-body,
-#app {
+html {
     min-height: 100%;
-    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 100%;
+    scroll-padding-top: 1rem;
+}
+
+html[data-ts="150"] {
+    font-size: 150%;
+}
+
+html[data-ts="200"] {
+    font-size: 200%;
 }
 
 body {
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--bg);
+    background-image: url("../img/fondo-iconos-claro.svg");
+    background-position: center top;
+    background-repeat: repeat;
+    color: var(--ink);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+html[data-theme="dark"] body {
+    background-image: url("../img/fondo-iconos-oscuro.svg");
+}
+
+button,
+input,
+select,
+textarea {
+    color: inherit;
+    font: inherit;
+}
+
+button,
+select {
+    cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+    cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 0;
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+p {
+    margin: 0;
+}
+
+a {
+    color: var(--link);
+}
+
+:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+#app {
     min-height: 100vh;
 }
 
@@ -27,18 +94,42 @@ body {
 #blazor-error-ui {
     display: none;
     position: fixed;
+    z-index: 1000;
     right: 1rem;
     bottom: 1rem;
     left: 1rem;
-    z-index: 1000;
     padding: 1rem;
-    border: 1px solid #B3261E;
+    border: 1px solid var(--bad);
     border-radius: 0.75rem;
-    background: #FFF3E6;
-    color: #14110F;
+    background: var(--card);
+    color: var(--ink);
 }
 
-:focus-visible {
-    outline: 3px solid #B34700;
-    outline-offset: 2px;
+html[data-ts="150"] body :is(header, .stk, .snav),
+html[data-ts="200"] body :is(header, .stk, .snav) {
+    position: static;
+}
+
+@media (max-width: 48rem) {
+    body {
+        overflow-x: hidden;
+    }
+
+    @media (max-width: 24rem) {
+        html[data-ts="150"],
+        html[data-ts="200"] {
+            overflow-x: clip;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

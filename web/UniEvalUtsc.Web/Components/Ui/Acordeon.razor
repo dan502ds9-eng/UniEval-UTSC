@@ -1,0 +1,15 @@
+<details class="acordeon" open="@Open">
+    <summary class="acordeon__resumen">
+        <span>@Title</span>
+        <span class="acordeon__indicador" aria-hidden="true"></span>
+    </summary>
+    <div class="acordeon__contenido">
+        @ChildContent
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
