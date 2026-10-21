@@ -1,0 +1,17 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+
+<p role="status">Verificando acceso…</p>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = AuthService.CurrentUser;
+        var destino = authenticationState.User.Identity?.IsAuthenticated == true && user is not null
+            ? AuthService.InicioPorRol(user.Role)
+            : "/";
+        Navigation.NavigateTo(destino, replace: true);
+    }
+}

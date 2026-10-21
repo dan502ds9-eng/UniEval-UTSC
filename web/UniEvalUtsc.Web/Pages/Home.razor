@@ -1,5 +1,43 @@
 ﻿@page "/"
+@inject AuthService AuthService
+@inject NavigationManager Navigation
 
-<PageTitle>UniEval UTSC</PageTitle>
+<PageTitle>Tu opinión mejora la UTSC · UniEval UTSC</PageTitle>
 
-<main class="app-surface" aria-label="UniEval UTSC"></main>
+<main class="acceso">
+    <section class="acceso__contenido" aria-labelledby="titulo-acceso">
+        <p class="acceso__marca">UniEval / UTSC</p>
+        <h1 id="titulo-acceso">Tu opinión mejora la UTSC</h1>
+        <p>Evalúa el desempeño docente y de tutoría de forma anónima.</p>
+        <div class="acceso__tarjeta">
+            <label for="rol-acceso">Tipo de usuario</label>
+            <select id="rol-acceso" @bind="_rolSeleccionado">
+                @foreach (var rol in _roles)
+                {
+                    <option value="@rol">@rol</option>
+                }
+            </select>
+            @if (AuthService.EntraConfigurado)
+            {
+                <p role="status">Microsoft Entra ID está configurado, pero su inicio de sesión aún no está implementado.</p>
+                <button class="boton" disabled>Iniciar sesión con Microsoft 365</button>
+            }
+            else
+            {
+                <button class="boton" @onclick="IniciarSesion">Iniciar sesión</button>
+                <p class="acceso__nota">Modo simulado</p>
+            }
+        </div>
+    </section>
+</main>
+
+@code {
+    private readonly Rol[] _roles = Enum.GetValues<Rol>();
+    private Rol _rolSeleccionado = Rol.Alumno;
+
+    private async Task IniciarSesion()
+    {
+        await AuthService.SignInSimuladoAsync(_rolSeleccionado);
+        Navigation.NavigateTo(AuthService.InicioPorRol(_rolSeleccionado));
+    }
+}

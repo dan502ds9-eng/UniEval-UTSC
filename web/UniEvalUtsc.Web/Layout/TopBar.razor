@@ -1,0 +1,196 @@
+@implements IDisposable
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<header class="topbar">
+    <a class="topbar__marca" href="/" aria-label="UniEval UTSC, inicio">
+        <span class="topbar__simbolo" aria-hidden="true">U</span>
+        <span><strong>UniEval</strong><small>UTSC</small></span>
+    </a>
+    <nav class="topbar__acciones" aria-label="Preferencias y cuenta">
+        @if (AuthService.CurrentUser?.Role == Rol.Alumno)
+        {
+            <button class="topbar__boton topbar__notificaciones" type="button" aria-label="Notificaciones, 0 pendientes">
+                <span aria-hidden="true">🔔</span><span class="topbar__campana-conteo">0</span>
+            </button>
+        }
+
+        <div class="topbar__menu-contenedor">
+            <button @ref="_textoTrigger"
+                    class="topbar__boton"
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded="@_textoAbierto"
+                    @onclick="ToggleTextMenu">Aa</button>
+            <div @ref="_textoMenu" class="topbar__menu" role="menu" hidden="@(!_textoAbierto)" aria-label="Tamaño del texto">
+                @foreach (var tamaño in _tamanosTexto)
+                {
+                    <button type="button"
+                            role="menuitem"
+                            aria-current="@(_escala == tamaño ? "true" : null)"
+                            @onclick="() => CambiarEscala(tamaño)">@tamaño%</button>
+                }
+            </div>
+        </div>
+
+        <button class="topbar__boton topbar__tema"
+                type="button"
+                aria-label="@(_tema == "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro")"
+                @onclick="CambiarTema">
+            <span aria-hidden="true">@(_tema == "dark" ? "☀" : "☾")</span>
+        </button>
+
+        @if (AuthService.CurrentUser is { } usuario)
+        {
+            <div class="topbar__menu-contenedor">
+                <button @ref="_usuarioTrigger"
+                        class="topbar__usuario"
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded="@_usuarioAbierto"
+                        @onclick="ToggleUserMenu">
+                    <span class="topbar__iniciales">@usuario.Initials</span>
+                    <span class="topbar__rol">@AuthService.Etiqueta(usuario.Role)</span>
+                </button>
+                <div @ref="_usuarioMenu" class="topbar__menu topbar__menu--usuario" role="menu" hidden="@(!_usuarioAbierto)" aria-label="Cuenta de usuario">
+                    <div class="topbar__perfil">
+                        <strong>@usuario.Name</strong>
+                        <span>@AuthService.Etiqueta(usuario.Role)</span>
+                    </div>
+                    <button type="button" role="menuitem" @onclick="CerrarSesion">Cerrar sesión</button>
+                </div>
+            </div>
+        }
+    </nav>
+</header>
+
+@code {
+    private static readonly int[] _tamanosTexto = [100, 125, 150, 200];
+    private ElementReference _textoTrigger;
+    private ElementReference _textoMenu;
+    private ElementReference _usuarioTrigger;
+    private ElementReference _usuarioMenu;
+    private DotNetObjectReference<TopBar>? _callback;
+    private bool _textoVinculado;
+    private bool _usuarioVinculado;
+    private bool _textoAbierto;
+    private bool _usuarioAbierto;
+    private string _tema = "light";
+    private int _escala = 100;
+
+    protected override void OnInitialized()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged += HandleAuthenticationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var preferencias = await JS.InvokeAsync<Preferencias>("unieval.initializePreferences");
+            _tema = preferencias.Theme;
+            _escala = int.Parse(preferencias.Scale, System.Globalization.CultureInfo.InvariantCulture);
+            _callback = DotNetObjectReference.Create(this);
+        }
+
+        if (_callback is not null && !_textoVinculado)
+        {
+            await JS.InvokeVoidAsync("unieval.bindMenu", _textoTrigger, _textoMenu, _callback, nameof(OpenTextMenu), nameof(CloseTextMenu));
+            _textoVinculado = true;
+        }
+
+        if (_callback is not null && AuthService.CurrentUser is not null && !_usuarioVinculado)
+        {
+            await JS.InvokeVoidAsync("unieval.bindMenu", _usuarioTrigger, _usuarioMenu, _callback, nameof(OpenUserMenu), nameof(CloseUserMenu));
+            _usuarioVinculado = true;
+        }
+
+        if (_callback is not null && AuthService.CurrentUser is null)
+        {
+            _usuarioVinculado = false;
+        }
+
+        if (firstRender)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleTextMenu()
+    {
+        _textoAbierto = !_textoAbierto;
+        _usuarioAbierto = false;
+    }
+
+    private void ToggleUserMenu()
+    {
+        _usuarioAbierto = !_usuarioAbierto;
+        _textoAbierto = false;
+    }
+
+    private async Task CambiarEscala(int escala)
+    {
+        _escala = escala;
+        _textoAbierto = false;
+        await JS.InvokeVoidAsync("unieval.setTextScale", escala.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    private async Task CambiarTema()
+    {
+        _tema = _tema == "dark" ? "light" : "dark";
+        await JS.InvokeVoidAsync("unieval.setTheme", _tema);
+    }
+
+    private async Task CerrarSesion()
+    {
+        _usuarioAbierto = false;
+        await AuthService.SignOutAsync();
+        Navigation.NavigateTo("/");
+    }
+
+    [JSInvokable]
+    public Task OpenTextMenu()
+    {
+        _textoAbierto = true;
+        _usuarioAbierto = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task CloseTextMenu()
+    {
+        _textoAbierto = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task OpenUserMenu()
+    {
+        _usuarioAbierto = true;
+        _textoAbierto = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task CloseUserMenu()
+    {
+        _usuarioAbierto = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleAuthenticationChanged(Task<AuthenticationState> authenticationState)
+    {
+        _ = authenticationState;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= HandleAuthenticationChanged;
+        _callback?.Dispose();
+    }
+
+    private sealed record Preferencias(string Theme, string Scale);
+}
