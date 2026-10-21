@@ -2,10 +2,18 @@
   <Folder Name="/src/">
 	<Project Path="src/UniEvalUtsc.Api/UniEvalUtsc.Api.csproj" />
 	<Project Path="src/UniEvalUtsc.Application/UniEvalUtsc.Application.csproj" />
+    <Project Path="src/UniEvalUtsc.Contracts/UniEvalUtsc.Contracts.csproj" />
 	<Project Path="src/UniEvalUtsc.Domain/UniEvalUtsc.Domain.csproj" />
 	<Project Path="src/UniEvalUtsc.Infrastructure/UniEvalUtsc.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
 	<Project Path="tests/UniEvalUtsc.Tests/UniEvalUtsc.Tests.csproj" />
+  </Folder>
+  <Folder Name="/web/">
+    <Project Path="../web/UniEvalUtsc.Web/UniEvalUtsc.Web.csproj" />
+  </Folder>
+  <Folder Name="/web/tests/">
+    <Project Path="../web/tests/UniEvalUtsc.Web.Tests/UniEvalUtsc.Web.Tests.csproj" />
+    <Project Path="../web/tests/UniEvalUtsc.E2E/UniEvalUtsc.E2E.csproj" />
   </Folder>
 </Solution>

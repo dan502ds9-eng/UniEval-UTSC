@@ -17,7 +17,7 @@ public class Periodo
     private Periodo() { } // lo usa EF Core al leer de la BD
 
     public Periodo(string nombre, DateOnly fechaInicio, DateOnly fechaFin,
-                   DateTime encuestasAbre, DateTime encuestasCierra)
+                   DateTime encuestasAbre, DateTime encuestasCierra, int id = 0)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new DomainException("El periodo necesita nombre.");
@@ -26,6 +26,7 @@ public class Periodo
         if (encuestasAbre >= encuestasCierra)
             throw new DomainException("La apertura de encuestas debe ser antes del cierre.");
 
+        Id = id;
         Nombre = nombre.Trim();
         FechaInicio = fechaInicio;
         FechaFin = fechaFin;

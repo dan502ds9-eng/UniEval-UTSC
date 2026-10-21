@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\UniEvalUtsc.Application\UniEvalUtsc.Application.csproj" />
     <ProjectReference Include="..\UniEvalUtsc.Infrastructure\UniEvalUtsc.Infrastructure.csproj" />
+    <ProjectReference Include="..\UniEvalUtsc.Contracts\UniEvalUtsc.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
