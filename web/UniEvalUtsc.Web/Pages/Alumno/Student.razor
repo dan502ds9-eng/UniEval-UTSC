@@ -1,0 +1,41 @@
+@page "/alumno"
+@page "/alumno/encuesta"
+@page "/alumno/comprobante"
+@attribute [Authorize(Roles = "Alumno")]
+
+<PageTitle>@Titulo · UniEval UTSC</PageTitle>
+
+<main class="student-home">
+    <h1 tabindex="-1">@Titulo</h1>
+    @if (Seccion == "encuesta")
+    {
+        <p>Aquí se mostrarán las encuestas asignadas para el periodo abierto.</p>
+    }
+    else if (Seccion == "comprobante")
+    {
+        <p>El comprobante estará disponible al completar todas las encuestas.</p>
+    }
+    else
+    {
+        <p>Consulta tus evaluaciones pendientes del periodo.</p>
+        <NavLink class="boton" href="/alumno/encuesta">Mis encuestas</NavLink>
+    }
+</main>
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private string Seccion => Navigation.ToBaseRelativePath(Navigation.Uri).TrimEnd('/').Split('/').LastOrDefault() switch
+    {
+        "encuesta" => "encuesta",
+        "comprobante" => "comprobante",
+        _ => "inicio"
+    };
+
+    private string Titulo => Seccion switch
+    {
+        "encuesta" => "Mis encuestas",
+        "comprobante" => "Comprobante",
+        _ => "Inicio"
+    };
+}

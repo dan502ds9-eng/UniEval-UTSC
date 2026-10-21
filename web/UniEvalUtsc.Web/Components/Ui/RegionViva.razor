@@ -1,9 +1,14 @@
-<div class="region-viva" role="@Role" aria-live="@Politeness" aria-atomic="true">
+<div class="@CssClass" role="@Role" aria-live="@Politeness" aria-atomic="true">
     @ChildContent
 </div>
 
 @code {
     [Parameter] public string Role { get; set; } = "status";
     [Parameter] public string Politeness { get; set; } = "polite";
+    [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(Class)
+        ? "region-viva"
+        : $"region-viva {Class}";
 }

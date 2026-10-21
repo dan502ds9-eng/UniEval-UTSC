@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Components.Authorization;
 using UniEvalUtsc.Web;
 using UniEvalUtsc.Web.Services;
 
@@ -11,5 +12,10 @@ var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
     ?? throw new InvalidOperationException("Falta configurar ApiBaseUrl en wwwroot/appsettings.json.");
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
 builder.Services.AddScoped<UnievalJsInterop>();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<SimulatedAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(services =>
+    services.GetRequiredService<SimulatedAuthenticationStateProvider>());
+builder.Services.AddScoped<AuthService>();
 
 await builder.Build().RunAsync();

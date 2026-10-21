@@ -114,6 +114,11 @@ html[data-ts="200"] body :is(header, .stk, .snav) {
     position: static;
 }
 
+html[data-ts="150"] .staff-shell__sidebar,
+html[data-ts="200"] .staff-shell__sidebar {
+    position: static;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

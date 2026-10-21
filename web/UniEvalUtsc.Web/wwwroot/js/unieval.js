@@ -16,7 +16,83 @@
             .filter(element => element.getClientRects().length > 0);
     }
 
+    function setTextScale(scale) {
+        document.documentElement.dataset.ts = scale;
+        document.documentElement.style.fontSize = `${scale}%`;
+        window.unieval.setLocalStorage("unieval-text-scale", scale);
+    }
+
     window.unieval = {
+        initializePreferences() {
+            const storedTheme = window.unieval.getLocalStorage("unieval-theme");
+            const theme = storedTheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+            const storedScale = window.unieval.getLocalStorage("unieval-text-scale");
+            const scale = ["100", "125", "150", "200"].includes(storedScale) ? storedScale : "100";
+            document.documentElement.dataset.theme = theme;
+            setTextScale(scale);
+            return { theme, scale };
+        },
+
+        setTheme(theme) {
+            document.documentElement.dataset.theme = theme;
+            window.unieval.setLocalStorage("unieval-theme", theme);
+        },
+
+        setTextScale,
+
+        bindMenu(trigger, menu, dotNetReference, openMethod, closeMethod) {
+            const moveFocus = (index) => {
+                const items = Array.from(menu.querySelectorAll("[role='menuitem']:not([disabled]), [role='menuitemradio']:not([disabled])"));
+                if (items.length > 0) {
+                    items[(index + items.length) % items.length].focus();
+                }
+            };
+            const openAndFocus = (index) => {
+                void dotNetReference.invokeMethodAsync(openMethod);
+                window.setTimeout(() => moveFocus(index), 50);
+            };
+            trigger.addEventListener("keydown", event => {
+                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault();
+                    openAndFocus(event.key === "ArrowUp" ? -1 : 0);
+                } else if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openAndFocus(0);
+                } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    void dotNetReference.invokeMethodAsync(closeMethod);
+                }
+            });
+            menu.addEventListener("keydown", event => {
+                const items = Array.from(menu.querySelectorAll("[role='menuitem']:not([disabled]), [role='menuitemradio']:not([disabled])"));
+                const current = items.indexOf(document.activeElement);
+                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault();
+                    moveFocus(current + (event.key === "ArrowDown" ? 1 : -1));
+                } else if (event.key === "Home" || event.key === "End") {
+                    event.preventDefault();
+                    moveFocus(event.key === "Home" ? 0 : -1);
+                } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    void dotNetReference.invokeMethodAsync(closeMethod);
+                    trigger.focus();
+                }
+            });
+        },
+
+        updatePageMetadata() {
+            const heading = document.querySelector("main h1, h1");
+            if (!heading) {
+                return null;
+            }
+
+            const title = heading.textContent.trim();
+            heading.setAttribute("tabindex", "-1");
+            heading.focus();
+            document.title = `${title} · UniEval UTSC`;
+            return title;
+        },
+
         trapFocus(container, dotNetReference) {
             dialogOpener = document.activeElement instanceof HTMLElement
                 ? document.activeElement
@@ -112,6 +188,32 @@
         setLocalStorage(key, value) {
             try {
                 window.localStorage.setItem(key, value);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+
+        getSessionStorage(key) {
+            try {
+                return window.sessionStorage.getItem(key);
+            } catch {
+                return null;
+            }
+        },
+
+        setSessionStorage(key, value) {
+            try {
+                window.sessionStorage.setItem(key, value);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+
+        removeSessionStorage(key) {
+            try {
+                window.sessionStorage.removeItem(key);
                 return true;
             } catch {
                 return false;

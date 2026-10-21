@@ -1,0 +1,82 @@
+@using UniEvalUtsc.Contracts.Enums
+
+<div class="staff-shell">
+    <aside class="staff-shell__sidebar" aria-label="Navegación de @AuthService.Etiqueta(Rol)">
+        <div class="staff-shell__perfil">
+            <span class="staff-shell__nombre">@AuthService.CurrentUser?.Name</span>
+            <span class="staff-shell__rol">@AuthService.Etiqueta(Rol)</span>
+        </div>
+        <nav class="staff-shell__nav" aria-label="Secciones">
+            @foreach (var item in Secciones)
+            {
+                <NavLink href="@item.Ruta" Match="NavLinkMatch.All" class="staff-shell__enlace" ActiveClass="activo">
+                    @item.Etiqueta
+                </NavLink>
+            }
+        </nav>
+    </aside>
+    <main class="staff-shell__contenido">
+        @if (SeccionActual != "inicio")
+        {
+            <BotonRegresar Href="@AuthService.InicioPorRol(Rol)" />
+        }
+        <h1 tabindex="-1">@TituloActual</h1>
+        <p class="staff-shell__descripcion">@DescripcionActual</p>
+    </main>
+</div>
+
+@code {
+    [Inject] private AuthService AuthService { get; set; } = default!;
+    [Parameter, EditorRequired] public Rol Rol { get; set; }
+    [Parameter] public string? Seccion { get; set; }
+
+    private string SeccionActual => string.IsNullOrWhiteSpace(Seccion)
+        ? "inicio"
+        : Seccion.ToLowerInvariant();
+
+    private IReadOnlyList<SeccionNavegacion> Secciones => Rol switch
+    {
+        Rol.Docente or Rol.Tutor =>
+        [
+            CrearSeccion("inicio", "Inicio"),
+            CrearSeccion("resultados", "Mis resultados"),
+            CrearSeccion("historico", "Histórico"),
+            CrearSeccion("reportes", "Reportes")
+        ],
+        Rol.Coordinador =>
+        [
+            CrearSeccion("inicio", "Inicio"),
+            CrearSeccion("seguimiento", "Seguimiento"),
+            CrearSeccion("resultados-docentes", "Resultados de docentes"),
+            CrearSeccion("resultados-tutores", "Resultados de tutores"),
+            CrearSeccion("reportes", "Reportes")
+        ],
+        Rol.Administrador =>
+        [
+            CrearSeccion("inicio", "Inicio"),
+            CrearSeccion("periodos", "Periodos"),
+            CrearSeccion("carga-academica", "Carga académica"),
+            CrearSeccion("estadias", "Estadías"),
+            CrearSeccion("catalogos", "Catálogos"),
+            CrearSeccion("plantillas", "Plantillas"),
+            CrearSeccion("seguimiento", "Seguimiento"),
+            CrearSeccion("resultados-docentes", "Resultados de docentes"),
+            CrearSeccion("resultados-tutores", "Resultados de tutores"),
+            CrearSeccion("reportes", "Reportes")
+        ],
+        _ => []
+    };
+
+    private string TituloActual => Secciones
+        .FirstOrDefault(item => item.Ruta.EndsWith($"/{SeccionActual}", StringComparison.Ordinal))
+        ?.Etiqueta ?? "Inicio";
+
+    private string DescripcionActual => SeccionActual == "inicio"
+        ? $"Panel principal de {AuthService.Etiqueta(Rol).ToLowerInvariant()}."
+        : $"Sección {TituloActual.ToLowerInvariant()} de {AuthService.Etiqueta(Rol).ToLowerInvariant()}.";
+
+    private SeccionNavegacion CrearSeccion(string slug, string etiqueta) =>
+        new(slug, etiqueta, $"/{(Rol == Rol.Administrador ? "admin" : Rol.ToString().ToLowerInvariant())}/{slug}");
+
+    private sealed record SeccionNavegacion(string Slug, string Etiqueta, string Ruta);
+}

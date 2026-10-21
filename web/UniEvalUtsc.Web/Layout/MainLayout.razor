@@ -1,3 +1,44 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-@Body
+<div class="app-shell">
+    <TopBar />
+    <RegionViva Class="sr-only">@_announcement</RegionViva>
+    @Body
+</div>
+
+@code {
+    private string _announcement = "Pantalla: UniEval UTSC";
+    private bool _navigationPending = true;
+
+    protected override void OnInitialized() =>
+        Navigation.LocationChanged += HandleLocationChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_navigationPending)
+        {
+            return;
+        }
+
+        _navigationPending = false;
+        var heading = await JS.InvokeAsync<string?>("unieval.updatePageMetadata");
+        if (!string.IsNullOrWhiteSpace(heading))
+        {
+            _announcement = $"Pantalla: {heading}";
+            StateHasChanged();
+        }
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _navigationPending = true;
+        _announcement = "Pantalla: cargando";
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() =>
+        Navigation.LocationChanged -= HandleLocationChanged;
+}
