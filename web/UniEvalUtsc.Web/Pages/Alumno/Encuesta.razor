@@ -84,6 +84,7 @@ else if (_evaluacion is not null)
     private int? _preguntaAbierta;
     private bool _dialogoEnvio;
     private string? _toast;
+    private string? _idFocoPendiente;
     private bool _cargando = true;
     private string? _error;
 
@@ -126,6 +127,17 @@ else if (_evaluacion is not null)
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_idFocoPendiente is not { } id)
+        {
+            return;
+        }
+
+        _idFocoPendiente = null;
+        await JsInterop.FocusByIdAsync(id);
+    }
+
     private bool PreguntaCompleta(int preguntaId) =>
         _evaluacion is not null &&
         _evaluacion.Evaluados.All(evaluado =>
@@ -160,23 +172,18 @@ else if (_evaluacion is not null)
             {
                 var primerEvaluado = _evaluacion!.Evaluados.First(e =>
                     !_calificaciones.ContainsKey(EvaluacionAlumno.CrearClaveCalificacion(siguiente, e.Id)));
-                await InvokeAsync(StateHasChanged);
-                await Task.Yield();
-                await JsInterop.FocusByIdAsync(IdCalificacion(siguiente, primerEvaluado.Id, 1));
+                _idFocoPendiente = IdCalificacion(siguiente, primerEvaluado.Id, 1);
             }
             else
             {
                 _preguntaAbierta = calificacion.PreguntaId;
-                await InvokeAsync(StateHasChanged);
-                await Task.Yield();
-                await JsInterop.FocusByIdAsync("boton-enviar-evaluacion");
+                _idFocoPendiente = "boton-enviar-evaluacion";
             }
         }
         else if (calificacion.AvanzarAlSiguiente && calificacion.IndiceEvaluado + 1 < _evaluacion!.Evaluados.Count)
         {
             var siguiente = _evaluacion.Evaluados[calificacion.IndiceEvaluado + 1];
-            await Task.Yield();
-            await JsInterop.FocusByIdAsync(IdCalificacion(calificacion.PreguntaId, siguiente.Id, 1));
+            _idFocoPendiente = IdCalificacion(calificacion.PreguntaId, siguiente.Id, 1);
         }
     }
 

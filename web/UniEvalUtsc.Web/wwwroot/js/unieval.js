@@ -11,6 +11,7 @@
     const focusTraps = new WeakMap();
     const enterHandlers = new WeakMap();
     let dialogOpener = null;
+    let activeFocusTrap = null;
 
     function focusables(container) {
         return Array.from(container.querySelectorAll(focusableSelector))
@@ -104,16 +105,44 @@
         },
 
         updatePageMetadata() {
-            const heading = document.querySelector("main h1, h1");
-            if (!heading) {
-                return null;
+            const applyMetadata = () => {
+                const heading = document.querySelector("main h1, h1");
+                if (!heading) {
+                    return null;
+                }
+
+                const title = heading.textContent.trim();
+                heading.setAttribute("tabindex", "-1");
+                heading.focus();
+                document.title = `${title} · UniEval UTSC`;
+                return title;
+            };
+
+            const currentTitle = applyMetadata();
+            if (currentTitle) {
+                return currentTitle;
             }
 
-            const title = heading.textContent.trim();
-            heading.setAttribute("tabindex", "-1");
-            heading.focus();
-            document.title = `${title} · UniEval UTSC`;
-            return title;
+            return new Promise(resolve => {
+                const observer = new MutationObserver(() => {
+                    const title = applyMetadata();
+                    if (title) {
+                        observer.disconnect();
+                        window.clearTimeout(timeout);
+                        resolve(title);
+                    }
+                });
+
+                observer.observe(document.querySelector("#app") ?? document.body, {
+                    childList: true,
+                    subtree: true
+                });
+
+                const timeout = window.setTimeout(() => {
+                    observer.disconnect();
+                    resolve(null);
+                }, 5000);
+            });
         },
 
         trapFocus(container, dotNetReference) {
@@ -154,16 +183,21 @@
             };
 
             focusTraps.set(container, state);
+            activeFocusTrap = { container, state };
             document.addEventListener("keydown", state.onKeyDown, true);
             const firstFocusable = focusables(container)[0];
             (firstFocusable ?? container).focus();
         },
 
         releaseFocus(container) {
-            const state = focusTraps.get(container);
+            const activeTrap = activeFocusTrap;
+            const state = focusTraps.get(container) ?? activeTrap?.state;
             if (state) {
                 document.removeEventListener("keydown", state.onKeyDown, true);
-                focusTraps.delete(container);
+                focusTraps.delete(container ?? activeTrap?.container);
+                if (activeTrap?.state === state) {
+                    activeFocusTrap = null;
+                }
             }
 
             if (dialogOpener?.isConnected) {
