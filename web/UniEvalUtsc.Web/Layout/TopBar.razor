@@ -97,7 +97,7 @@
     private bool _usuarioAbierto;
     private string _tema = "light";
     private int _escala = 100;
-    private string CssClass => Navigation.ToBaseRelativePath(Navigation.Uri) is "" || Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("acceso/", StringComparison.OrdinalIgnoreCase)
+    private string CssClass => Navigation.ToBaseRelativePath(Navigation.Uri) is ""
         ? "topbar topbar--acceso"
         : "topbar";
     private static string EtiquetaEscala(int tamaño) => tamaño switch
@@ -112,6 +112,7 @@
     protected override void OnInitialized()
     {
         AuthenticationStateProvider.AuthenticationStateChanged += HandleAuthenticationChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -215,9 +216,17 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _ = sender;
+        _ = args;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         AuthenticationStateProvider.AuthenticationStateChanged -= HandleAuthenticationChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
         _callback?.Dispose();
     }
 

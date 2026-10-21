@@ -16,7 +16,7 @@
             <select id="rol-acceso" @bind="_rolSeleccionado">
                 @foreach (var rol in _roles)
                 {
-                    <option value="@rol">@rol</option>
+                    <option value="@rol">@AuthService.Etiqueta(rol)</option>
                 }
             </select>
             @if (AuthService.EntraConfigurado)

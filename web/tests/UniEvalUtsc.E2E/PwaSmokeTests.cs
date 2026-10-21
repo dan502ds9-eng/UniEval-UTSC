@@ -74,6 +74,11 @@ public sealed class PwaSmokeTests
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/$"));
         await pagina.Locator("#rol-acceso").SelectOptionAsync("Administrador");
         await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión con Microsoft 365" }).ClickAsync();
+        await Assertions.Expect(pagina.Locator(".acceso")).ToHaveCountAsync(0);
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Administrador" })).ToBeVisibleAsync();
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Link, new() { Name = "← Regresar al inicio de sesión" })).ToBeVisibleAsync();
+        await Assertions.Expect(pagina.Locator(".topbar")).Not.ToHaveClassAsync(new Regex("topbar--acceso"));
+        Assert.Contains("fondo-iconos", await pagina.Locator("body").EvaluateAsync<string>("element => getComputedStyle(element).backgroundImage"));
         await pagina.GetByLabel("Correo institucional").FillAsync("admin@utsc.edu.mx");
         await pagina.GetByLabel("Correo institucional").PressAsync("Enter");
         await Assertions.Expect(pagina.GetByLabel("Contraseña")).ToBeFocusedAsync();
@@ -150,38 +155,60 @@ public sealed class PwaSmokeTests
             foreach (var ancho in new[] { 390, 768, 1280, 1920 })
             {
                 await pagina.SetViewportSizeAsync(ancho, 900);
-                var colores = await pagina.EvaluateAsync<string[]>("""
+                var contraste = await pagina.EvaluateAsync<double[]>("""
                     () => {
                         const main = document.querySelector(".acceso");
+                        const contenido = main.querySelector(".acceso__contenido");
+                        const style = getComputedStyle(main);
+                        const oscuro = document.documentElement.dataset.theme === "dark";
+                        const rgb = style.getPropertyValue("--acceso-overlay-rgb").trim().split(/\s+/).map(Number);
+                        const right = (contenido.getBoundingClientRect().right / window.innerWidth);
+                        const stops = [
+                            [0, parseFloat(style.getPropertyValue("--acceso-overlay-0"))],
+                            [0.48, parseFloat(style.getPropertyValue("--acceso-overlay-48"))],
+                            [0.82, parseFloat(style.getPropertyValue("--acceso-overlay-82"))],
+                            [1, parseFloat(style.getPropertyValue("--acceso-overlay-100"))]
+                        ];
+                        let alpha = stops[stops.length - 1][1];
+                        for (let index = 1; index < stops.length; index++) {
+                            if (right <= stops[index][0]) {
+                                const [start, startAlpha] = stops[index - 1];
+                                const [end, endAlpha] = stops[index];
+                                alpha = startAlpha + (endAlpha - startAlpha) * (right - start) / (end - start);
+                                break;
+                            }
+                        }
+                        const channels = rgb.map(channel => channel * alpha + 255 * (1 - alpha));
+                        const linear = channels.map(channel => {
+                            const value = channel / 255;
+                            return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+                        });
+                        const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+                        const ratio = 1.05 / (luminance + 0.05);
+                        const textoBlanco = getComputedStyle(main).color === "rgb(255, 255, 255)";
+                        const tituloBlanco = getComputedStyle(main.querySelector("h1")).color === "rgb(255, 255, 255)";
                         return [
-                            getComputedStyle(main).color,
-                            getComputedStyle(main.querySelector("h1")).color,
-                            getComputedStyle(main).getPropertyValue("--acceso-superposicion-minima").trim()
+                            ratio,
+                            ratio,
+                            style.backgroundImage.includes("campus.jpg") ? 1 : 0,
+                            parseFloat(style.getPropertyValue("--acceso-overlay-100")),
+                            textoBlanco ? 1 : 0,
+                            tituloBlanco ? 1 : 0
                         ];
                     }
                     """);
-                var opacidad = double.Parse(colores[2], System.Globalization.CultureInfo.InvariantCulture);
-                Assert.True(ContrasteMaximoSobreImagen(colores[0], opacidad) >= 4.5, $"Contraste de texto menor a 4.5:1 en {ancho}px, {esquema}.");
-                Assert.True(ContrasteMaximoSobreImagen(colores[1], opacidad) >= 3, $"Contraste del título menor a 3:1 en {ancho}px, {esquema}.");
+                Assert.Equal(1, contraste[2]);
+                if (ancho > 900)
+                {
+                    Assert.True(contraste[3] < 0.5, $"La foto debe conservarse visible a la derecha en {ancho}px, {esquema}.");
+                }
+                Assert.Equal(1, contraste[4]);
+                Assert.Equal(1, contraste[5]);
+                Assert.True(contraste[0] >= 4.5, $"Contraste del texto normal menor a 4.5:1 en {ancho}px, {esquema}: {contraste[0]:F2}:1.");
+                Assert.True(contraste[1] >= 3, $"Contraste del título menor a 3:1 en {ancho}px, {esquema}.");
             }
         }
 
         await pagina.SetViewportSizeAsync(1280, 900);
-    }
-
-    private static double ContrasteMaximoSobreImagen(string colorTexto, double opacidad)
-    {
-        var canalesTexto = System.Text.RegularExpressions.Regex
-            .Matches(colorTexto, @"\d+")
-            .Select(match => int.Parse(match.Value, System.Globalization.CultureInfo.InvariantCulture))
-            .ToArray();
-        Assert.Equal(new[] { 255, 255, 255 }, canalesTexto);
-
-        var canalesFondo = new[] { 22, 18, 14 }
-            .Select(channel => (channel * opacidad + 255 * (1 - opacidad)) / 255)
-            .Select(channel => channel <= 0.04045 ? channel / 12.92 : Math.Pow((channel + 0.055) / 1.055, 2.4))
-            .ToArray();
-        var luminancia = 0.2126 * canalesFondo[0] + 0.7152 * canalesFondo[1] + 0.0722 * canalesFondo[2];
-        return 1.05 / (luminancia + 0.05);
     }
 }

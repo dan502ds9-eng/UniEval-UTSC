@@ -3,17 +3,23 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>@(_pasoCodigo ? "Verificación en dos pasos" : "Acceso de personal") · UniEval UTSC</PageTitle>
+<PageTitle>@(AuthService.Etiqueta(_rol)) · UniEval UTSC</PageTitle>
 
-<main class="acceso">
-    <section class="acceso__contenido" aria-labelledby="titulo-acceso">
-        <p class="acceso__marca">UniEval / UTSC</p>
-        <h1 id="titulo-acceso">Tu opinión mejora la UTSC</h1>
-        <p class="acceso__apoyo">Evalúa a tus docentes y a tu tutor del cuatrimestre desde tu celular. Son anónimas.</p>
-        <div class="acceso__tarjeta">
+<main class="acceso-personal">
+    <section class="acceso-personal__contenido" aria-labelledby="titulo-acceso-personal">
+        @if (!_pasoCodigo)
+        {
+            <a class="acceso-personal__regresar" href="/">← Regresar al inicio de sesión</a>
+        }
+        else
+        {
+            <button class="acceso-personal__regresar" type="button" @onclick="RegresarAlPasoAnterior">← Regresar</button>
+        }
+        <div class="acceso-personal__tarjeta">
+            <p class="acceso-personal__etiqueta">ACCESO DE PERSONAL</p>
+            <h1 id="titulo-acceso-personal">@AuthService.Etiqueta(_rol)</h1>
             @if (!_pasoCodigo)
             {
-                <h2 id="titulo-acceso-tarjeta">Acceso de personal</h2>
                 <p class="acceso__simulacion">Ingresa tus datos institucionales para continuar.</p>
                 <form @onsubmit="Continuar" @onsubmit:preventDefault>
                     <div class="acceso__campos">
@@ -41,11 +47,10 @@
                         <button class="boton" type="submit">Continuar</button>
                     </div>
                 </form>
-                <a class="acceso__enlace" href="/">← Regresar al inicio de sesión</a>
             }
             else
             {
-                <h2 id="titulo-acceso-tarjeta">Verificación en dos pasos</h2>
+                <h2>Verificación en dos pasos</h2>
                 <p class="acceso__simulacion">Ingresa el código de seis dígitos de tu aplicación de verificación.</p>
                 <form @onsubmit="VerificarCodigo" @onsubmit:preventDefault novalidate>
                     <div class="acceso__campos">
@@ -70,7 +75,6 @@
                         <button class="boton" type="submit">Continuar</button>
                     </div>
                 </form>
-                <button class="acceso__regresar" type="button" @onclick="RegresarAlPasoAnterior">← Regresar</button>
             }
         </div>
     </section>

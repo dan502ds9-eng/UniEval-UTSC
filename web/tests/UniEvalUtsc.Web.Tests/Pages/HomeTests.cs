@@ -23,6 +23,9 @@ public sealed class HomeTests
 
         Assert.Equal("Tu opinión mejora la UTSC", pagina.Find("h1").TextContent);
         Assert.Equal(5, pagina.FindAll("#rol-acceso option").Count);
+        Assert.Equal(
+            new[] { "Alumno", "Docente", "Tutor", "Coordinador", "Administrador" },
+            pagina.FindAll("#rol-acceso option").Select(option => option.TextContent).ToArray());
         Assert.Equal("Iniciar sesión con Microsoft 365", pagina.Find("button").TextContent);
     }
 }
