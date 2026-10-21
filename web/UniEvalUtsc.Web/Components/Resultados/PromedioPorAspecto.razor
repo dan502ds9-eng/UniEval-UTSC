@@ -2,7 +2,7 @@
     <summary class="promedio-aspecto__cabecera">
         <span>
             <strong>Promedio por aspecto</strong>
-            <small>@Aspectos.Count aspectos · @Aspectos.Count(aspecto => aspecto.Promedio < 8) por debajo de 8 · de menor a mayor puntuación</small>
+            <small>@Aspectos.Count aspectos · @Aspectos.Count(aspecto => Niveles.Redondear(aspecto.Promedio) < 8) por debajo de 8 · de menor a mayor puntuación</small>
         </span>
     </summary>
     <div class="promedio-aspecto__contenido">
@@ -16,7 +16,7 @@
         @foreach (var (aspecto, indice) in Aspectos.OrderBy(aspecto => aspecto.Promedio).ThenBy(aspecto => aspecto.Numero).Select((aspecto, indice) => (aspecto, indice)))
         {
             var diferencia = Math.Round(aspecto.Promedio - aspecto.PromedioCarrera, 1, MidpointRounding.AwayFromZero);
-            var claseNivel = aspecto.Promedio < 5 ? "bajo" : aspecto.Promedio < 8 ? "medio" : "alto";
+            var claseNivel = Niveles.Nivel(aspecto.Promedio).ToString().ToLowerInvariant();
             <article class="promedio-aspecto__fila">
                 <div class="promedio-aspecto__datos">
                     <div class="promedio-aspecto__nombre">

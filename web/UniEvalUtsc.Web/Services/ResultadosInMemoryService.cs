@@ -1,3 +1,4 @@
+using UniEvalUtsc.Contracts;
 using UniEvalUtsc.Contracts.Enums;
 
 namespace UniEvalUtsc.Web.Services;
@@ -68,7 +69,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
             .Select((periodo, indice) =>
             {
                 var promedio = PromedioBase(rol, elemento, indice + 1);
-                return new PuntoHistorico(periodo.Id, periodo.Nombre, promedio, Nivel(promedio));
+                return new PuntoHistorico(periodo.Id, periodo.Nombre, promedio, Niveles.Nivel(promedio).ToString());
             })
             .Reverse()
             .ToArray();
@@ -89,7 +90,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
                         elemento.Nombre,
                         elemento.Contexto,
                         promedio,
-                        Nivel(promedio));
+                        Niveles.Nivel(promedio).ToString());
                 }))
             .OrderByDescending(reporte => reporte.PeriodoId, StringComparer.Ordinal)
             .ThenBy(reporte => reporte.ElementoNombre, StringComparer.Ordinal)
@@ -117,10 +118,10 @@ public sealed class ResultadosInMemoryService : IResultadosService
                     TextoAspecto(rol, indice),
                     promedio,
                     promedioCarrera,
-                    Nivel(promedio));
+                    Niveles.Nivel(promedio).ToString());
             })
             .ToArray();
-        var general = Math.Round(aspectos.Average(aspecto => aspecto.Promedio), 1, MidpointRounding.AwayFromZero);
+        var general = Niveles.Redondear(aspectos.Average(aspecto => aspecto.Promedio));
         var respuestas = periodo.Abierto ? Math.Max(0, elemento.AlumnosRespondieron - 3) : elemento.AlumnosRespondieron;
 
         return new ResultadoPersonal(
@@ -129,7 +130,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
             general,
             respuestas,
             elemento.TotalAlumnos,
-            Math.Round(aspectos.Average(aspecto => aspecto.PromedioCarrera), 1, MidpointRounding.AwayFromZero),
+            Niveles.Redondear(aspectos.Average(aspecto => aspecto.PromedioCarrera)),
             aspectos);
     }
 
@@ -137,7 +138,7 @@ public sealed class ResultadosInMemoryService : IResultadosService
     {
         var semilla = Semilla(rol.ToString(), elemento.Id);
         var promedio = 6.4m + ((semilla / (indicePeriodo + 7) + indicePeriodo * 13) % 29) / 10m;
-        return Math.Round(Math.Clamp(promedio, 1m, 10m), 1, MidpointRounding.AwayFromZero);
+        return Niveles.Redondear(Math.Clamp(promedio, 1m, 10m));
     }
 
     private static long Semilla(params string[] valores)
@@ -150,8 +151,6 @@ public sealed class ResultadosInMemoryService : IResultadosService
 
         return hash;
     }
-
-    private static string Nivel(decimal promedio) => promedio < 5 ? "Bajo" : promedio < 8 ? "Medio" : "Alto";
 
     private static string TextoAspecto(Rol rol, int indice)
     {
