@@ -181,6 +181,10 @@
             document.getElementById(id)?.focus();
         },
 
+        scrollToEnd(element) {
+            element.scrollTop = element.scrollHeight;
+        },
+
         print() {
             return new Promise(resolve => {
                 window.requestAnimationFrame(() => {

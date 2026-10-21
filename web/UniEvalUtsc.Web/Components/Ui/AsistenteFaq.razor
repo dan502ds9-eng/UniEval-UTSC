@@ -1,0 +1,266 @@
+@implements IAsyncDisposable
+@inject IFaqService FaqService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="asistente-faq @(_enEncuesta ? "asistente-faq--encuesta" : string.Empty)">
+    <button class="asistente-faq__lanzador"
+            type="button"
+            aria-label="Abrir asistente Correcaminos IA"
+            aria-expanded="@_abierto.ToString().ToLowerInvariant()"
+            aria-controls="@_idDialogo"
+            @onclick="AlternarAsync">
+        <img src="/img/correcaminos.jpg" alt="" />
+        <span class="asistente-faq__globo">¿Qué puedo hacer por ti?</span>
+    </button>
+
+    <section @ref="_dialogo"
+             id="@_idDialogo"
+             class="asistente-faq__dialogo"
+             role="dialog"
+             aria-labelledby="@_idTitulo"
+             aria-hidden="@(!_abierto)"
+             hidden="@(!_abierto)"
+             tabindex="-1">
+        <header class="asistente-faq__encabezado">
+            <img src="/img/correcaminos.jpg" alt="" />
+            <div>
+                <h2 id="@_idTitulo">Correcaminos IA</h2>
+                <p>Asistente de preguntas frecuentes</p>
+            </div>
+            <button class="asistente-faq__cerrar"
+                    type="button"
+                    aria-label="Cerrar asistente"
+                    @onclick="CerrarAsync">×</button>
+        </header>
+
+        <div @ref="_conversacion"
+             class="asistente-faq__conversacion"
+             role="log"
+             aria-label="Conversación con Correcaminos IA"
+             aria-live="polite"
+             aria-relevant="additions"
+             aria-busy="@_respondiendo">
+            @foreach (var mensaje in _mensajes)
+            {
+                <p class="asistente-faq__mensaje @(mensaje.EsUsuario ? "asistente-faq__mensaje--usuario" : string.Empty)">
+                    @mensaje.Texto
+                </p>
+            }
+            @if (_respondiendo)
+            {
+                <p class="asistente-faq__espera" role="status">Buscando una respuesta…</p>
+            }
+        </div>
+
+        <div class="asistente-faq__preguntas" role="group" aria-label="Preguntas frecuentes">
+            @foreach (var pregunta in _preguntas)
+            {
+                <button type="button"
+                        disabled="@_respondiendo"
+                        @onclick="() => EnviarPreguntaAsync(pregunta.Pregunta)">
+                    @pregunta.Pregunta
+                </button>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <p class="asistente-faq__error" role="alert">@_error</p>
+        }
+
+        <form class="asistente-faq__formulario"
+              @onsubmit="EnviarTextoAsync"
+              @onsubmit:preventDefault="true">
+            <label for="asistente-faq-pregunta">Escribe tu pregunta</label>
+            <div>
+                <input id="asistente-faq-pregunta"
+                       @bind="_texto"
+                       maxlength="500"
+                       autocomplete="off"
+                       disabled="@_respondiendo" />
+                <button class="boton" type="submit" disabled="@(_respondiendo || string.IsNullOrWhiteSpace(_texto))">
+                    Enviar
+                </button>
+            </div>
+        </form>
+    </section>
+</div>
+
+@code {
+    private readonly string _idDialogo = $"asistente-faq-{Guid.NewGuid():N}";
+    private readonly string _idTitulo = $"asistente-faq-titulo-{Guid.NewGuid():N}";
+    private readonly List<MensajeFaq> _mensajes =
+    [
+        new("¡Hola, soy el Correcaminos! Te ayudo con tus encuestas, fechas y dudas de anonimato. ¿Qué necesitas?", false)
+    ];
+    private IReadOnlyList<PreguntaFrecuente> _preguntas = [];
+    private ElementReference _dialogo;
+    private ElementReference _conversacion;
+    private DotNetObjectReference<AsistenteFaq>? _callback;
+    private Rol _rol = Rol.Alumno;
+    private string _texto = string.Empty;
+    private string? _error;
+    private bool _abierto;
+    private bool _focoAtrapado;
+    private bool _respondiendo;
+    private bool _enEncuesta;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged += CambiarAutenticacion;
+        Navigation.LocationChanged += CambiarUbicacion;
+        _enEncuesta = EsPaginaEncuesta();
+        _rol = ObtenerRol((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);
+        _preguntas = await FaqService.ObtenerPreguntasAsync(_rol);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_abierto && !_focoAtrapado)
+        {
+            _callback ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("unieval.trapFocus", _dialogo, _callback);
+            _focoAtrapado = true;
+            await JS.InvokeVoidAsync("unieval.focusById", "asistente-faq-pregunta");
+        }
+        else if (!_abierto && _focoAtrapado)
+        {
+            await JS.InvokeVoidAsync("unieval.releaseFocus", _dialogo);
+            _focoAtrapado = false;
+        }
+    }
+
+    private async Task AlternarAsync()
+    {
+        if (_abierto)
+        {
+            await CerrarAsync();
+            return;
+        }
+
+        _error = null;
+        _abierto = true;
+    }
+
+    private async Task CerrarAsync()
+    {
+        _abierto = false;
+        if (_focoAtrapado)
+        {
+            await JS.InvokeVoidAsync("unieval.releaseFocus", _dialogo);
+            _focoAtrapado = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task CerrarPorEscape() => CerrarAsync();
+
+    private Task EnviarTextoAsync() => EnviarPreguntaAsync(_texto);
+
+    private async Task EnviarPreguntaAsync(string pregunta)
+    {
+        var texto = pregunta.Trim();
+        if (texto.Length == 0 || _respondiendo)
+        {
+            return;
+        }
+
+        _mensajes.Add(new MensajeFaq(texto, true));
+        _texto = string.Empty;
+        _error = null;
+        _respondiendo = true;
+        await DesplazarConversacionAsync();
+
+        try
+        {
+            var respuesta = await FaqService.ResponderAsync(_rol, texto);
+            _mensajes.Add(new MensajeFaq(respuesta, false));
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = $"No se pudo obtener una respuesta: {exception.Message}";
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = $"No se pudo obtener una respuesta: {exception.Message}";
+        }
+        finally
+        {
+            _respondiendo = false;
+        }
+
+        await DesplazarConversacionAsync();
+    }
+
+    private async Task DesplazarConversacionAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        await JS.InvokeVoidAsync("unieval.scrollToEnd", _conversacion);
+    }
+
+    private void CambiarAutenticacion(Task<AuthenticationState> estadoAutenticacion)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            var nuevoRol = ObtenerRol((await estadoAutenticacion).User);
+            if (nuevoRol == _rol)
+            {
+                return;
+            }
+
+            _rol = nuevoRol;
+            _preguntas = await FaqService.ObtenerPreguntasAsync(_rol);
+            _mensajes.Clear();
+            _mensajes.Add(new MensajeFaq(
+                "¡Hola, soy el Correcaminos! Te ayudo con tus encuestas, fechas y dudas de anonimato. ¿Qué necesitas?",
+                false));
+            _texto = string.Empty;
+            _error = null;
+            _abierto = false;
+            StateHasChanged();
+        });
+    }
+
+    private void CambiarUbicacion(object? sender, LocationChangedEventArgs args)
+    {
+        _ = sender;
+        _ = args;
+        _enEncuesta = EsPaginaEncuesta();
+        _abierto = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private bool EsPaginaEncuesta() =>
+        Navigation.ToBaseRelativePath(Navigation.Uri)
+            .Split('?', '#')[0]
+            .TrimEnd('/')
+            .Equals("alumno/encuesta", StringComparison.OrdinalIgnoreCase);
+
+    private static Rol ObtenerRol(System.Security.Claims.ClaimsPrincipal usuario)
+    {
+        var valor = usuario.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        return Enum.TryParse<Rol>(valor, out var rol) && Enum.IsDefined(rol)
+            ? rol
+            : Rol.Alumno;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= CambiarAutenticacion;
+        Navigation.LocationChanged -= CambiarUbicacion;
+
+        if (_focoAtrapado)
+        {
+            await JS.InvokeVoidAsync("unieval.releaseFocus", _dialogo);
+        }
+
+        _callback?.Dispose();
+    }
+
+    private sealed record MensajeFaq(string Texto, bool EsUsuario);
+}
