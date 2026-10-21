@@ -1,0 +1,45 @@
+@inject ICoordinacionService CoordinacionService
+
+<section class="coordinacion-contenido">
+    @if (!Tutores && Cuatrimestre is ("6" or "10"))
+    {
+        <p class="resultado-aviso" role="status">
+            En @(Cuatrimestre == "6" ? "6to" : "10mo") · estadías, los alumnos solo evalúan a su tutor de estadías.
+            <a href="/coordinador/resultados-tutores">Consultar Resultados de tutores →</a>
+        </p>
+    }
+    else if (_resultados.Count == 0)
+    {
+        <p class="resultado-aviso" role="status">No hay resultados disponibles para estos filtros.</p>
+    }
+    else
+    {
+        <TablaResultados Caption="@(Tutores ? "Resultados de tutores, ordenados de menor a mayor promedio" : "Resultados de docentes, ordenados de menor a mayor promedio")"
+                         Resultados="@_resultados"
+                         OnVerDetalle="SeleccionarResultado" />
+        @if (_seleccionado is not null)
+        {
+            <DetalleResultadoCoordinacion @key="_seleccionado.Id" Resultado="@_seleccionado" EsTutor="@Tutores" />
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string PeriodoId { get; set; } = string.Empty;
+    [Parameter] public string Cuatrimestre { get; set; } = "todos";
+    [Parameter] public bool Tutores { get; set; }
+
+    private IReadOnlyList<ResultadoCoordinacion> _resultados = [];
+    private ResultadoCoordinacion? _seleccionado;
+
+    protected override void OnParametersSet()
+    {
+        _resultados = CoordinacionService.ObtenerResultados(PeriodoId, Cuatrimestre, Tutores);
+        if (_seleccionado is not null)
+        {
+            _seleccionado = _resultados.SingleOrDefault(resultado => resultado.Id == _seleccionado.Id);
+        }
+    }
+
+    private void SeleccionarResultado(ResultadoCoordinacion resultado) => _seleccionado = resultado;
+}

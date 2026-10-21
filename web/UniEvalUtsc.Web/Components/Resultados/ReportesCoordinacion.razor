@@ -1,0 +1,95 @@
+@inject ICoordinacionService CoordinacionService
+@inject UnievalJsInterop JsInterop
+
+<section class="coordinacion-contenido reportes-coordinacion">
+    <div class="reportes-coordinacion__lista">
+        @foreach (var reporte in Reportes)
+        {
+            <article class="reporte-coordinacion">
+                <div>
+                    <h2>@reporte.Titulo</h2>
+                    <p>@reporte.Descripcion</p>
+                </div>
+                <div class="reporte-coordinacion__acciones">
+                    <button type="button" class="boton boton--contorno" @onclick="() => DescargarExcelAsync(reporte)">
+                        Excel
+                    </button>
+                    <button type="button" class="boton boton--contorno" @onclick="() => DescargarPdfAsync(reporte)">
+                        PDF
+                    </button>
+                </div>
+            </article>
+        }
+    </div>
+    @if (_reporteParaPdf is not null)
+    {
+        <section class="coordinador-reporte-impresion" aria-label="@_reporteParaPdf.Titulo">
+            <h1>@_reporteParaPdf.Titulo · @PeriodoNombre</h1>
+            <table class="tabla-resultados">
+                <caption>@_reporteParaPdf.Titulo · carrera de Desarrollo de Software Multiplataforma</caption>
+                @{
+                    var filas = ObtenerFilas(_reporteParaPdf);
+                }
+                <thead>
+                    <tr>
+                        @foreach (var encabezado in filas[0])
+                        {
+                            <th scope="col">@encabezado</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fila in filas.Skip(1))
+                    {
+                        <tr>
+                            @foreach (var celda in fila)
+                            {
+                                <td>@celda</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string PeriodoId { get; set; } = string.Empty;
+    [Parameter] public string Cuatrimestre { get; set; } = "todos";
+    [Parameter] public string PeriodoNombre { get; set; } = string.Empty;
+
+    private static IReadOnlyList<DefinicionReporte> Reportes { get; } =
+    [
+        new("docente", "Resultado por docente", "Promedios y respuestas por docente."),
+        new("tutor", "Resultado por tutor", "Promedios y respuestas por tutor."),
+        new("concentrado", "Concentrado por carrera", "Vista general de los resultados de la carrera."),
+        new("participacion", "Participación", "Alumnos que contestaron y pendientes por grupo."),
+        new("historico", "Comparativo histórico", "Comparativo de promedios entre periodos.")
+    ];
+
+    private DefinicionReporte? _reporteParaPdf;
+
+    private IReadOnlyList<IReadOnlyList<string>> ObtenerFilas(DefinicionReporte reporte) =>
+        CoordinacionService.ObtenerDatosReporte(reporte.Tipo, PeriodoId, Cuatrimestre);
+
+    private async Task DescargarExcelAsync(DefinicionReporte reporte)
+    {
+        var filas = ObtenerFilas(reporte);
+        var contenido = ExportadorExcel.Crear(reporte.Titulo, filas);
+        await JsInterop.DescargarArchivoAsync(
+            $"{reporte.Tipo}-{PeriodoId}.xlsx",
+            Convert.ToBase64String(contenido),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+
+    private async Task DescargarPdfAsync(DefinicionReporte reporte)
+    {
+        _reporteParaPdf = reporte;
+        await Task.Yield();
+        await JsInterop.PrintAsync();
+        _reporteParaPdf = null;
+    }
+
+    private sealed record DefinicionReporte(string Tipo, string Titulo, string Descripcion);
+}

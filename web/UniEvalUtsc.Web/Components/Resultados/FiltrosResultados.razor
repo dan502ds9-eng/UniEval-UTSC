@@ -1,0 +1,59 @@
+<section class="filtros-resultados" aria-label="Filtros de resultados">
+    <label class="campo">
+        <span class="campo__etiqueta">Periodo</span>
+        <select class="campo__entrada" value="@PeriodoId" @onchange="CambiarPeriodo">
+            @foreach (var periodo in Periodos)
+            {
+                <option value="@periodo.Id">@periodo.Nombre</option>
+            }
+        </select>
+    </label>
+    <label class="campo">
+        <span class="campo__etiqueta">Carrera</span>
+        <select class="campo__entrada" value="@CarreraId" disabled="@(!HabilitarCarrera)" @onchange="CambiarCarrera">
+            @foreach (var carrera in OpcionesCarrera)
+            {
+                <option value="@carrera.Id">@carrera.Nombre</option>
+            }
+        </select>
+    </label>
+    <label class="campo">
+        <span class="campo__etiqueta">Cuatrimestre</span>
+        <select class="campo__entrada" value="@Cuatrimestre" @onchange="CambiarCuatrimestre">
+            <option value="todos">Todos</option>
+            <option value="5">5to cuatrimestre</option>
+            <option value="6">6to · estadías</option>
+            <option value="10">10mo · estadías</option>
+        </select>
+    </label>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PeriodoResultado> Periodos { get; set; } = [];
+    [Parameter, EditorRequired] public string PeriodoId { get; set; } = string.Empty;
+    [Parameter] public string Cuatrimestre { get; set; } = "todos";
+    [Parameter] public string CarreraId { get; set; } = "dsm";
+    [Parameter] public IReadOnlyList<OpcionCarreraResultado> OpcionesCarrera { get; set; } = CarrerasDisponibles;
+    [Parameter] public bool HabilitarCarrera { get; set; }
+    [Parameter] public EventCallback<string> PeriodoCambiado { get; set; }
+    [Parameter] public EventCallback<string> CuatrimestreCambiado { get; set; }
+    [Parameter] public EventCallback<string> CarreraCambiada { get; set; }
+
+    private static IReadOnlyList<OpcionCarreraResultado> CarrerasDisponibles { get; } =
+    [
+        new("todas", "Todas las carreras"),
+        new("dsm", "Desarrollo de Software Multiplataforma")
+    ];
+
+    private Task CambiarPeriodo(ChangeEventArgs evento) =>
+        PeriodoCambiado.InvokeAsync(evento.Value?.ToString()
+            ?? throw new InvalidOperationException("El selector de periodo no devolvió una selección."));
+
+    private Task CambiarCuatrimestre(ChangeEventArgs evento) =>
+        CuatrimestreCambiado.InvokeAsync(evento.Value?.ToString()
+            ?? throw new InvalidOperationException("El selector de cuatrimestre no devolvió una selección."));
+
+    private Task CambiarCarrera(ChangeEventArgs evento) =>
+        CarreraCambiada.InvokeAsync(evento.Value?.ToString()
+            ?? throw new InvalidOperationException("El selector de carrera no devolvió una selección."));
+}

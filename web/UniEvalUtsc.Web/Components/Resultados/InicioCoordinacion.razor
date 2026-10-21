@@ -1,0 +1,73 @@
+@inject ICoordinacionService CoordinacionService
+
+<section class="coordinacion-contenido">
+    <IndicadoresCoordinacion Resumen="@_resumen" />
+
+    <section class="coordinacion-panel">
+        <div class="coordinacion-panel__encabezado">
+            <h2>Menor participación</h2>
+            <a class="boton boton--enlace" href="/coordinador/seguimiento">Ver seguimiento →</a>
+        </div>
+        <ol class="menor-participacion">
+            @foreach (var grupo in _grupos)
+            {
+                <li>
+                <span>@grupo.Nombre<small class="tabla-resultados__secundario">@EtiquetaGrupo(grupo)</small></span>
+                    <strong>@grupo.Porcentaje.ToString("0.#")%</strong>
+                </li>
+            }
+        </ol>
+    </section>
+
+    <section class="coordinacion-panel">
+        <div class="coordinacion-panel__encabezado">
+            <h2>Áreas de mejora</h2>
+            <a class="boton boton--enlace" href="/coordinador/resultados-docentes">Ver todo →</a>
+        </div>
+        @if (_areasMejora.Count == 0)
+        {
+            <p>No hay resultados disponibles para estos filtros.</p>
+        }
+        else
+        {
+            <ul class="areas-mejora">
+                @foreach (var resultado in _areasMejora)
+                {
+                    <li>
+                        <span>@resultado.Nombre<small class="tabla-resultados__secundario">@resultado.Contexto</small></span>
+                        <span><strong>@resultado.Promedio.ToString("0.0")</strong> <Pill Value="@resultado.Promedio" MostrarValor="false" /></span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string PeriodoId { get; set; } = string.Empty;
+    [Parameter] public string Cuatrimestre { get; set; } = "todos";
+
+    private ResumenCoordinacion _resumen = new(0, 0, 0, 0, 0);
+    private IReadOnlyList<GrupoParticipacion> _grupos = [];
+    private IReadOnlyList<ResultadoCoordinacion> _areasMejora = [];
+
+    protected override void OnParametersSet()
+    {
+        _resumen = CoordinacionService.ObtenerResumen(PeriodoId, Cuatrimestre);
+        _grupos = CoordinacionService.ObtenerGrupos(PeriodoId, Cuatrimestre)
+            .OrderBy(grupo => grupo.Porcentaje)
+            .Take(3)
+            .ToArray();
+        _areasMejora = CoordinacionService.ObtenerResultados(PeriodoId, Cuatrimestre, tutores: false)
+            .Where(resultado => resultado.Promedio < 8)
+            .Take(3)
+            .ToArray();
+    }
+
+    private static string EtiquetaGrupo(GrupoParticipacion grupo) => grupo.Cuatrimestre switch
+    {
+        6 => "6to · estadías",
+        10 => "10mo · estadías",
+        _ => "5to cuatrimestre"
+    };
+}

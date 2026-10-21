@@ -1,12 +1,60 @@
 @page "/coordinador"
 @page "/coordinador/{Seccion}"
 @attribute [Authorize(Roles = "Coordinador")]
+@inject IResultadosService ResultadosService
+@inject IAlumnoService AlumnoService
 
 <PageTitle>@(Titulo) · UniEval UTSC</PageTitle>
-<StaffShell Rol="Rol.Coordinador" Seccion="@Seccion" />
+<StaffShell Rol="Rol.Coordinador" Seccion="@Seccion">
+    <ChildContent>
+        <FiltrosResultados Periodos="@_periodos"
+                           PeriodoId="@_periodoId"
+                           Cuatrimestre="@_cuatrimestre"
+                           CarreraId="dsm"
+                           PeriodoCambiado="CambiarPeriodo"
+                           CuatrimestreCambiado="CambiarCuatrimestre" />
+        @switch (SeccionActual)
+        {
+            case "seguimiento":
+                <SeguimientoCoordinacion PeriodoId="@_periodoId"
+                                         Cuatrimestre="@_cuatrimestre"
+                                         OnRecordatorioEnviado="EnviarRecordatorio" />
+                break;
+            case "resultados-docentes":
+                <ResultadosCoordinacion PeriodoId="@_periodoId"
+                                        Cuatrimestre="@_cuatrimestre" />
+                break;
+            case "resultados-tutores":
+                <ResultadosCoordinacion PeriodoId="@_periodoId"
+                                        Cuatrimestre="@_cuatrimestre"
+                                        Tutores="true" />
+                break;
+            case "reportes":
+                <ReportesCoordinacion PeriodoId="@_periodoId"
+                                      Cuatrimestre="@_cuatrimestre"
+                                      PeriodoNombre="@PeriodoNombre" />
+                break;
+            default:
+                <InicioCoordinacion PeriodoId="@_periodoId" Cuatrimestre="@_cuatrimestre" />
+                break;
+        }
+        <p class="coordinacion-privacidad">Ves participación y promedios. Nunca qué calificó cada alumno (RN-09).</p>
+    </ChildContent>
+</StaffShell>
 
 @code {
     [Parameter] public string? Seccion { get; set; }
+    private IReadOnlyList<PeriodoResultado> _periodos = [];
+    private string _periodoId = string.Empty;
+    private string _cuatrimestre = "todos";
+
+    private string SeccionActual => string.IsNullOrWhiteSpace(Seccion)
+        ? "inicio"
+        : Seccion.ToLowerInvariant();
+
+    private string PeriodoNombre => _periodos.SingleOrDefault(periodo => periodo.Id == _periodoId)?.Nombre
+        ?? throw new InvalidOperationException("El periodo seleccionado ya no está disponible.");
+
     private string Titulo => Seccion switch
     {
         "seguimiento" => "Seguimiento",
@@ -15,4 +63,35 @@
         "reportes" => "Reportes",
         _ => "Inicio"
     };
+
+    protected override void OnInitialized()
+    {
+        _periodos = ResultadosService.ObtenerPeriodos();
+        _periodoId = _periodos.FirstOrDefault(periodo => periodo.Abierto)?.Id
+            ?? _periodos.FirstOrDefault()?.Id
+            ?? throw new InvalidOperationException("No hay periodos disponibles para mostrar.");
+    }
+
+    private Task CambiarPeriodo(string periodoId)
+    {
+        if (_periodos.All(periodo => periodo.Id != periodoId))
+        {
+            throw new InvalidOperationException("El periodo seleccionado ya no está disponible.");
+        }
+
+        _periodoId = periodoId;
+        return Task.CompletedTask;
+    }
+
+    private Task CambiarCuatrimestre(string cuatrimestre)
+    {
+        _cuatrimestre = cuatrimestre;
+        return Task.CompletedTask;
+    }
+
+    private Task EnviarRecordatorio(GrupoParticipacion grupo)
+    {
+        AlumnoService.CrearRecordatorio(grupo.Id, grupo.Nombre);
+        return Task.CompletedTask;
+    }
 }

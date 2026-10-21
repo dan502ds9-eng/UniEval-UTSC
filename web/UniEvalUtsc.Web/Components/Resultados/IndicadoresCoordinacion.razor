@@ -1,0 +1,21 @@
+@using UniEvalUtsc.Contracts
+
+<div class="indicadores-coordinacion">
+    <IndicadorResultado Titulo="Participación" Valor="@($"{Resumen.Participacion:0}%")" />
+    <IndicadorResultado Titulo="Alumnos que ya contestaron"
+                        Valor="@($"{Resumen.AlumnosRespondieron} / {Resumen.TotalAlumnos}")"
+                        Detalle="@($"Faltan {Resumen.TotalAlumnos - Resumen.AlumnosRespondieron}")" />
+    <IndicadorResultado Titulo="Promedio de docentes" Valor="@Resumen.PromedioDocentes.ToString("0.0")">
+        @if (Resumen.PromedioDocentes > 0)
+        {
+            <Pill Value="@Resumen.PromedioDocentes" MostrarValor="false" />
+        }
+    </IndicadorResultado>
+    <IndicadorResultado Titulo="Por debajo de 8"
+                        Valor="@Resumen.DocentesPorDebajoDeOcho.ToString()"
+                        Detalle="docentes o tutores con áreas de mejora" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ResumenCoordinacion Resumen { get; set; } = default!;
+}

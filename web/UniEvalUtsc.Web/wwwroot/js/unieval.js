@@ -182,7 +182,29 @@
         },
 
         print() {
-            window.print();
+            return new Promise(resolve => {
+                window.requestAnimationFrame(() => {
+                    window.print();
+                    resolve();
+                });
+            });
+        },
+
+        downloadFile(fileName, contentBase64, contentType) {
+            const binary = atob(contentBase64);
+            const bytes = new Uint8Array(binary.length);
+            for (let index = 0; index < binary.length; index += 1) {
+                bytes[index] = binary.charCodeAt(index);
+            }
+
+            const url = URL.createObjectURL(new Blob([bytes], { type: contentType }));
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            document.body.append(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         },
 
         speak(text) {

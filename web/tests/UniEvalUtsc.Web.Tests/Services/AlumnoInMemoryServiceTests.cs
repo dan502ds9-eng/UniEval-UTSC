@@ -86,6 +86,19 @@ public sealed class AlumnoInMemoryServiceTests
         Assert.NotNull(servicio.ObtenerEvaluacion().FechaEnvio);
     }
 
+    [Fact]
+    public void CrearRecordatorio_AgregaMensajeVisibleParaElAlumno()
+    {
+        var servicio = CrearServicio();
+
+        servicio.CrearRecordatorio("dsm05av-a", "DSM05AV · Grupo A");
+
+        var mensaje = Assert.Single(servicio.ObtenerMensajes(), item =>
+            item.Titulo.Contains("DSM05AV · Grupo A", StringComparison.Ordinal));
+        Assert.Equal("Te invitamos a completar tus evaluaciones pendientes del cuatrimestre.", mensaje.Cuerpo);
+        Assert.Equal(3, servicio.MensajesSinLeer);
+    }
+
     private static AlumnoInMemoryService CrearServicio(RuntimeFalso? runtime = null, bool esEstadia = false)
     {
         var valores = new Dictionary<string, string?>

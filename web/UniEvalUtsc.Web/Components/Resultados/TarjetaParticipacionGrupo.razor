@@ -1,0 +1,82 @@
+@inject ICoordinacionService CoordinacionService
+
+<article class="grupo-participacion">
+    <div class="grupo-participacion__encabezado">
+        <div>
+            <h2>@Grupo.Nombre</h2>
+            <p>@EtiquetaGrupo</p>
+        </div>
+        <strong>@Grupo.Porcentaje.ToString("0.#")%</strong>
+    </div>
+    <div class="grupo-participacion__barra grupo-participacion__barra--@ClaseParticipacion"
+         role="progressbar"
+         aria-label="Participación de @Grupo.Nombre"
+         aria-valuemin="0"
+         aria-valuemax="100"
+         aria-valuenow="@Grupo.Porcentaje">
+        <span style="@($"width:{Math.Clamp(Grupo.Porcentaje, 0, 100):0.#}%")"></span>
+    </div>
+    <p class="grupo-participacion__faltan">Faltan @Grupo.Faltan de @Grupo.Total</p>
+    @if (Grupo.EsEstadia)
+    {
+        <p class="grupo-participacion__nota">Solo evalúan a su tutor de estadías.</p>
+    }
+    <div class="grupo-participacion__acciones">
+        <button type="button"
+                class="boton boton--contorno"
+                aria-expanded="@_mostrarPendientes"
+                @onclick="AlternarPendientes">
+            @(_mostrarPendientes ? "Ocultar quién falta" : $"Ver quién falta ({Grupo.Faltan})")
+        </button>
+        <button type="button" class="boton" @onclick="EnviarRecordatorioAsync">Enviar recordatorio</button>
+    </div>
+    @if (_mostrarPendientes)
+    {
+        <ul class="grupo-participacion__pendientes" aria-label="@($"Alumnos pendientes de {Grupo.Nombre}")">
+            @foreach (var alumno in _pendientes)
+            {
+                <li>@alumno</li>
+            }
+        </ul>
+    }
+    @if (_mensaje is not null)
+    {
+        <p class="grupo-participacion__confirmacion" role="status">@_mensaje</p>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public GrupoParticipacion Grupo { get; set; } = default!;
+    [Parameter] public EventCallback<GrupoParticipacion> OnRecordatorioEnviado { get; set; }
+
+    private bool _mostrarPendientes;
+    private IReadOnlyList<string> _pendientes = [];
+    private string? _mensaje;
+
+    private string ClaseParticipacion => Grupo.Porcentaje < 60
+        ? "baja"
+        : Grupo.Porcentaje < 85
+            ? "media"
+            : "alta";
+
+    private string EtiquetaGrupo => Grupo.Cuatrimestre switch
+    {
+        6 => "6to · estadías",
+        10 => "10mo · estadías",
+        _ => "5to cuatrimestre"
+    };
+
+    private void AlternarPendientes()
+    {
+        _mostrarPendientes = !_mostrarPendientes;
+        _pendientes = _mostrarPendientes
+            ? CoordinacionService.ObtenerAlumnosPendientes(Grupo.Id)
+            : [];
+    }
+
+    private async Task EnviarRecordatorioAsync()
+    {
+        await OnRecordatorioEnviado.InvokeAsync(Grupo);
+        _mensaje = $"Recordatorio enviado al grupo {Grupo.Nombre}.";
+    }
+}
