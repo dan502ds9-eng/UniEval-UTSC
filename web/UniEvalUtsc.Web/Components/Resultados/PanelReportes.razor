@@ -2,6 +2,14 @@
 @inject IExportadorReportes Exportador
 
 <section class="coordinacion-contenido reportes-coordinacion">
+    @if (_cargando)
+    {
+        <p role="status">Cargando…</p>
+    }
+    @if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
     <div class="reportes-coordinacion__lista">
         @foreach (var reporte in Reportes)
         {
@@ -37,14 +45,50 @@
         new("historico", "Comparativo histórico", "Comparativo de promedios entre periodos.")
     ];
 
-    private IReadOnlyList<IReadOnlyList<string>> ObtenerFilas(DefinicionReporte reporte) =>
-        CoordinacionService.ObtenerDatosReporte(reporte.Tipo, PeriodoId, Cuatrimestre, CarreraId);
+    private async Task ExportarAsync(DefinicionReporte reporte, bool pdf)
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            var filas = await CoordinacionService.ObtenerDatosReporteAsync(
+                reporte.Tipo,
+                PeriodoId,
+                Cuatrimestre,
+                CarreraId);
+            if (pdf)
+            {
+                await Exportador.ExportarPdfAsync($"{reporte.Titulo} · {PeriodoId}", filas);
+            }
+            else
+            {
+                await Exportador.ExportarExcelAsync($"{reporte.Tipo}-{PeriodoId}", filas);
+            }
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
 
-    private Task ExportarExcelAsync(DefinicionReporte reporte) =>
-        Exportador.ExportarExcelAsync($"{reporte.Tipo}-{PeriodoId}", ObtenerFilas(reporte));
+    private Task ExportarExcelAsync(DefinicionReporte reporte) => ExportarAsync(reporte, pdf: false);
 
-    private Task ExportarPdfAsync(DefinicionReporte reporte) =>
-        Exportador.ExportarPdfAsync($"{reporte.Titulo} · {PeriodoId}", ObtenerFilas(reporte));
+    private Task ExportarPdfAsync(DefinicionReporte reporte) => ExportarAsync(reporte, pdf: true);
+
+    private bool _cargando;
+    private string? _error;
 
     private sealed record DefinicionReporte(string Tipo, string Titulo, string Descripcion);
 }

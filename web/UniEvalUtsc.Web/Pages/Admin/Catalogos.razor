@@ -1,0 +1,188 @@
+@page "/admin/catalogos"
+@attribute [Authorize(Roles = "Administrador")]
+@inject ICatalogosService CatalogosService
+
+<PageTitle>Catálogos · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="catalogos">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (_error is not null)
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
+            <h2>Catálogos</h2>
+            <div class="catalogos-admin__segmentos" role="group" aria-label="Tipo de catálogo">
+                @foreach (var opcion in TiposCatalogo)
+                {
+                    <button type="button" class="boton boton--contorno" aria-pressed="@(_tipo == opcion.Id)"
+                            @onclick="() => CambiarTipo(opcion.Id)">@opcion.Nombre</button>
+                }
+            </div>
+            <div class="formulario-admin__rejilla">
+                <label class="campo">
+                    <span class="campo__etiqueta">Buscar en @TipoNombre</span>
+                    <input class="campo__entrada" @bind="_busqueda" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Agregar</span>
+                    <input class="campo__entrada" @bind="_nuevoNombre" placeholder="Nombre" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Contexto</span>
+                    <input class="campo__entrada" @bind="_nuevoContexto" placeholder="Carrera, grupo o detalle" />
+                </label>
+            </div>
+            <button class="boton" type="button" @onclick="Agregar">Agregar</button>
+            <label class="campo">
+                <span class="campo__etiqueta">Importar Excel/CSV</span>
+                <InputFile OnChange="Importar" accept=".csv,.xlsx" />
+            </label>
+            @if (!string.IsNullOrWhiteSpace(_mensaje))
+            {
+                <p role="status">@_mensaje</p>
+            }
+            @if (_errores.Count > 0)
+            {
+                <ul class="resultado-aviso" role="alert">
+                    @foreach (var error in _errores)
+                    {
+                        <li>Renglón @error.Renglon · @error.Campo: @error.Mensaje</li>
+                    }
+                </ul>
+            }
+            <div class="tabla-resultados-contenedor">
+                <table class="tabla-resultados">
+                    <caption>@TipoNombre</caption>
+                    <thead><tr><th scope="col">Nombre</th><th scope="col">Contexto</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead>
+                    <tbody>
+                        @foreach (var elemento in Elementos)
+                        {
+                            <tr>
+                                <td>@elemento.Nombre</td>
+                                <td>@elemento.Contexto</td>
+                                <td>@(elemento.Activo ? "Activo" : "Inactivo")</td>
+                                <td>
+                                    <button class="boton boton--enlace" type="button" @onclick="() => CambiarEstado(elemento.Id)">
+                                        @(elemento.Activo ? "Desactivar" : "Reactivar")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            }
+        </section>
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private static readonly IReadOnlyList<(string Id, string Nombre)> TiposCatalogo =
+    [
+        ("carreras", "Carreras"),
+        ("grupos", "Grupos"),
+        ("materias", "Materias"),
+        ("docentes", "Docentes"),
+        ("alumnos", "Alumnos")
+    ];
+
+    private string _tipo = "carreras";
+    private string _busqueda = string.Empty;
+    private string _nuevoNombre = string.Empty;
+    private string _nuevoContexto = string.Empty;
+    private string _mensaje = string.Empty;
+    private IReadOnlyList<RegistroImportacion> _errores = [];
+    private IReadOnlyList<ElementoCatalogo> _elementos = [];
+    private bool _cargando = true;
+    private string? _error;
+    private string TipoNombre => TiposCatalogo.Single(tipo => tipo.Id == _tipo).Nombre;
+    private IReadOnlyList<ElementoCatalogo> Elementos => _elementos
+        .Where(elemento => elemento.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase)
+            || elemento.Contexto.Contains(_busqueda, StringComparison.OrdinalIgnoreCase))
+        .ToArray();
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _elementos = await CatalogosService.ObtenerAsync(_tipo);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CambiarTipo(string tipo)
+    {
+        _tipo = tipo;
+        _mensaje = string.Empty;
+        _errores = [];
+        await CargarAsync();
+    }
+
+    private async Task Agregar()
+    {
+        try
+        {
+            await CatalogosService.AgregarAsync(_tipo, _nuevoNombre, _nuevoContexto);
+            _nuevoNombre = string.Empty;
+            _nuevoContexto = string.Empty;
+            _mensaje = "El registro se agregó al catálogo.";
+            await CargarAsync();
+        }
+        catch (ArgumentException exception)
+        {
+            _mensaje = exception.Message;
+        }
+    }
+
+    private async Task CambiarEstado(string id)
+    {
+        await CatalogosService.CambiarEstadoAsync(_tipo, id);
+        _mensaje = "Se actualizó el estado del registro.";
+        await CargarAsync();
+    }
+
+    private async Task Importar(InputFileChangeEventArgs evento)
+    {
+        _mensaje = string.Empty;
+        _errores = [];
+        var archivo = evento.File;
+        try
+        {
+            var filas = ImportadorTabular.Leer(archivo.OpenReadStream(5 * 1024 * 1024), archivo.Name);
+            var resultado = await CatalogosService.ImportarAsync(_tipo, filas);
+            _errores = resultado.Errores;
+            _mensaje = $"Renglones procesados: {resultado.Renglones}. Registros importados: {resultado.Importados}.";
+            await CargarAsync();
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException or FormatException or InvalidOperationException or HttpRequestException)
+        {
+            _mensaje = $"No se pudo importar el archivo: {exception.Message}";
+        }
+    }
+}

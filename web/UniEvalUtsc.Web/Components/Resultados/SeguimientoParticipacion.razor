@@ -1,16 +1,27 @@
 @inject ICoordinacionService CoordinacionService
 
 <section class="coordinacion-contenido">
-    <IndicadoresGestion Resumen="@_resumen" />
-    <div class="tarjetas-participacion">
-        @foreach (var grupo in _grupos)
-        {
-            <TarjetaParticipacionGrupo @key="grupo.Id"
-                                       Grupo="@grupo"
-                                       CarreraId="@CarreraId"
-                                       OnRecordatorioEnviado="OnRecordatorioEnviado" />
-        }
-    </div>
+    @if (_cargando)
+    {
+        <p role="status">Cargando…</p>
+    }
+    else if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    else
+    {
+        <IndicadoresGestion Resumen="@_resumen" />
+        <div class="tarjetas-participacion">
+            @foreach (var grupo in _grupos)
+            {
+                <TarjetaParticipacionGrupo @key="grupo.Id"
+                                           Grupo="@grupo"
+                                           CarreraId="@CarreraId"
+                                           OnRecordatorioEnviado="OnRecordatorioEnviado" />
+            }
+        </div>
+    }
 </section>
 
 @code {
@@ -21,10 +32,33 @@
 
     private IReadOnlyList<GrupoParticipacion> _grupos = [];
     private ResumenCoordinacion _resumen = new(0, 0, 0, 0, 0);
+    private bool _cargando = true;
+    private string? _error;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        _resumen = CoordinacionService.ObtenerResumen(PeriodoId, Cuatrimestre, CarreraId);
-        _grupos = CoordinacionService.ObtenerGrupos(PeriodoId, Cuatrimestre, CarreraId);
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _resumen = await CoordinacionService.ObtenerResumenAsync(PeriodoId, Cuatrimestre, CarreraId);
+            _grupos = await CoordinacionService.ObtenerGruposAsync(PeriodoId, Cuatrimestre, CarreraId);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 }

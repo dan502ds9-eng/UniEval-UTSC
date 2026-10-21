@@ -49,7 +49,11 @@ public sealed class FiltrosState
 
     public void CambiarCarrera(string carreraId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(carreraId);
-        CarreraId = CarreraCoordinadorId;
+        if (carreraId is not ("todas" or "dsm" or "mti"))
+        {
+            throw new ArgumentOutOfRangeException(nameof(carreraId), carreraId, "La carrera no es válida.");
+        }
+
+        CarreraId = carreraId;
     }
 }

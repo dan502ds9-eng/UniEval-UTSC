@@ -7,7 +7,15 @@
 
 <PageTitle>@(_evaluacion?.EsEstadia == true ? "Evaluación del tutor de estadías" : "Evaluación del cuatrimestre") · UniEval UTSC</PageTitle>
 
-@if (_evaluacion is not null)
+@if (_cargando)
+{
+    <p class="student-home" role="status">Cargando…</p>
+}
+else if (_error is not null)
+{
+    <p class="student-home" role="alert">@_error</p>
+}
+else if (_evaluacion is not null)
 {
     <main class="student-home alumno-pagina alumno-encuesta">
         <div class="alumno-encuesta__encabezado">
@@ -76,6 +84,8 @@
     private int? _preguntaAbierta;
     private bool _dialogoEnvio;
     private string? _toast;
+    private bool _cargando = true;
+    private string? _error;
 
     private int AvanceRespuestas => _calificaciones.Count;
     private int? _preguntaPendiente => _evaluacion?.Preguntas.FirstOrDefault(pregunta => !PreguntaCompleta(pregunta.Id))?.Id;
@@ -89,14 +99,30 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _evaluacion = AlumnoService.ObtenerEvaluacion();
-        _calificaciones = await AlumnoService.RecuperarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno");
+        try
+        {
+            _evaluacion = await AlumnoService.ObtenerEvaluacionAsync();
+            _calificaciones = await AlumnoService.RecuperarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno");
         _preguntaAbierta = _evaluacion.Preguntas.FirstOrDefault(pregunta => !PreguntaCompleta(pregunta.Id))?.Id
             ?? _evaluacion.Preguntas.FirstOrDefault()?.Id;
 
-        if (_evaluacion.Enviado)
+            if (_evaluacion.Enviado)
+            {
+                Navigation.NavigateTo("/alumno/comprobante");
+            }
+        }
+        catch (InvalidOperationException exception)
         {
-            Navigation.NavigateTo("/alumno/comprobante");
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
         }
     }
 

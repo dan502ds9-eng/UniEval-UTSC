@@ -3,6 +3,16 @@
 @inject UnievalJsInterop JsInterop
 
 <section class="resultados-personal">
+    @if (_cargando)
+    {
+        <p role="status">Cargando…</p>
+    }
+    else if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    else
+    {
     <table class="tabla-resultados">
         <caption>Reportes por periodo y @(Rol == Rol.Tutor ? "grupo de tutoría" : "materia")</caption>
         <thead>
@@ -21,14 +31,39 @@
             }
         </tbody>
     </table>
+    }
 </section>
 
 @code {
     [Parameter] public Rol Rol { get; set; }
     private IReadOnlyList<FilaReportePersonal> _reportes = [];
+    private bool _cargando = true;
+    private string? _error;
 
-    protected override void OnInitialized() =>
-        _reportes = ResultadosService.ObtenerReportes(Rol);
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _reportes = await ResultadosService.ObtenerReportesAsync(Rol);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
 
     private async Task DescargarPdfAsync(FilaReportePersonal reporte)
     {

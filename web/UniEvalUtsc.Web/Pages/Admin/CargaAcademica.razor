@@ -1,0 +1,163 @@
+@page "/admin/carga-academica"
+@attribute [Authorize(Roles = "Administrador")]
+@inject ICargaAcademicaService CargaService
+
+<PageTitle>Carga académica · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="carga-academica">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (_error is not null)
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
+            <h2>Carga académica por grupo</h2>
+            <label class="campo">
+                <span class="campo__etiqueta">Grupo</span>
+                <select class="campo__entrada" value="@_grupoId" @onchange="CambiarGrupo">
+                    @foreach (var grupo in Grupos)
+                    {
+                        <option value="@grupo.Id">@grupo.Nombre</option>
+                    }
+                </select>
+            </label>
+            <div class="tabla-resultados-contenedor">
+                <table class="tabla-resultados">
+                    <caption>Materias, docentes y tutor del grupo @_grupoNombre</caption>
+                    <thead><tr><th scope="col">Materia</th><th scope="col">Docente</th></tr></thead>
+                    <tbody>
+                        @foreach (var asignacion in Asignaciones)
+                        {
+                            <tr>
+                                <td>@asignacion.Materia</td>
+                                <td>
+                                    <select class="campo__entrada" aria-label="@($"Docente de {asignacion.Materia}")"
+                                            value="@asignacion.Docente"
+                                            @onchange="evento => CambiarDocenteAsync(asignacion.Id, evento)">
+                                        @foreach (var docente in _docentes)
+                                        {
+                                            <option value="@docente">@docente</option>
+                                        }
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p>@(_cantidadMaterias) materias + 1 tutor = @(_cantidadMaterias + 1) encuestas por alumno.</p>
+            }
+        </section>
+
+        <section class="coordinacion-panel">
+            <h2>Importar carga desde Excel/CSV</h2>
+            <label class="campo">
+                <span class="campo__etiqueta">Archivo de carga</span>
+                <InputFile OnChange="Importar" accept=".csv,.xlsx" />
+            </label>
+            @if (!string.IsNullOrWhiteSpace(_mensaje))
+            {
+                <p role="status">@_mensaje</p>
+            }
+            @if (_errores.Count > 0)
+            {
+                <ul class="resultado-aviso" role="alert">
+                    @foreach (var error in _errores)
+                    {
+                        <li>Renglón @error.Renglon · @error.Campo: @error.Mensaje</li>
+                    }
+                </ul>
+            }
+        </section>
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private string _grupoId = string.Empty;
+    private string _mensaje = string.Empty;
+    private IReadOnlyList<RegistroImportacion> _errores = [];
+    private IReadOnlyList<AsignacionCarga> _asignaciones = [];
+    private IReadOnlyList<string> _docentes = [];
+    private bool _cargando = true;
+    private string? _error;
+    private IReadOnlyList<AsignacionCarga> Asignaciones => _asignaciones
+        .Where(asignacion => asignacion.GrupoId == _grupoId).ToArray();
+    private IReadOnlyList<(string Id, string Nombre)> Grupos => _asignaciones
+        .GroupBy(asignacion => asignacion.GrupoId)
+        .Select(grupo => (grupo.Key, grupo.First().Grupo))
+        .ToArray();
+    private string _grupoNombre => Grupos.FirstOrDefault(grupo => grupo.Id == _grupoId).Nombre ?? string.Empty;
+    private int _cantidadMaterias => Asignaciones.Count(asignacion => !asignacion.EsTutor);
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _asignaciones = await CargaService.ObtenerAsignacionesAsync();
+            _docentes = await CargaService.ObtenerDocentesAsync();
+            if (string.IsNullOrEmpty(_grupoId))
+            {
+                _grupoId = Grupos.FirstOrDefault().Id ?? string.Empty;
+            }
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private Task CambiarGrupo(ChangeEventArgs evento)
+    {
+        _grupoId = evento.Value?.ToString() ?? throw new InvalidOperationException("Selecciona un grupo.");
+        return Task.CompletedTask;
+    }
+
+    private async Task CambiarDocenteAsync(string asignacionId, ChangeEventArgs evento)
+    {
+        var docente = evento.Value?.ToString()
+            ?? throw new InvalidOperationException("Selecciona un docente.");
+        await CargaService.CambiarDocenteAsync(asignacionId, docente);
+        await CargarAsync();
+    }
+
+    private async Task Importar(InputFileChangeEventArgs evento)
+    {
+        _mensaje = string.Empty;
+        _errores = [];
+        var archivo = evento.File;
+        try
+        {
+            var filas = ImportadorTabular.Leer(archivo.OpenReadStream(5 * 1024 * 1024), archivo.Name);
+            var resultado = await CargaService.ImportarAsync(filas);
+            _errores = resultado.Errores;
+            _mensaje = $"Renglones procesados: {resultado.Renglones}. Asignaciones importadas: {resultado.Importados}.";
+            await CargarAsync();
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException or FormatException or InvalidOperationException or HttpRequestException)
+        {
+            _mensaje = $"No se pudo importar el archivo: {exception.Message}";
+        }
+    }
+}

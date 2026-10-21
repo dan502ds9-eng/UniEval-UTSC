@@ -3,7 +3,15 @@
 @inject NavigationManager Navigation
 
 <section class="resultados-personal">
-    @if (_periodo is not null)
+    @if (_cargando)
+    {
+        <p role="status">Cargando…</p>
+    }
+    else if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    else if (_periodo is not null)
     {
         <section class="resultado-periodo" aria-label="Información del periodo">
             <div><span>Periodo</span><strong>@_periodo.Nombre</strong></div>
@@ -33,28 +41,83 @@
     private IReadOnlyList<PeriodoResultado> _periodos = [];
     private IReadOnlyList<TarjetaResultado> _tarjetas = [];
     private PeriodoResultado? _periodo;
+    private bool _cargando = true;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _periodos = ResultadosService.ObtenerPeriodos();
-        _periodo = _periodos.FirstOrDefault(periodo => periodo.Abierto)
-            ?? _periodos.FirstOrDefault();
-        CargarTarjetas();
+        await CargarAsync();
     }
 
-    private void CambiarPeriodo(ChangeEventArgs evento)
+    private async Task CambiarPeriodo(ChangeEventArgs evento)
     {
         var id = evento.Value?.ToString();
         _periodo = _periodos.SingleOrDefault(periodo => periodo.Id == id)
             ?? throw new InvalidOperationException("El periodo seleccionado ya no está disponible.");
-        CargarTarjetas();
+        await CargarTarjetasAsync();
     }
 
-    private void CargarTarjetas()
+    private async Task CargarAsync()
     {
-        _tarjetas = _periodo is null
-            ? []
-            : ResultadosService.ObtenerTarjetasInicio(Rol, _periodo.Id);
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _periodos = await ResultadosService.ObtenerPeriodosAsync();
+            _periodo = _periodos.FirstOrDefault(periodo => periodo.Abierto)
+                ?? _periodos.FirstOrDefault();
+            await CargarTarjetasAsync();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CargarTarjetasAsync()
+    {
+        if (_periodo is null)
+        {
+            _tarjetas = [];
+            return;
+        }
+
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _tarjetas = await ResultadosService.ObtenerTarjetasInicioAsync(Rol, _periodo.Id);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 
     private void VerResultados(string elementoId)

@@ -1,6 +1,16 @@
 @inject ICoordinacionService CoordinacionService
 
 <section class="coordinacion-contenido">
+    @if (_cargando)
+    {
+        <p role="status">Cargando…</p>
+    }
+    else if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    else
+    {
     <IndicadoresGestion Resumen="@_resumen" />
 
     <section class="coordinacion-panel">
@@ -41,6 +51,7 @@
             </ul>
         }
     </section>
+    }
 </section>
 
 @code {
@@ -53,18 +64,41 @@
     private ResumenCoordinacion _resumen = new(0, 0, 0, 0, 0);
     private IReadOnlyList<GrupoParticipacion> _grupos = [];
     private IReadOnlyList<ResultadoCoordinacion> _areasMejora = [];
+    private bool _cargando = true;
+    private string? _error;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        _resumen = CoordinacionService.ObtenerResumen(PeriodoId, Cuatrimestre, CarreraId);
-        _grupos = CoordinacionService.ObtenerGrupos(PeriodoId, Cuatrimestre, CarreraId)
-            .OrderBy(grupo => grupo.Porcentaje)
-            .Take(3)
-            .ToArray();
-        _areasMejora = CoordinacionService.ObtenerResultados(PeriodoId, Cuatrimestre, tutores: false, CarreraId)
-            .Where(resultado => resultado.Promedio < 8)
-            .Take(3)
-            .ToArray();
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _resumen = await CoordinacionService.ObtenerResumenAsync(PeriodoId, Cuatrimestre, CarreraId);
+            _grupos = (await CoordinacionService.ObtenerGruposAsync(PeriodoId, Cuatrimestre, CarreraId))
+                .OrderBy(grupo => grupo.Porcentaje)
+                .Take(3)
+                .ToArray();
+            _areasMejora = (await CoordinacionService.ObtenerResultadosAsync(PeriodoId, Cuatrimestre, tutores: false, CarreraId))
+                .Where(resultado => resultado.Promedio < 8)
+                .Take(3)
+                .ToArray();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 
     private static string EtiquetaGrupo(GrupoParticipacion grupo) => grupo.Cuatrimestre switch

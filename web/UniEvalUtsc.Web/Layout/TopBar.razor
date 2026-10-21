@@ -22,9 +22,9 @@
                     <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                     <path d="M10 21h4" />
                 </svg>
-                @if (AlumnoService.MensajesSinLeer > 0)
+                @if (_mensajesSinLeer > 0)
                 {
-                    <span class="topbar__campana-conteo">@AlumnoService.MensajesSinLeer</span>
+                    <span class="topbar__campana-conteo">@_mensajesSinLeer</span>
                 }
             </button>
         }
@@ -100,14 +100,25 @@
     }
     <PanelLateral @bind-IsOpen="_panelMensajesAbierto" Title="Mensajes">
         <div class="alumno-mensajes__encabezado">
-            <p role="status">@(AlumnoService.MensajesSinLeer == 0 ? "Todo leído" : TextoMensajesSinLeer)</p>
-            @if (AlumnoService.MensajesSinLeer > 0)
+            @if (_cargandoMensajes)
             {
-                <button class="boton-enlace" type="button" @onclick="MarcarTodosComoLeidos">Marcar todos como leídos</button>
+                <p role="status">Cargando…</p>
+            }
+            else if (_errorMensajes is not null)
+            {
+                <p role="alert">@_errorMensajes</p>
+            }
+            else
+            {
+                <p role="status">@(_mensajesSinLeer == 0 ? "Todo leído" : TextoMensajesSinLeer)</p>
+                @if (_mensajesSinLeer > 0)
+                {
+                    <button class="boton-enlace" type="button" @onclick="MarcarTodosComoLeidosAsync">Marcar todos como leídos</button>
+                }
             }
         </div>
         <ul class="alumno-mensajes">
-            @foreach (var mensaje in AlumnoService.ObtenerMensajes())
+            @foreach (var mensaje in _mensajes)
             {
                 <li class="@(mensaje.Leido ? null : "alumno-mensajes__nuevo")">
                     <small>@mensaje.Remitente · @mensaje.Fecha.ToString("dd/MM/yyyy") @if (!mensaje.Leido) { <strong>· Nuevo</strong> }</small>
@@ -115,11 +126,11 @@
                     <p>@mensaje.Cuerpo</p>
                     @if (!mensaje.Leido)
                     {
-                        <button class="boton-enlace" type="button" @onclick="() => MarcarComoLeido(mensaje.Id)">Marcar como leído</button>
+                        <button class="boton-enlace" type="button" @onclick="() => MarcarComoLeidoAsync(mensaje.Id)">Marcar como leído</button>
                     }
                 </li>
             }
-            @if (AlumnoService.ObtenerMensajes().Count == 0)
+            @if (!_cargandoMensajes && _mensajes.Count == 0 && _errorMensajes is null)
             {
                 <li><p>No tienes mensajes.</p></li>
             }
@@ -142,9 +153,13 @@
     private bool _panelMensajesAbierto;
     private string _tema = "light";
     private int _escala = 100;
-    private string TextoMensajesSinLeer => AlumnoService.MensajesSinLeer == 1
+    private IReadOnlyList<MensajeAlumno> _mensajes = [];
+    private int _mensajesSinLeer;
+    private bool _cargandoMensajes;
+    private string? _errorMensajes;
+    private string TextoMensajesSinLeer => _mensajesSinLeer == 1
         ? "1 mensaje sin leer"
-        : $"{AlumnoService.MensajesSinLeer} mensajes sin leer";
+        : $"{_mensajesSinLeer} mensajes sin leer";
     private string CssClass => Navigation.ToBaseRelativePath(Navigation.Uri) is ""
         ? "topbar topbar--acceso"
         : "topbar";
@@ -157,12 +172,11 @@
         _ => throw new ArgumentOutOfRangeException(nameof(tamaño), tamaño, "Tamaño de texto no soportado.")
     };
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         AuthenticationStateProvider.AuthenticationStateChanged += HandleAuthenticationChanged;
         Navigation.LocationChanged += HandleLocationChanged;
-        _notificacionEmergente = AuthService.CurrentUser?.Role == Rol.Alumno &&
-            AlumnoService.MensajesSinLeer > 0;
+        await ActualizarMensajesAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -216,14 +230,38 @@
         _panelMensajesAbierto = true;
     }
 
-    private void MarcarComoLeido(string id)
+    private async Task MarcarComoLeidoAsync(string id)
     {
-        AlumnoService.MarcarMensajeComoLeido(id);
+        try
+        {
+            await AlumnoService.MarcarMensajeComoLeidoAsync(id);
+            await ActualizarMensajesAsync();
+        }
+        catch (ArgumentException exception)
+        {
+            _errorMensajes = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _errorMensajes = exception.Message;
+        }
     }
 
-    private void MarcarTodosComoLeidos()
+    private async Task MarcarTodosComoLeidosAsync()
     {
-        AlumnoService.MarcarTodosComoLeidos();
+        try
+        {
+            await AlumnoService.MarcarTodosComoLeidosAsync();
+            await ActualizarMensajesAsync();
+        }
+        catch (InvalidOperationException exception)
+        {
+            _errorMensajes = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _errorMensajes = exception.Message;
+        }
     }
 
     private async Task CambiarEscala(int escala)
@@ -279,9 +317,45 @@
     private void HandleAuthenticationChanged(Task<AuthenticationState> authenticationState)
     {
         _ = authenticationState;
-        _notificacionEmergente = AuthService.CurrentUser?.Role == Rol.Alumno &&
-            AlumnoService.MensajesSinLeer > 0;
-        _ = InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(async () =>
+        {
+            await ActualizarMensajesAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task ActualizarMensajesAsync()
+    {
+        if (AuthService.CurrentUser?.Role != Rol.Alumno)
+        {
+            _mensajes = [];
+            _mensajesSinLeer = 0;
+            _notificacionEmergente = false;
+            _errorMensajes = null;
+            return;
+        }
+
+        _cargandoMensajes = true;
+        _errorMensajes = null;
+        try
+        {
+            _mensajes = await AlumnoService.ObtenerMensajesAsync();
+            _mensajesSinLeer = await AlumnoService.ObtenerMensajesSinLeerAsync();
+            _notificacionEmergente = _mensajesSinLeer > 0;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _errorMensajes = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _errorMensajes = exception.Message;
+
+        }
+        finally
+        {
+            _cargandoMensajes = false;
+        }
     }
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)

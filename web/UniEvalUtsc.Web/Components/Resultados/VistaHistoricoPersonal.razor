@@ -2,6 +2,16 @@
 @inject IResultadosService ResultadosService
 
 <section class="resultados-personal">
+    @if (_cargando)
+    {
+        <p role="status">Cargando…</p>
+    }
+    else if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    else
+    {
     <div class="resultado-segmentado" role="tablist" aria-label="@(Rol == Rol.Tutor ? "Grupo de tutoría" : "Materia y grupo")">
         @foreach (var elemento in _elementos)
         {
@@ -9,7 +19,7 @@
                     role="tab"
                     aria-selected="@(_elementoId == elemento.Id)"
                     class="@(_elementoId == elemento.Id ? "resultado-segmentado__activo" : null)"
-                    @onclick="() => SeleccionarElemento(elemento.Id)">
+                    @onclick="() => SeleccionarElementoAsync(elemento.Id)">
                 @elemento.Nombre <small>@elemento.Contexto</small>
             </button>
         }
@@ -34,6 +44,7 @@
             </table>
         </section>
     }
+    }
 </section>
 
 @code {
@@ -43,23 +54,80 @@
     private IReadOnlyList<PuntoHistorico> _puntos = [];
     private string _elementoId = string.Empty;
     private ElementoResultado? _elemento;
+    private bool _cargando = true;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _elementos = ResultadosService.ObtenerElementos(Rol);
-        _elementoId = _elementos.FirstOrDefault()?.Id ?? string.Empty;
-        ActualizarHistorico();
+        await CargarElementosAsync();
     }
 
-    private void SeleccionarElemento(string elementoId)
+    private async Task SeleccionarElementoAsync(string elementoId)
     {
         _elementoId = elementoId;
-        ActualizarHistorico();
+        await ActualizarHistoricoAsync();
     }
 
-    private void ActualizarHistorico()
+    private async Task CargarElementosAsync()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _elementos = await ResultadosService.ObtenerElementosAsync(Rol);
+            _elementoId = _elementos.FirstOrDefault()?.Id ?? string.Empty;
+            await ActualizarHistoricoAsync();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task ActualizarHistoricoAsync()
     {
         _elemento = _elementos.SingleOrDefault(elemento => elemento.Id == _elementoId);
-        _puntos = _elemento is null ? [] : ResultadosService.ObtenerHistorico(Rol, _elemento.Id);
+        if (_elemento is null)
+        {
+            _puntos = [];
+            return;
+        }
+
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _puntos = await ResultadosService.ObtenerHistoricoAsync(Rol, _elemento.Id);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
+        }
     }
 }

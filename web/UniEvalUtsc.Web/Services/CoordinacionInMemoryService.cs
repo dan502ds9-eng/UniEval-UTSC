@@ -3,28 +3,30 @@ using UniEvalUtsc.Contracts.Enums;
 
 namespace UniEvalUtsc.Web.Services;
 
-public sealed class CoordinacionInMemoryService : ICoordinacionService
+public sealed class CoordinacionInMemoryService(AuthService? authService = null) : ICoordinacionService
 {
     private static readonly IReadOnlyList<GrupoParticipacion> Grupos =
     [
-        new("dsm05av-a", "DSM05AV", 5, 15, 31, false),
-        new("dsm05av-b", "DSM05AV · Grupo B", 5, 17, 31, false),
-        new("estadia-6-a", "DSM06AV · Grupo A", 6, 27, 28, true),
-        new("estadia-10-a", "DSM10AV · Grupo A", 10, 20, 25, true)
+        new("dsm05av-a", "dsm", "DSM05AV", 5, 15, 31, false),
+        new("dsm05av-b", "dsm", "DSM05AV · Grupo B", 5, 17, 31, false),
+        new("estadia-6-a", "dsm", "DSM06AV · Grupo A", 6, 27, 28, true),
+        new("estadia-10-a", "dsm", "DSM10AV · Grupo A", 10, 20, 25, true),
+        new("mti05-a", "mti", "Mantenimiento Industrial · Grupo A", 5, 24, 30, false)
     ];
 
     private static readonly IReadOnlyList<ResultadoCoordinacion> ResultadosDocentes =
     [
-        CrearResultado("doc-1", "Sem Tomás Hernández Martínez", "Bases de Datos Avanzadas · DSM05AV", 5, 7.1m, 15, false, false),
-        CrearResultado("doc-2", "José Manuel Chávez García", "Ecuaciones Diferenciales · DSM05AV", 5, 7.8m, 15, false, false),
-        CrearResultado("doc-3", "Humberto Hernández Ochoa", "Estándares y Métricas para el Desarrollo de Software · DSM05AV", 5, 8.2m, 15, false, false),
-        CrearResultado("doc-4", "Viridiana Nataly Pintor Jiménez", "Inglés V · DSM05AV", 5, 8.3m, 15, false, false),
-        CrearResultado("doc-5", "Juan Pablo Vega Ramírez", "Proyecto Integrador II · DSM05AV", 5, 8.5m, 15, false, false),
-        CrearResultado("doc-6", "Óscar Gabriel Chávez Gómez", "Aplicaciones Web Orientada a Servicios · DSM05AV", 5, 8.7m, 15, false, false),
-        CrearResultado("doc-7", "Martha Laura Esparza Robles", "Liderazgo de Equipos de Alto Desempeño · DSM05AV", 5, 8.7m, 15, false, false),
-        CrearResultado("tutor-5", "Mónica Janeth Rodríguez Reyna", "Tutoría · DSM05AV", 5, 8.1m, 15, true, false),
-        CrearResultado("tutor-6", "Tutor de estadías asignado", "DSM06AV · Grupo A", 6, 8.1m, 27, true, true),
-        CrearResultado("tutor-10", "Tutor de estadías asignado", "DSM10AV · Grupo A", 10, 8.1m, 20, true, true)
+        CrearResultado("doc-1", "dsm", "Sem Tomás Hernández Martínez", "Bases de Datos Avanzadas · DSM05AV", 5, 7.1m, 15, false, false),
+        CrearResultado("doc-2", "dsm", "José Manuel Chávez García", "Ecuaciones Diferenciales · DSM05AV", 5, 7.8m, 15, false, false),
+        CrearResultado("doc-3", "dsm", "Humberto Hernández Ochoa", "Estándares y Métricas para el Desarrollo de Software · DSM05AV", 5, 8.2m, 15, false, false),
+        CrearResultado("doc-4", "dsm", "Viridiana Nataly Pintor Jiménez", "Inglés V · DSM05AV", 5, 8.3m, 15, false, false),
+        CrearResultado("doc-5", "dsm", "Juan Pablo Vega Ramírez", "Proyecto Integrador II · DSM05AV", 5, 8.5m, 15, false, false),
+        CrearResultado("doc-6", "dsm", "Óscar Gabriel Chávez Gómez", "Aplicaciones Web Orientada a Servicios · DSM05AV", 5, 8.7m, 15, false, false),
+        CrearResultado("doc-7", "dsm", "Martha Laura Esparza Robles", "Liderazgo de Equipos de Alto Desempeño · DSM05AV", 5, 8.7m, 15, false, false),
+        CrearResultado("tutor-5", "dsm", "Mónica Janeth Rodríguez Reyna", "Tutoría · DSM05AV", 5, 8.1m, 15, true, false),
+        CrearResultado("tutor-6", "dsm", "Tutor de estadías asignado", "DSM06AV · Grupo A", 6, 8.1m, 27, true, true),
+        CrearResultado("tutor-10", "dsm", "Tutor de estadías asignado", "DSM10AV · Grupo A", 10, 8.1m, 20, true, true),
+        CrearResultado("mti-doc-1", "mti", "Docente de Mantenimiento Industrial", "Procesos Industriales · MTI05", 5, 8.0m, 24, false, false)
     ];
 
     private static readonly IReadOnlyList<string> PendientesGrupoA =
@@ -47,13 +49,65 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
         "Isabel Flores Lozano"
     ];
 
-    public ResumenCoordinacion ObtenerResumen(string periodoId, string cuatrimestre, string carreraId)
+    public Task<ResumenCoordinacion> ObtenerResumenAsync(
+        string periodoId,
+        string cuatrimestre,
+        string carreraId,
+        CancellationToken ct = default)
     {
-        var grupos = ObtenerGrupos(periodoId, cuatrimestre, carreraId);
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerResumenCore(periodoId, cuatrimestre, carreraId));
+    }
+
+    public Task<IReadOnlyList<GrupoParticipacion>> ObtenerGruposAsync(
+        string periodoId,
+        string cuatrimestre,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerGruposCore(periodoId, cuatrimestre, carreraId));
+    }
+
+    public Task<IReadOnlyList<string>> ObtenerAlumnosPendientesAsync(
+        string grupoId,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerAlumnosPendientesCore(grupoId, carreraId));
+    }
+
+    public Task<IReadOnlyList<ResultadoCoordinacion>> ObtenerResultadosAsync(
+        string periodoId,
+        string cuatrimestre,
+        bool tutores,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerResultadosCore(periodoId, cuatrimestre, tutores, carreraId));
+    }
+
+    public Task<IReadOnlyList<IReadOnlyList<string>>> ObtenerDatosReporteAsync(
+        string tipo,
+        string periodoId,
+        string cuatrimestre,
+        string carreraId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ObtenerDatosReporteCore(tipo, periodoId, cuatrimestre, carreraId));
+    }
+
+    private ResumenCoordinacion ObtenerResumenCore(string periodoId, string cuatrimestre, string carreraId)
+    {
+        carreraId = CarreraEfectiva(carreraId);
+        var grupos = ObtenerGruposCore(periodoId, cuatrimestre, carreraId);
         var total = grupos.Sum(grupo => grupo.Total);
         var contestaron = grupos.Sum(grupo => grupo.Contestaron);
-        var docentes = ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId);
-        var tutores = ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId);
+        var docentes = ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId);
+        var tutores = ObtenerResultadosCore(periodoId, cuatrimestre, tutores: true, carreraId);
         var promedio = docentes.Count == 0 ? 0 : docentes.Average(resultado => resultado.Promedio);
 
         return new ResumenCoordinacion(
@@ -64,8 +118,9 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
             docentes.Concat(tutores).Count(resultado => resultado.Promedio < 8));
     }
 
-    public IReadOnlyList<GrupoParticipacion> ObtenerGrupos(string periodoId, string cuatrimestre, string carreraId)
+    private IReadOnlyList<GrupoParticipacion> ObtenerGruposCore(string periodoId, string cuatrimestre, string carreraId)
     {
+        carreraId = CarreraEfectiva(carreraId);
         ValidarPeriodo(periodoId);
         if (!EsCarreraDisponible(carreraId))
         {
@@ -74,13 +129,15 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
 
         var cuatrimestres = ObtenerCuatrimestres(cuatrimestre);
         return Grupos
+            .Where(grupo => CarreraCoincide(grupo.CarreraId, carreraId))
             .Where(grupo => cuatrimestres is null || cuatrimestres.Contains(grupo.Cuatrimestre))
             .OrderBy(grupo => grupo.Porcentaje)
             .ToArray();
     }
 
-    public IReadOnlyList<string> ObtenerAlumnosPendientes(string grupoId, string carreraId)
+    private IReadOnlyList<string> ObtenerAlumnosPendientesCore(string grupoId, string carreraId)
     {
+        carreraId = CarreraEfectiva(carreraId);
         if (!EsCarreraDisponible(carreraId))
         {
             return [];
@@ -88,18 +145,23 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
 
         var grupo = Grupos.SingleOrDefault(item => item.Id == grupoId)
             ?? throw new ArgumentException("No se encontró el grupo solicitado.", nameof(grupoId));
+        if (!CarreraCoincide(grupo.CarreraId, carreraId))
+        {
+            return [];
+        }
 
         return grupo.Id == "dsm05av-a"
             ? PendientesGrupoA.Take(grupo.Faltan).ToArray()
             : Enumerable.Range(1, grupo.Faltan).Select(indice => $"Alumno pendiente {indice}").ToArray();
     }
 
-    public IReadOnlyList<ResultadoCoordinacion> ObtenerResultados(
+    private IReadOnlyList<ResultadoCoordinacion> ObtenerResultadosCore(
         string periodoId,
         string cuatrimestre,
         bool tutores,
         string carreraId)
     {
+        carreraId = CarreraEfectiva(carreraId);
         ValidarPeriodo(periodoId);
         if (!EsCarreraDisponible(carreraId))
         {
@@ -112,7 +174,8 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
             return [];
         }
 
-        var resultados = ResultadosDocentes.Where(resultado =>
+        var resultados = ResultadosDocentes.Where(resultado => CarreraCoincide(resultado.CarreraId, carreraId))
+            .Where(resultado =>
             (cuatrimestres is null || cuatrimestres.Contains(resultado.Cuatrimestre))
             && (tutores ? resultado.EsTutor : !resultado.EsTutor)
             && (cuatrimestre is not ("6" or "10") || resultado.EsTutorEstadias)
@@ -126,22 +189,23 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
             .ToArray();
     }
 
-    public IReadOnlyList<IReadOnlyList<string>> ObtenerDatosReporte(
+    private IReadOnlyList<IReadOnlyList<string>> ObtenerDatosReporteCore(
         string tipo,
         string periodoId,
         string cuatrimestre,
         string carreraId)
     {
+        carreraId = CarreraEfectiva(carreraId);
         return tipo switch
         {
-            "docente" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)),
-            "tutor" => FilasResultados(ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId)),
+            "docente" => FilasResultados(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId)),
+            "tutor" => FilasResultados(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: true, carreraId)),
             "concentrado" => FilasResultados(
-                ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)
-                    .Concat(ObtenerResultados(periodoId, cuatrimestre, tutores: true, carreraId))
+                ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId)
+                    .Concat(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: true, carreraId))
                     .OrderBy(resultado => resultado.Promedio)),
-            "participacion" => FilasParticipacion(ObtenerGrupos(periodoId, cuatrimestre, carreraId)),
-            "historico" => FilasHistorico(ObtenerResultados(periodoId, cuatrimestre, tutores: false, carreraId)),
+            "participacion" => FilasParticipacion(ObtenerGruposCore(periodoId, cuatrimestre, carreraId)),
+            "historico" => FilasHistorico(ObtenerResultadosCore(periodoId, cuatrimestre, tutores: false, carreraId)),
             _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "El tipo de reporte no es válido.")
         };
     }
@@ -190,6 +254,7 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
 
     private static ResultadoCoordinacion CrearResultado(
         string id,
+        string carreraId,
         string nombre,
         string contexto,
         int cuatrimestre,
@@ -216,6 +281,7 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
 
         return new ResultadoCoordinacion(
             id,
+            carreraId,
             nombre,
             contexto,
             "May–Ago 2026",
@@ -250,8 +316,18 @@ public sealed class CoordinacionInMemoryService : ICoordinacionService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(carreraId);
         return string.Equals(carreraId, FiltrosState.CarreraCoordinadorId, StringComparison.Ordinal)
+            || string.Equals(carreraId, "mti", StringComparison.Ordinal)
             || string.Equals(carreraId, "todas", StringComparison.Ordinal);
     }
+
+    private static bool CarreraCoincide(string datoCarreraId, string filtroCarreraId) =>
+        string.Equals(filtroCarreraId, "todas", StringComparison.Ordinal)
+        || string.Equals(datoCarreraId, filtroCarreraId, StringComparison.Ordinal);
+
+    private string CarreraEfectiva(string carreraSolicitada) =>
+        authService?.CurrentUser?.Role == Rol.Coordinador
+            ? FiltrosState.CarreraCoordinadorId
+            : carreraSolicitada;
 
     private static string NombrePeriodo(string periodoId) => periodoId switch
     {

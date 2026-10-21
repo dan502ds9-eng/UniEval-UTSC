@@ -5,7 +5,15 @@
 
 <PageTitle>Comprobante · UniEval UTSC</PageTitle>
 
-@if (_comprobante is not null)
+@if (_cargando)
+{
+    <p class="student-home" role="status">Cargando…</p>
+}
+else if (_error is not null)
+{
+    <p class="student-home" role="alert">@_error</p>
+}
+else if (_comprobante is not null)
 {
     <main class="student-home alumno-pagina alumno-comprobante">
         <span class="alumno-comprobante__sello">COMPROBANTE</span>
@@ -25,13 +33,31 @@
 
 @code {
     private ComprobanteAlumno? _comprobante;
+    private bool _cargando = true;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _comprobante = AlumnoService.ObtenerComprobante();
-        if (_comprobante is null)
+        try
         {
-            Navigation.NavigateTo("/alumno");
+            _comprobante = await AlumnoService.ObtenerComprobanteAsync();
+            if (_comprobante is null)
+            {
+                Navigation.NavigateTo("/alumno");
+            }
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+
+        }
+        finally
+        {
+            _cargando = false;
         }
     }
 

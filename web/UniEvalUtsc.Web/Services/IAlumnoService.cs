@@ -2,23 +2,23 @@ namespace UniEvalUtsc.Web.Services;
 
 public interface IAlumnoService
 {
-    EvaluacionAlumno ObtenerEvaluacion();
+    Task<EvaluacionAlumno> ObtenerEvaluacionAsync(CancellationToken ct = default);
 
-    Task<Dictionary<string, int>> RecuperarBorradorAsync(string alumno);
+    Task<Dictionary<string, int>> RecuperarBorradorAsync(string alumno, CancellationToken ct = default);
 
-    Task<bool> GuardarBorradorAsync(string alumno, IReadOnlyDictionary<string, int> calificaciones);
+    Task<bool> GuardarBorradorAsync(string alumno, IReadOnlyDictionary<string, int> calificaciones, CancellationToken ct = default);
 
-    Task<ResultadoEnvioAlumno> EnviarAsync(string alumno, IReadOnlyDictionary<string, int> calificaciones);
+    Task<ResultadoEnvioAlumno> EnviarAsync(string alumno, IReadOnlyDictionary<string, int> calificaciones, CancellationToken ct = default);
 
-    ComprobanteAlumno? ObtenerComprobante();
+    Task<ComprobanteAlumno?> ObtenerComprobanteAsync(CancellationToken ct = default);
 
-    IReadOnlyList<MensajeAlumno> ObtenerMensajes();
+    Task<IReadOnlyList<MensajeAlumno>> ObtenerMensajesAsync(CancellationToken ct = default);
 
-    int MensajesSinLeer { get; }
+    Task<int> ObtenerMensajesSinLeerAsync(CancellationToken ct = default);
 
-    void CrearRecordatorio(string grupoId, string nombreGrupo);
+    Task CrearRecordatorioAsync(string grupoId, string nombreGrupo, CancellationToken ct = default);
 
-    void MarcarMensajeComoLeido(string id);
+    Task MarcarMensajeComoLeidoAsync(string id, CancellationToken ct = default);
 
-    void MarcarTodosComoLeidos();
+    Task MarcarTodosComoLeidosAsync(CancellationToken ct = default);
 }

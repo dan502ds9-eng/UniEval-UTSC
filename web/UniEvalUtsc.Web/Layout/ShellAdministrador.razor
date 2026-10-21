@@ -1,0 +1,80 @@
+@inject IResultadosService ResultadosService
+@inject FiltrosState Filtros
+
+<StaffShell Rol="Rol.Administrador" Seccion="@Seccion">
+    <ChildContent>
+        @if (_cargando)
+        {
+            <p role="status">Cargando…</p>
+        }
+        else if (_error is not null)
+        {
+            <p role="alert">@_error</p>
+        }
+        else
+        {
+            @if (FiltrosVisibles)
+            {
+                <FiltrosResultados Periodos="@_periodos"
+                                   PeriodoId="@Filtros.PeriodoId"
+                                   Cuatrimestre="@Filtros.Cuatrimestre"
+                                   CarreraId="@Filtros.CarreraId"
+                                   HabilitarCarrera="true"
+                                   PeriodoCambiado="CambiarPeriodo"
+                                   CuatrimestreCambiado="CambiarCuatrimestre"
+                                   CarreraCambiada="CambiarCarrera" />
+            }
+            @ChildContent
+        }
+        <p class="coordinacion-privacidad">Ni el administrador ni el coordinador pueden ver qué calificó cada alumno (RN-09).</p>
+    </ChildContent>
+</StaffShell>
+
+@code {
+    [Parameter, EditorRequired] public string Seccion { get; set; } = "inicio";
+    [Parameter] public bool FiltrosVisibles { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyList<PeriodoResultado> _periodos = [];
+    private bool _cargando = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _periodos = await ResultadosService.ObtenerPeriodosAsync();
+            Filtros.InicializarPeriodo(_periodos);
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private Task CambiarPeriodo(string periodoId)
+    {
+        Filtros.CambiarPeriodo(periodoId, _periodos);
+        return Task.CompletedTask;
+    }
+
+    private Task CambiarCuatrimestre(string cuatrimestre)
+    {
+        Filtros.CambiarCuatrimestre(cuatrimestre);
+        return Task.CompletedTask;
+    }
+
+    private Task CambiarCarrera(string carreraId)
+    {
+        Filtros.CambiarCarrera(carreraId);
+        return Task.CompletedTask;
+    }
+}

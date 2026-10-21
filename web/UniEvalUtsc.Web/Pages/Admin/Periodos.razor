@@ -1,0 +1,237 @@
+@page "/admin/periodos"
+@attribute [Authorize(Roles = "Administrador")]
+@inject IPeriodosService PeriodosService
+
+<PageTitle>Periodos · UniEval UTSC</PageTitle>
+<ShellAdministrador Seccion="periodos">
+    <ChildContent>
+        <section class="coordinacion-panel">
+            @if (_cargando)
+            {
+                <p role="status">Cargando…</p>
+            }
+            else if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p role="alert">@_error</p>
+            }
+            else
+            {
+            <h2>@_seleccionado.Nombre</h2>
+            <p class="estado-periodo estado-periodo--@EstadoCss">@EstadoTexto</p>
+            <p>@DescripcionEstado</p>
+            @if (_seleccionado.Estado != EstadoPeriodoGestion.EnPreparacion)
+            {
+                <p>Encuestas generadas: @_seleccionado.EncuestasGeneradas</p>
+            }
+            <div class="formulario-admin__rejilla">
+                <label class="campo">
+                    <span class="campo__etiqueta">Inicio del periodo</span>
+                    <input class="campo__entrada" type="date" @bind="_inicioCaptura" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Fin del periodo</span>
+                    <input class="campo__entrada" type="date" @bind="_finCaptura" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Inicio de encuestas</span>
+                    <input class="campo__entrada" type="date" @bind="_inicioEncuestas" />
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Cierre de encuestas</span>
+                    <input class="campo__entrada" type="date" @bind="_cierreEncuestas" />
+                </label>
+            </div>
+            @if (_seleccionado.Estado == EstadoPeriodoGestion.EnPreparacion)
+            {
+                <button class="boton boton--contorno" type="button" @onclick="GuardarFechas">Guardar fechas</button>
+                <button class="boton" type="button" @onclick="AbrirPeriodo">Abrir aplicación de encuestas</button>
+            }
+            else if (_seleccionado.Estado == EstadoPeriodoGestion.Abierto)
+            {
+                <button class="boton" type="button" @onclick="CerrarPeriodo">Cerrar aplicación y liberar resultados</button>
+            }
+        @if (!string.IsNullOrWhiteSpace(_mensaje))
+        {
+            <p class="resultado-aviso" role="status">@_mensaje</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <p class="resultado-aviso" role="alert">@_error</p>
+        }
+
+        <section class="coordinacion-panel">
+            <div class="coordinacion-panel__encabezado">
+                <h2>Periodos anteriores</h2>
+                <button class="boton boton--contorno" type="button" @onclick="CrearPeriodo">Crear periodo</button>
+            </div>
+            <ol class="menor-participacion">
+                @foreach (var periodo in _periodos)
+                {
+                    <li>
+                        <span>@periodo.Nombre<small class="tabla-resultados__secundario">@Etiqueta(periodo.Estado)</small></span>
+                        <button class="boton boton--enlace" type="button" @onclick="() => SeleccionarAsync(periodo.Id)">Ver periodo</button>
+                    </li>
+                }
+            </ol>
+        </section>
+            }
+        </section>
+    </ChildContent>
+</ShellAdministrador>
+
+@code {
+    private PeriodoAdministrativo _seleccionado = default!;
+    private DateOnly _inicioCaptura;
+    private DateOnly _finCaptura;
+    private DateOnly _inicioEncuestas;
+    private DateOnly _cierreEncuestas;
+    private string _mensaje = string.Empty;
+    private string _error = string.Empty;
+    private IReadOnlyList<PeriodoAdministrativo> _periodos = [];
+    private bool _cargando = true;
+
+    private string EstadoTexto => Etiqueta(_seleccionado.Estado);
+    private string EstadoCss => _seleccionado.Estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "preparacion",
+        EstadoPeriodoGestion.Abierto => "abierto",
+        _ => "cerrado"
+    };
+    private string DescripcionEstado => _seleccionado.Estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "Configura las fechas y abre la aplicación para generar las encuestas del periodo.",
+        EstadoPeriodoGestion.Abierto => "Las encuestas están disponibles para los alumnos. Al cerrar, se liberarán los resultados para docentes y tutores.",
+        _ => "El periodo está cerrado y sus resultados están disponibles para docentes y tutores."
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = string.Empty;
+        try
+        {
+            _periodos = await PeriodosService.ObtenerPeriodosAsync();
+            var actual = await PeriodosService.ObtenerActualAsync();
+            CargarSeleccion(actual.Id);
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void CargarSeleccion(string periodoId)
+    {
+        _seleccionado = _periodos.Single(periodo => periodo.Id == periodoId);
+        _inicioCaptura = _seleccionado.InicioCaptura;
+        _finCaptura = _seleccionado.FinCaptura;
+        _inicioEncuestas = _seleccionado.InicioEncuestas;
+        _cierreEncuestas = _seleccionado.CierreEncuestas;
+        _mensaje = string.Empty;
+        _error = string.Empty;
+    }
+
+    private Task SeleccionarAsync(string periodoId)
+    {
+        CargarSeleccion(periodoId);
+        return Task.CompletedTask;
+    }
+
+    private Task GuardarFechas()
+    {
+        return EjecutarAsync(async () =>
+        {
+            await PeriodosService.EditarFechasAsync(
+                _seleccionado.Id,
+                _inicioCaptura,
+                _finCaptura,
+                _inicioEncuestas,
+                _cierreEncuestas);
+            _mensaje = "Las fechas se guardaron.";
+        });
+    }
+
+    private Task AbrirPeriodo()
+    {
+        return EjecutarAsync(async () =>
+        {
+            var cantidad = await PeriodosService.AbrirAsync(_seleccionado.Id);
+            _mensaje = $"Se generaron {cantidad} encuestas para este periodo.";
+            await RecargarSeleccionAsync(_seleccionado.Id);
+        });
+    }
+
+    private Task CerrarPeriodo()
+    {
+        return EjecutarAsync(async () =>
+        {
+            await PeriodosService.CerrarAsync(_seleccionado.Id);
+            _mensaje = "La aplicación se cerró y los resultados del periodo quedaron liberados.";
+            await RecargarSeleccionAsync(_seleccionado.Id);
+        });
+    }
+
+    private Task CrearPeriodo()
+    {
+        return EjecutarAsync(async () =>
+        {
+            var fechaInicio = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+            var fechaCierre = fechaInicio.AddMonths(4);
+            var periodo = await PeriodosService.CrearPeriodoAsync("Nuevo periodo", fechaInicio, fechaCierre);
+            await RecargarSeleccionAsync(periodo.Id);
+            _mensaje = "Se creó un periodo en preparación. Ajusta sus fechas antes de abrirlo.";
+        });
+    }
+
+    private async Task RecargarSeleccionAsync(string periodoId)
+    {
+        _periodos = await PeriodosService.ObtenerPeriodosAsync();
+        CargarSeleccion(periodoId);
+    }
+
+    private async Task EjecutarAsync(Func<Task> accion)
+    {
+        _error = string.Empty;
+        _mensaje = string.Empty;
+        try
+        {
+            await accion();
+        }
+        catch (ArgumentException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+        catch (HttpRequestException exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private static string Etiqueta(EstadoPeriodoGestion estado) => estado switch
+    {
+        EstadoPeriodoGestion.EnPreparacion => "En preparación",
+        EstadoPeriodoGestion.Abierto => "Encuestas abiertas",
+        _ => "Cerrado"
+    };
+}

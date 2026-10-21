@@ -16,7 +16,6 @@
 @code {
     private Task EnviarRecordatorio(GrupoParticipacion grupo)
     {
-        AlumnoService.CrearRecordatorio(grupo.Id, grupo.Nombre);
-        return Task.CompletedTask;
+        return AlumnoService.CrearRecordatorioAsync(grupo.Id, grupo.Nombre);
     }
 }

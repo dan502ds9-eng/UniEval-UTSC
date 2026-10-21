@@ -11,6 +11,7 @@ public sealed record ResumenCoordinacion(
 
 public sealed record GrupoParticipacion(
     string Id,
+    string CarreraId,
     string Nombre,
     int Cuatrimestre,
     int Contestaron,
@@ -24,6 +25,7 @@ public sealed record GrupoParticipacion(
 
 public sealed record ResultadoCoordinacion(
     string Id,
+    string CarreraId,
     string Nombre,
     string Contexto,
     string Periodo,
