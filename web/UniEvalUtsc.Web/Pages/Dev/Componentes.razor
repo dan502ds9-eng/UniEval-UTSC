@@ -1,0 +1,174 @@
+@page "/dev/componentes"
+
+<PageTitle>Componentes · UniEval UTSC</PageTitle>
+
+<main class="galeria-componentes">
+    <header class="galeria-componentes__encabezado">
+        <div>
+            <h1>Componentes de interfaz</h1>
+            <p>Galería de componentes base en tema claro y oscuro.</p>
+        </div>
+        <div class="tema-muestra__fila">
+            <Boton Variante="VarianteBoton.Contorno" OnClick="AbrirPanel">Abrir panel lateral</Boton>
+            <Boton AriaLabel="Mostrar diálogo" OnClick="AbrirDialogo">Mostrar diálogo</Boton>
+        </div>
+    </header>
+
+    <div class="galeria-componentes__temas">
+        <section class="tema-muestra" data-theme="light" aria-labelledby="tema-claro">
+            <h2 id="tema-claro">Tema claro</h2>
+            <div class="tema-muestra__fila">
+                <Boton>Primario</Boton>
+                <Boton Variante="VarianteBoton.Contorno">Contorno</Boton>
+                <Boton Variante="VarianteBoton.Enlace">Enlace</Boton>
+                <Boton Variante="VarianteBoton.Pequeno">Pequeño</Boton>
+            </div>
+            <Tarjeta Titulo="Tarjeta reutilizable">
+                <p>Contenido de ejemplo sobre la superficie de tarjeta.</p>
+            </Tarjeta>
+            <div class="tema-muestra__fila">
+                <Pill Value="4.9m" />
+                <Pill Value="5m" />
+                <Pill Value="7.9m" />
+                <Pill Value="8m" />
+            </div>
+            <fieldset class="escala-muestra">
+                <legend>Selector de calificación</legend>
+                <div class="escala-muestra__opciones">
+                    @for (var calificacion = 1; calificacion <= 10; calificacion++)
+                    {
+                        var numero = calificacion;
+                        <label class="escala-muestra__opcion"
+                               style="--escala-color: var(--escala-@numero); --escala-tinta: var(--escala-tinta-@numero)">
+                            <input type="radio"
+                                   name="calificacion-clara"
+                                   value="@numero"
+                                   checked="@(_calificacion == numero)"
+                                   @onchange="() => SeleccionarCalificacion(numero)" />
+                            <span>@numero</span>
+                        </label>
+                    }
+                </div>
+                <p class="escala-muestra__leyenda">1–4 Bajo · 5–7 Medio · 8–10 Alto</p>
+            </fieldset>
+            <div class="tema-muestra__fila">
+                <Etiqueta>Etiqueta informativa</Etiqueta>
+                <BotonRegresar Href="/" />
+            </div>
+            <div class="tema-muestra__grupo">
+                <CampoTexto Id="claro-nombre" Label="Nombre" Placeholder="Escribe un nombre" HelpText="Campo con etiqueta visible." />
+                <Selector Id="claro-rol"
+                          Label="Tipo de usuario"
+                          Value="@_rol"
+                          ValueChanged="CambiarRol"
+                          Options="_roles"
+                          Placeholder="Elige un rol" />
+            </div>
+            <Acordeon Title="Acordeón accesible">
+                El resumen es un elemento nativo y puede operarse con teclado.
+            </Acordeon>
+            <BarraProgreso Valor="3" Maximo="8" Label="Avance de la evaluación" />
+            <RegionViva>3 de 8 encuestas contestadas.</RegionViva>
+            <Toast Message="Cambios guardados." Visible="true" />
+            <img src="/img/correcaminos.jpg" alt="Imagen del asistente Correcaminos" width="72" />
+        </section>
+
+        <section class="tema-muestra" data-theme="dark" aria-labelledby="tema-oscuro">
+            <h2 id="tema-oscuro">Tema oscuro</h2>
+            <div class="tema-muestra__fila">
+                <Boton>Primario</Boton>
+                <Boton Variante="VarianteBoton.Contorno">Contorno</Boton>
+                <Boton Variante="VarianteBoton.Enlace">Enlace</Boton>
+                <Boton Variante="VarianteBoton.Pequeno">Pequeño</Boton>
+            </div>
+            <Tarjeta Titulo="Tarjeta reutilizable">
+                <p>Contenido de ejemplo sobre la superficie de tarjeta.</p>
+            </Tarjeta>
+            <div class="tema-muestra__fila">
+                <Pill Value="4.9m" />
+                <Pill Value="5m" />
+                <Pill Value="7.9m" />
+                <Pill Value="8m" />
+            </div>
+            <fieldset class="escala-muestra">
+                <legend>Selector de calificación</legend>
+                <div class="escala-muestra__opciones">
+                    @for (var calificacion = 1; calificacion <= 10; calificacion++)
+                    {
+                        var numero = calificacion;
+                        <label class="escala-muestra__opcion"
+                               style="--escala-color: var(--escala-@numero); --escala-tinta: var(--escala-tinta-@numero)">
+                            <input type="radio"
+                                   name="calificacion-oscura"
+                                   value="@numero"
+                                   checked="@(_calificacion == numero)"
+                                   @onchange="() => SeleccionarCalificacion(numero)" />
+                            <span>@numero</span>
+                        </label>
+                    }
+                </div>
+                <p class="escala-muestra__leyenda">1–4 Bajo · 5–7 Medio · 8–10 Alto</p>
+            </fieldset>
+            <div class="tema-muestra__fila">
+                <Etiqueta>Etiqueta informativa</Etiqueta>
+                <BotonRegresar Href="/" />
+            </div>
+            <div class="tema-muestra__grupo">
+                <CampoTexto Id="oscuro-nombre" Label="Nombre" Placeholder="Escribe un nombre" HelpText="Campo con etiqueta visible." />
+                <Selector Id="oscuro-rol"
+                          Label="Tipo de usuario"
+                          Value="@_rol"
+                          ValueChanged="CambiarRol"
+                          Options="_roles"
+                          Placeholder="Elige un rol" />
+            </div>
+            <Acordeon Title="Acordeón accesible">
+                El resumen es un elemento nativo y puede operarse con teclado.
+            </Acordeon>
+            <BarraProgreso Valor="3" Maximo="8" Label="Avance de la evaluación" />
+            <RegionViva>3 de 8 encuestas contestadas.</RegionViva>
+            <Toast Message="Cambios guardados." Visible="true" />
+            <img src="/img/campus.jpg" alt="Campus de la Universidad Tecnológica Santa Catarina" width="160" />
+        </section>
+    </div>
+</main>
+
+<Dialogo @bind-IsOpen="_dialogoAbierto" Title="Confirmación">
+    <ChildContent>
+        <p>El diálogo mantiene el foco, se cierra con Escape y devuelve el foco al botón que lo abrió.</p>
+    </ChildContent>
+    <Footer>
+        <Boton Variante="VarianteBoton.Contorno" OnClick="CerrarDialogo">Cancelar</Boton>
+        <Boton OnClick="CerrarDialogo">Aceptar</Boton>
+    </Footer>
+</Dialogo>
+
+<PanelLateral @bind-IsOpen="_panelAbierto" Title="Panel lateral">
+    <p>Este panel se desliza desde el lado derecho.</p>
+</PanelLateral>
+
+@code {
+    private readonly IReadOnlyCollection<SelectorOpcion> _roles =
+    [
+        new("alumno", "Alumno"),
+        new("docente", "Docente"),
+        new("tutor", "Tutor"),
+        new("coordinador", "Coordinador"),
+        new("administrador", "Administrador")
+    ];
+
+    private string? _rol;
+    private int _calificacion = 8;
+    private bool _dialogoAbierto;
+    private bool _panelAbierto;
+
+    private void AbrirDialogo() => _dialogoAbierto = true;
+    private void CerrarDialogo() => _dialogoAbierto = false;
+    private void AbrirPanel() => _panelAbierto = true;
+    private void SeleccionarCalificacion(int calificacion) => _calificacion = calificacion;
+    private Task CambiarRol(string? rol)
+    {
+        _rol = rol;
+        return Task.CompletedTask;
+    }
+}

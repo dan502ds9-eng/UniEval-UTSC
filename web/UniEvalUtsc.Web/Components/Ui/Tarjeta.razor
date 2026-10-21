@@ -1,0 +1,16 @@
+<section class="@CssClass">
+    @if (!string.IsNullOrWhiteSpace(Titulo))
+    {
+        <h2 class="tarjeta__titulo">@Titulo</h2>
+    }
+    @ChildContent
+</section>
+
+@code {
+    [Parameter] public string? Titulo { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass => string.Join(' ', new[] { "tarjeta", Class }
+        .Where(value => !string.IsNullOrWhiteSpace(value)));
+}

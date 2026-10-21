@@ -1,0 +1,26 @@
+<button type="@Type" class="@CssClass" disabled="@Disabled" aria-label="@AriaLabel" @onclick="OnClick">
+    @ChildContent
+</button>
+
+@code {
+    [Parameter] public VarianteBoton Variante { get; set; } = VarianteBoton.Primario;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Type { get; set; } = "button";
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass => string.Join(' ', new[]
+    {
+        "boton",
+        Variante switch
+        {
+            VarianteBoton.Contorno => "boton--contorno",
+            VarianteBoton.Enlace => "boton--enlace",
+            VarianteBoton.Pequeno => "boton--pequeno",
+            _ => "boton--primario"
+        },
+        Class
+    }.Where(value => !string.IsNullOrWhiteSpace(value)));
+}

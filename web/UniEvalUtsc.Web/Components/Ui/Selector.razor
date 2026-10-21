@@ -1,0 +1,41 @@
+<div class="campo">
+    <label class="campo__etiqueta" for="@Id">@Label</label>
+    <select id="@Id"
+            class="campo__entrada"
+            value="@Value"
+            required="@Required"
+            disabled="@Disabled"
+            aria-describedby="@DescribedBy"
+            @onchange="HandleChange">
+        @if (Placeholder is not null)
+        {
+            <option value="">@Placeholder</option>
+        }
+        @foreach (var opcion in Options)
+        {
+            <option value="@opcion.Valor">@opcion.Texto</option>
+        }
+    </select>
+    @if (!string.IsNullOrWhiteSpace(HelpText))
+    {
+        <span class="campo__ayuda" id="@HelpId">@HelpText</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public IReadOnlyCollection<SelectorOpcion> Options { get; set; } = [];
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? HelpText { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private string? DescribedBy => string.IsNullOrWhiteSpace(HelpText) ? null : HelpId;
+    private string HelpId => $"{Id}-ayuda";
+
+    private Task HandleChange(ChangeEventArgs args) =>
+        ValueChanged.InvokeAsync(args.Value?.ToString());
+}
