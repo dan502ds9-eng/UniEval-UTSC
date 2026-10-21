@@ -465,6 +465,28 @@
     backdrop-filter: blur(0.75rem);
 }
 
+.topbar--acceso {
+    position: absolute;
+    inset-inline: 0;
+    background: rgb(10 20 35 / 36%);
+    border-bottom-color: rgb(255 255 255 / 20%);
+    color: #FFFFFF;
+}
+
+.topbar--acceso .topbar__marca,
+.topbar--acceso .topbar__boton {
+    color: #FFFFFF;
+}
+
+.topbar--acceso .topbar__marca small {
+    color: #FFD2A8;
+}
+
+.topbar--acceso .topbar__boton:hover {
+    border-color: rgb(255 255 255 / 40%);
+    background: rgb(255 255 255 / 14%);
+}
+
 .topbar__marca {
     display: inline-flex;
     min-width: max-content;
@@ -593,7 +615,10 @@
 
 .topbar__menu [role="menuitem"]:hover,
 .topbar__menu [role="menuitem"]:focus-visible,
-.topbar__menu [aria-current="true"] {
+.topbar__menu [role="menuitemradio"]:hover,
+.topbar__menu [role="menuitemradio"]:focus-visible,
+.topbar__menu [aria-current="true"],
+.topbar__menu [aria-checked="true"] {
     background: color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
@@ -616,15 +641,18 @@
 .acceso {
     position: relative;
     display: grid;
-    min-height: calc(100vh - 3.75rem);
+    min-height: 100vh;
     align-items: center;
-    background: linear-gradient(90deg, rgb(15 19 22 / 84%) 0%, rgb(15 19 22 / 66%) 48%, rgb(15 19 22 / 8%) 100%), url("../img/campus.jpg") center / cover;
+    padding-block: 5.5rem 2rem;
+    --acceso-superposicion-minima: 0.72;
+    background: linear-gradient(90deg, rgb(22 18 14 / 94%) 0%, rgb(22 18 14 / 78%) 60%, rgb(22 18 14 / var(--acceso-superposicion-minima)) 100%), url("../img/campus.jpg") center / cover;
     color: #FFFFFF;
 }
 
 .acceso__contenido {
     display: grid;
     width: min(100% - 2rem, 38rem);
+    min-width: 0;
     justify-self: start;
     gap: var(--space-4);
     margin-inline: max(1rem, calc((100% - 68.75rem) / 2));
@@ -633,6 +661,22 @@
 
 .acceso__contenido h1 {
     font-size: clamp(2.5rem, 7vw, 4rem);
+}
+
+.acceso__contenido h1::after {
+    display: block;
+    width: 3.5rem;
+    min-height: 0.25rem;
+    margin-top: var(--space-4);
+    border-radius: var(--pill-radius);
+    background: var(--primary);
+    content: "";
+}
+
+.acceso__apoyo {
+    max-width: 28rem;
+    color: #FFFFFF;
+    font-size: 1.125rem;
 }
 
 .acceso__marca {
@@ -648,10 +692,70 @@
     padding: var(--space-5);
     border: 1px solid rgb(255 255 255 / 28%);
     border-radius: var(--card-radius);
-    background: rgb(22 18 14 / 80%);
+    background: rgb(22 18 14 / 88%);
     color: #FFFFFF;
     -webkit-backdrop-filter: blur(0.75rem);
     backdrop-filter: blur(0.75rem);
+}
+
+.acceso__tarjeta h2 {
+    font-size: 1.5rem;
+}
+
+.acceso__simulacion {
+    color: #FFFFFF;
+    font-size: 0.875rem;
+}
+
+.acceso__campos {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.acceso__campos label {
+    margin-top: var(--space-2);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.acceso__campos input {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid rgb(255 255 255 / 55%);
+    border-radius: var(--button-radius);
+    background: #FFFFFF;
+    color: #14110F;
+}
+
+.acceso__campos input::placeholder {
+    color: #4A443D;
+    opacity: 1;
+}
+
+.acceso__campos input:focus-visible {
+    outline-color: #FFFFFF;
+}
+
+.acceso__campos span {
+    color: #FFFFFF;
+    font-size: 0.8125rem;
+}
+
+.acceso__error {
+    color: #FFD2A8;
+    font-weight: 600;
+}
+
+.acceso__regresar {
+    min-height: 2.75rem;
+    justify-self: start;
+    padding: var(--space-2) 0;
+    border: 0;
+    background: transparent;
+    color: #FFFFFF;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
 }
 
 .acceso__tarjeta label {
@@ -669,9 +773,11 @@
 
 .acceso__nota {
     font-size: 0.875rem;
+    color: #FFFFFF;
 }
 
-.acceso__enlace {
+.acceso__enlace,
+.acceso__regresar {
     color: #FFFFFF;
 }
 
@@ -831,11 +937,20 @@
     }
 
     .acceso {
-        min-height: calc(100vh - 3.5rem);
-        background-image: linear-gradient(rgb(15 19 22 / 78%), rgb(15 19 22 / 78%)), url("../img/campus.jpg");
+        min-height: 100vh;
+        --acceso-superposicion-minima: 0.88;
+        background-image: linear-gradient(rgb(22 18 14 / var(--acceso-superposicion-minima)), rgb(22 18 14 / var(--acceso-superposicion-minima))), url("../img/campus.jpg");
     }
 
     .acceso__contenido {
         margin-inline: 1rem;
+    }
+
+    .acceso__tarjeta {
+        padding: var(--space-4);
+    }
+
+    .topbar--acceso {
+        padding-inline: var(--space-3);
     }
 }

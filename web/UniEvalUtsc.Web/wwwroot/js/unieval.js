@@ -9,6 +9,7 @@
         "[tabindex]:not([tabindex='-1'])"
     ].join(",");
     const focusTraps = new WeakMap();
+    const enterHandlers = new WeakMap();
     let dialogOpener = null;
 
     function focusables(container) {
@@ -39,6 +40,28 @@
         },
 
         setTextScale,
+
+        bindEnterAdvance(element, nextElement) {
+            const previousHandler = enterHandlers.get(element);
+            if (previousHandler) {
+                element.removeEventListener("keydown", previousHandler);
+            }
+
+            const handler = event => {
+                if (event.key !== "Enter") {
+                    return;
+                }
+
+                event.preventDefault();
+                if (nextElement) {
+                    nextElement.focus();
+                } else {
+                    element.form?.requestSubmit();
+                }
+            };
+            element.addEventListener("keydown", handler);
+            enterHandlers.set(element, handler);
+        },
 
         bindMenu(trigger, menu, dotNetReference, openMethod, closeMethod) {
             const moveFocus = (index) => {
@@ -197,7 +220,8 @@
         getSessionStorage(key) {
             try {
                 return window.sessionStorage.getItem(key);
-            } catch {
+            } catch (error) {
+                console.error("No fue posible leer sessionStorage.", error);
                 return null;
             }
         },
@@ -206,7 +230,8 @@
             try {
                 window.sessionStorage.setItem(key, value);
                 return true;
-            } catch {
+            } catch (error) {
+                console.error("No fue posible escribir en sessionStorage.", error);
                 return false;
             }
         },
@@ -215,7 +240,8 @@
             try {
                 window.sessionStorage.removeItem(key);
                 return true;
-            } catch {
+            } catch (error) {
+                console.error("No fue posible eliminar la sesión de sessionStorage.", error);
                 return false;
             }
         }

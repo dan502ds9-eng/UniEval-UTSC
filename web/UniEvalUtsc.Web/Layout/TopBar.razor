@@ -4,7 +4,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<header class="topbar">
+<header class="@CssClass">
     <a class="topbar__marca" href="/" aria-label="UniEval UTSC, inicio">
         <span class="topbar__simbolo" aria-hidden="true">U</span>
         <span><strong>UniEval</strong><small>UTSC</small></span>
@@ -97,6 +97,9 @@
     private bool _usuarioAbierto;
     private string _tema = "light";
     private int _escala = 100;
+    private string CssClass => Navigation.ToBaseRelativePath(Navigation.Uri) is "" || Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("acceso/", StringComparison.OrdinalIgnoreCase)
+        ? "topbar topbar--acceso"
+        : "topbar";
     private static string EtiquetaEscala(int tamaño) => tamaño switch
     {
         100 => "Normal 100%",

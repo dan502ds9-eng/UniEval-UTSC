@@ -24,6 +24,7 @@ public sealed class PwaSmokeTests
         await Assertions.Expect(pagina.Locator("#blazor-error-ui")).ToBeHiddenAsync();
         await Assertions.Expect(pagina.Locator(".topbar__usuario")).ToHaveCountAsync(0);
         await Assertions.Expect(pagina.Locator("html")).ToHaveAttributeAsync("data-theme", "dark");
+        await VerificarContrasteAcceso(pagina);
 
         var menuTexto = pagina.GetByRole(AriaRole.Button, new() { Name = "Aa" });
         await menuTexto.PressAsync("Enter");
@@ -54,7 +55,7 @@ public sealed class PwaSmokeTests
         await Assertions.Expect(pagina.Locator("html")).ToHaveAttributeAsync("data-theme", "dark");
         Assert.Equal("dark", await pagina.EvaluateAsync<string>("() => localStorage.getItem('unieval-theme')"));
 
-        await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión" }).ClickAsync();
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión con Microsoft 365" }).ClickAsync();
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno$"));
         await Assertions.Expect(pagina.GetByRole(AriaRole.Button, new() { Name = "Notificaciones, 0 pendientes" })).ToBeVisibleAsync();
         await pagina.EvaluateAsync("() => { const enlace = document.createElement('a'); enlace.href = '/admin/periodos'; document.body.appendChild(enlace); enlace.click(); }");
@@ -72,7 +73,22 @@ public sealed class PwaSmokeTests
         await pagina.GotoAsync(new Uri(new Uri(url), "/admin/periodos").ToString());
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/$"));
         await pagina.Locator("#rol-acceso").SelectOptionAsync("Administrador");
-        await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión" }).ClickAsync();
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión con Microsoft 365" }).ClickAsync();
+        await pagina.GetByLabel("Correo institucional").FillAsync("admin@utsc.edu.mx");
+        await pagina.GetByLabel("Correo institucional").PressAsync("Enter");
+        await Assertions.Expect(pagina.GetByLabel("Contraseña")).ToBeFocusedAsync();
+        await pagina.GetByLabel("Contraseña").FillAsync("simulada");
+        await pagina.GetByLabel("Contraseña").PressAsync("Enter");
+        await Assertions.Expect(pagina.GetByLabel("Código de verificación")).ToBeFocusedAsync();
+        await pagina.GetByLabel("Código de verificación").FillAsync("123");
+        await pagina.GetByLabel("Código de verificación").PressAsync("Enter");
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Alert)).ToHaveTextAsync("El código debe contener seis dígitos.");
+        await pagina.GetByLabel("Código de verificación").FillAsync("123456");
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "← Regresar" }).ClickAsync();
+        await Assertions.Expect(pagina.GetByLabel("Correo institucional")).ToBeVisibleAsync();
+        await pagina.GetByLabel("Contraseña").PressAsync("Enter");
+        await pagina.GetByLabel("Código de verificación").FillAsync("123456");
+        await pagina.GetByLabel("Código de verificación").PressAsync("Enter");
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/admin/inicio$"));
         await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Inicio" })).ToBeFocusedAsync();
         await pagina.GetByRole(AriaRole.Link, new() { Name = "Periodos" }).ClickAsync();
@@ -93,7 +109,12 @@ public sealed class PwaSmokeTests
         await menuUsuario.PressAsync("ArrowDown");
         await pagina.Locator("[role='menuitem']").Filter(new() { HasText = "Cerrar sesión" }).ClickAsync();
         await pagina.Locator("#rol-acceso").SelectOptionAsync("Docente");
-        await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión" }).ClickAsync();
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión con Microsoft 365" }).ClickAsync();
+        await pagina.GetByLabel("Correo institucional").FillAsync("docente@utsc.edu.mx");
+        await pagina.GetByLabel("Contraseña").FillAsync("simulada");
+        await pagina.GetByLabel("Contraseña").PressAsync("Enter");
+        await pagina.GetByLabel("Código de verificación").FillAsync("123456");
+        await pagina.GetByLabel("Código de verificación").PressAsync("Enter");
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/docente/inicio$"));
         await Assertions.Expect(pagina.Locator(".staff-shell__nombre")).ToHaveTextAsync("Óscar Gabriel Chávez Gómez");
         Assert.NotEmpty(await pagina.EvaluateAsync<string>("() => sessionStorage.getItem('unieval-sesion-simulada')"));
@@ -113,5 +134,54 @@ public sealed class PwaSmokeTests
         await pagina.Keyboard.PressAsync("Escape");
         await Assertions.Expect(pagina.GetByRole(AriaRole.Dialog)).ToBeHiddenAsync();
         await Assertions.Expect(abrirDialogo).ToBeFocusedAsync();
+    }
+
+    private static async Task VerificarContrasteAcceso(IPage pagina)
+    {
+        foreach (var esquema in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await pagina.EmulateMediaAsync(new PageEmulateMediaOptions { ColorScheme = esquema });
+            await pagina.EvaluateAsync("() => localStorage.removeItem('unieval-theme')");
+            await pagina.ReloadAsync();
+            await Assertions.Expect(pagina.Locator("html")).ToHaveAttributeAsync(
+                "data-theme",
+                esquema == ColorScheme.Dark ? "dark" : "light");
+
+            foreach (var ancho in new[] { 390, 768, 1280, 1920 })
+            {
+                await pagina.SetViewportSizeAsync(ancho, 900);
+                var colores = await pagina.EvaluateAsync<string[]>("""
+                    () => {
+                        const main = document.querySelector(".acceso");
+                        return [
+                            getComputedStyle(main).color,
+                            getComputedStyle(main.querySelector("h1")).color,
+                            getComputedStyle(main).getPropertyValue("--acceso-superposicion-minima").trim()
+                        ];
+                    }
+                    """);
+                var opacidad = double.Parse(colores[2], System.Globalization.CultureInfo.InvariantCulture);
+                Assert.True(ContrasteMaximoSobreImagen(colores[0], opacidad) >= 4.5, $"Contraste de texto menor a 4.5:1 en {ancho}px, {esquema}.");
+                Assert.True(ContrasteMaximoSobreImagen(colores[1], opacidad) >= 3, $"Contraste del título menor a 3:1 en {ancho}px, {esquema}.");
+            }
+        }
+
+        await pagina.SetViewportSizeAsync(1280, 900);
+    }
+
+    private static double ContrasteMaximoSobreImagen(string colorTexto, double opacidad)
+    {
+        var canalesTexto = System.Text.RegularExpressions.Regex
+            .Matches(colorTexto, @"\d+")
+            .Select(match => int.Parse(match.Value, System.Globalization.CultureInfo.InvariantCulture))
+            .ToArray();
+        Assert.Equal(new[] { 255, 255, 255 }, canalesTexto);
+
+        var canalesFondo = new[] { 22, 18, 14 }
+            .Select(channel => (channel * opacidad + 255 * (1 - opacidad)) / 255)
+            .Select(channel => channel <= 0.04045 ? channel / 12.92 : Math.Pow((channel + 0.055) / 1.055, 2.4))
+            .ToArray();
+        var luminancia = 0.2126 * canalesFondo[0] + 0.7152 * canalesFondo[1] + 0.0722 * canalesFondo[2];
+        return 1.05 / (luminancia + 0.05);
     }
 }
