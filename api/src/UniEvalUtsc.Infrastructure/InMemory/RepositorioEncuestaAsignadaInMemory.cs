@@ -11,4 +11,10 @@ public sealed class RepositorioEncuestaAsignadaInMemory(AlmacenEvaluacionInMemor
         ct.ThrowIfCancellationRequested();
         return Task.FromResult(almacen.ObtenerEncuesta(id));
     }
+
+    public Task<IReadOnlyCollection<EncuestaAsignada>> ObtenerPendientesAsync(int alumnoId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyCollection<EncuestaAsignada>>(almacen.ObtenerEncuestas().Where(e => e.AlumnoId == alumnoId && e.Estado == UniEvalUtsc.Domain.Enums.EstadoEncuesta.Pendiente).ToArray());
+
+    public Task<IReadOnlyCollection<EncuestaAsignada>> ObtenerTodasAsync(int alumnoId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyCollection<EncuestaAsignada>>(almacen.ObtenerEncuestas().Where(e => e.AlumnoId == alumnoId).ToArray());
 }

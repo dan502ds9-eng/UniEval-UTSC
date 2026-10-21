@@ -15,6 +15,28 @@ public class EnviarRespuestaService(
     IUnitOfWork unidadDeTrabajo,
     IReloj reloj)
 {
+    public async Task EnviarLoteAsync(int alumnoId, IReadOnlyCollection<(int EncuestaId, IReadOnlyCollection<CalificacionAspecto> Calificaciones)> lote, CancellationToken ct = default)
+    {
+        if (lote.Count == 0) throw new ValidacionException("Debes incluir al menos una encuesta.");
+        if (lote.Select(x => x.EncuestaId).Distinct().Count() != lote.Count) throw new ValidacionException("La encuesta está repetida en el envío.");
+        var preparadas = new List<(EncuestaAsignada Encuesta, Respuesta Respuesta)>();
+        foreach (var item in lote)
+        {
+            var encuesta = await encuestas.ObtenerAsync(item.EncuestaId, ct) ?? throw new NoEncontradoException("La encuesta no existe.");
+            if (!encuesta.PerteneceA(alumnoId)) throw new AccesoDenegadoException("Esta encuesta no te pertenece.");
+            if (encuesta.Estado == EstadoEncuesta.Contestada) throw new DomainException("Esta encuesta ya fue contestada.");
+            var periodo = await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
+            if (periodo is null || !periodo.AceptaRespuestas(reloj.Ahora)) throw new DomainException("El periodo de encuestas no está abierto.");
+            var plantilla = await plantillas.ObtenerConAspectosAsync(encuesta.PlantillaId, ct) ?? throw new NoEncontradoException("La plantilla de la encuesta no existe.");
+            preparadas.Add((encuesta, Respuesta.Crear(encuesta, plantilla, item.Calificaciones)));
+        }
+        foreach (var (encuesta, respuesta) in preparadas)
+            respuestas.Agregar(respuesta);
+        await unidadDeTrabajo.GuardarCambiosAsync(ct);
+        foreach (var (encuesta, _) in preparadas)
+            encuesta.MarcarContestada(reloj.Hoy);
+    }
+
     public async Task EnviarAsync(int encuestaId, int alumnoId,
         IReadOnlyCollection<CalificacionAspecto> calificaciones, CancellationToken ct = default)
     {
@@ -42,7 +64,7 @@ public class EnviarRespuestaService(
 
         // 6. Todo o nada (RNF-07)
         respuestas.Agregar(respuesta);
-        encuesta.MarcarContestada(reloj.Hoy);
         await unidadDeTrabajo.GuardarCambiosAsync(ct);
+        encuesta.MarcarContestada(reloj.Hoy);
     }
 }

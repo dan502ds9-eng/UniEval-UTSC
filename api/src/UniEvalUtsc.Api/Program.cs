@@ -1,9 +1,25 @@
 using UniEvalUtsc.Application.Interfaces;
 using UniEvalUtsc.Infrastructure.InMemory;
+using UniEvalUtsc.Api.Auth;
+using UniEvalUtsc.Api.Middleware;
+using UniEvalUtsc.Application.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+var modoAuth = builder.Configuration["Auth:Modo"] ?? "Simulado";
+if (string.Equals(modoAuth, "Simulado", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddAuthentication("Simulado").AddScheme<AuthenticationSchemeOptions, UsuarioSimuladoHandler>("Simulado", _ => { });
+}
+else
+{
+    // Registro futuro: AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd")) cuando exista el registro Entra ID.
+    throw new InvalidOperationException("El modo de autenticación configurado no está disponible.");
+}
+builder.Services.AddAuthorization(options => options.AddPolicy("Alumno", policy => policy.RequireAuthenticatedUser().RequireRole("Alumno")));
 var origenesPermitidos = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddPolicy("WebClient", policy =>
     policy.WithOrigins(origenesPermitidos)
@@ -22,6 +38,7 @@ if (string.Equals(proveedorDatos, "InMemory", StringComparison.OrdinalIgnoreCase
         services.GetRequiredService<RepositorioRespuestaInMemory>());
     builder.Services.AddScoped<IUnitOfWork, UnidadDeTrabajoInMemory>();
     builder.Services.AddSingleton<IReloj, RelojSistema>();
+    builder.Services.AddScoped<EnviarRespuestaService>();
 }
 else
 {
@@ -37,6 +54,7 @@ builder.Services.AddOpenApi(o => o.AddDocumentTransformer((doc, ctx, ct) =>
 }));
 
 var app = builder.Build();
+app.UseMiddleware<ErroresMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -50,7 +68,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("WebClient");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;
