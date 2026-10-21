@@ -43,7 +43,13 @@
                     <button type="button"
                             role="menuitemradio"
                             aria-checked="@(_escala == tamaño ? "true" : "false")"
-                            @onclick="() => CambiarEscala(tamaño)">@EtiquetaEscala(tamaño)</button>
+                            @onclick="() => CambiarEscala(tamaño)">
+                        <span>@EtiquetaEscala(tamaño)</span>
+                        @if (_escala == tamaño)
+                        {
+                            <span aria-hidden="true">✓</span>
+                        }
+                    </button>
                 }
             </div>
         </div>

@@ -57,7 +57,7 @@ public sealed class PwaSmokeTests
 
         await pagina.GetByRole(AriaRole.Button, new() { Name = "Iniciar sesión con Microsoft 365" }).ClickAsync();
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno$"));
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Button, new() { Name = "Notificaciones, 0 pendientes" })).ToBeVisibleAsync();
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Button, new() { Name = "Notificaciones, 2 mensajes sin leer" })).ToBeVisibleAsync();
         await pagina.EvaluateAsync("() => { const enlace = document.createElement('a'); enlace.href = '/admin/periodos'; document.body.appendChild(enlace); enlace.click(); }");
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno$"));
         var menuUsuario = pagina.Locator(".topbar__usuario");
@@ -96,8 +96,8 @@ public sealed class PwaSmokeTests
         await pagina.GetByLabel("Código de verificación").PressAsync("Enter");
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/admin/inicio$"));
         await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Inicio" })).ToBeFocusedAsync();
-        await pagina.GetByRole(AriaRole.Link, new() { Name = "Periodos" }).ClickAsync();
-        await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Periodos" })).ToBeFocusedAsync();
+        await pagina.GetByRole(AriaRole.Link, new() { Name = "Periodos", Exact = true }).ClickAsync();
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Periodos", Exact = true })).ToBeFocusedAsync();
         await Assertions.Expect(pagina).ToHaveTitleAsync("Periodos · UniEval UTSC");
         await pagina.GetByRole(AriaRole.Button, new() { Name = "Aa" }).ClickAsync();
         await pagina.Locator("[role='menuitemradio']").Filter(new() { HasText = "Normal 100%" }).ClickAsync();

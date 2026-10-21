@@ -119,6 +119,57 @@ html[data-ts="200"] .staff-shell__sidebar {
     position: static;
 }
 
+html[data-ts="150"] .staff-shell,
+html[data-ts="200"] .staff-shell {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-ts="150"] .staff-shell__sidebar,
+html[data-ts="200"] .staff-shell__sidebar {
+    max-height: none;
+}
+
+html[data-ts="150"] .student-home,
+html[data-ts="200"] .student-home {
+    width: calc(100% - 2rem);
+    max-width: var(--content-width);
+    min-width: 0;
+}
+
+html[data-ts="150"] .alumno-comprobante > p,
+html[data-ts="200"] .alumno-comprobante > p {
+    width: 100%;
+    min-width: 0;
+}
+
+html[data-ts="150"] .alumno-comprobante__sello,
+html[data-ts="200"] .alumno-comprobante__sello {
+    max-width: 100%;
+    letter-spacing: normal;
+}
+
+html[data-ts="150"] .topbar,
+html[data-ts="200"] .topbar {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding-inline: 1rem;
+}
+
+html[data-ts="150"] .topbar__acciones,
+html[data-ts="200"] .topbar__acciones {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
+html[data-ts="150"] .resultados-personal .tabla-resultados,
+html[data-ts="200"] .resultados-personal .tabla-resultados {
+    display: block;
+    overflow-x: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

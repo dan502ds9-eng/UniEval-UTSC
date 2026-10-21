@@ -73,9 +73,31 @@
         .FirstOrDefault(item => item.Ruta.EndsWith($"/{SeccionActual}", StringComparison.Ordinal))
         ?.Etiqueta ?? "Inicio";
 
-    private string DescripcionActual => SeccionActual == "inicio"
-        ? $"Panel principal de {AuthService.Etiqueta(Rol).ToLowerInvariant()}."
-        : $"Sección {TituloActual.ToLowerInvariant()} de {AuthService.Etiqueta(Rol).ToLowerInvariant()}.";
+    private string DescripcionActual => (Rol, SeccionActual) switch
+    {
+        (Rol.Docente, "inicio") => "Consulta el resumen de tus evaluaciones.",
+        (Rol.Tutor, "inicio") => "Consulta el resumen de tus tutorías.",
+        (Rol.Docente, "resultados") => "Consulta tus resultados por materia y periodo.",
+        (Rol.Tutor, "resultados") => "Consulta tus resultados por grupo y periodo.",
+        (Rol.Docente or Rol.Tutor, "historico") => "Compara tus resultados entre periodos.",
+        (Rol.Docente or Rol.Tutor, "reportes") => "Consulta y descarga tus reportes.",
+        (Rol.Coordinador, "inicio") => "Consulta los indicadores de participación y desempeño de tu carrera.",
+        (Rol.Coordinador, "seguimiento") => "Revisa la participación y envía recordatorios a los grupos.",
+        (Rol.Coordinador, "resultados-docentes") => "Consulta los promedios de docentes de tu carrera.",
+        (Rol.Coordinador, "resultados-tutores") => "Consulta los promedios de tutores de tu carrera.",
+        (Rol.Coordinador, "reportes") => "Genera reportes de participación y resultados.",
+        (Rol.Administrador, "inicio") => "Consulta el estado del periodo y los indicadores principales.",
+        (Rol.Administrador, "periodos") => "Abre o cierra periodos de evaluación.",
+        (Rol.Administrador, "carga-academica") => "Administra docentes y tutorías por grupo.",
+        (Rol.Administrador, "estadias") => "Asigna tutores de estadías a alumnos o grupos.",
+        (Rol.Administrador, "catalogos") => "Administra carreras, grupos, materias, docentes y alumnos.",
+        (Rol.Administrador, "plantillas") => "Edita y publica las plantillas de evaluación.",
+        (Rol.Administrador, "seguimiento") => "Revisa la participación de los grupos.",
+        (Rol.Administrador, "resultados-docentes") => "Consulta los promedios de docentes.",
+        (Rol.Administrador, "resultados-tutores") => "Consulta los promedios de tutores.",
+        (Rol.Administrador, "reportes") => "Genera reportes de participación y resultados.",
+        _ => $"Consulta la información de {TituloActual.ToLowerInvariant()}."
+    };
 
     private SeccionNavegacion CrearSeccion(string slug, string etiqueta) =>
         new(slug, etiqueta, $"/{(Rol == Rol.Administrador ? "admin" : Rol.ToString().ToLowerInvariant())}/{slug}");

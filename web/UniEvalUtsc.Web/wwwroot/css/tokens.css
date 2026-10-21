@@ -6,6 +6,8 @@
     --ink: #14110F;
     --mute: #4A443D;
     --line: #E0D3C0;
+    --shadow-color: rgb(40 25 10 / 0.15);
+    --scrim: rgb(0 0 0 / 0.5);
     --primary: #FF8200;
     --primary-hover: #FF9A2E;
     --primary-ink: #14110F;
@@ -44,6 +46,7 @@
     --card-radius: 1.125rem;
     --button-radius: 0.75rem;
     --pill-radius: 99rem;
+    --fab-size: 3.75rem;
     --space-1: 0.25rem;
     --space-2: 0.5rem;
     --space-3: 0.75rem;
@@ -62,6 +65,8 @@ html[data-theme="dark"],
     --ink: #F2EBE3;
     --mute: #C9BEB2;
     --line: #3B3129;
+    --shadow-color: rgb(0 0 0 / 0.35);
+    --scrim: rgb(0 0 0 / 0.5);
     --primary: #FF8A1F;
     --primary-hover: #FFA24D;
     --primary-ink: #14110F;
