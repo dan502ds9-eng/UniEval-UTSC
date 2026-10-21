@@ -20,6 +20,7 @@ builder.Services.AddScoped<ICargaAcademicaService, CargaAcademicaInMemoryService
 builder.Services.AddScoped<IEstadiasService, EstadiasInMemoryService>();
 builder.Services.AddScoped<ICatalogosService, CatalogosInMemoryService>();
 builder.Services.AddScoped<IPlantillasService, PlantillasInMemoryService>();
+builder.Services.AddScoped<IFaqService, FaqInMemoryService>();
 builder.Services.AddScoped<FiltrosState>();
 builder.Services.AddScoped<IExportadorReportes, ExportadorLocal>();
 builder.Services.AddAuthorizationCore();
