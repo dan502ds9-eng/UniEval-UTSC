@@ -1,0 +1,66 @@
+<section class="alumno-pregunta @(Completa ? "alumno-pregunta--completa" : null)">
+    <h2 class="alumno-pregunta__cabecera">
+        <button type="button"
+                aria-expanded="@Abierta"
+                aria-controls="@($"contenido-pregunta-{Pregunta.Id}")"
+                @onclick="OnAlternar">
+            <span class="alumno-pregunta__numero">Pregunta @Pregunta.Id</span>
+            <span class="alumno-pregunta__texto">@Pregunta.Texto</span>
+            <span class="alumno-pregunta__avance">@(Completa ? "✓ Completa" : $"{RespuestasCompletas} / {Evaluados.Count}")</span>
+        </button>
+    </h2>
+    @if (Abierta)
+    {
+        <div class="alumno-pregunta__contenido" id="@($"contenido-pregunta-{Pregunta.Id}")">
+            <button class="boton boton--contorno alumno-escuchar" type="button" @onclick="() => OnEscuchar.InvokeAsync(Pregunta)">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 5 6 9H3v6h3l5 4z" />
+                    <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+                </svg>
+                Escuchar pregunta
+            </button>
+            <div class="alumno-evaluados">
+                @for (var indice = 0; indice < Evaluados.Count; indice++)
+                {
+                    var indiceEvaluado = indice;
+                    var evaluado = Evaluados[indice];
+                    var clave = EvaluacionAlumno.CrearClaveCalificacion(Pregunta.Id, evaluado.Id);
+                    var valor = Calificaciones.TryGetValue(clave, out var calificacion) ? calificacion : (int?)null;
+                    <fieldset class="alumno-evaluado @(evaluado.EsTutor ? "alumno-evaluado--tutor" : null)">
+                        <legend class="sr-only">@($"Evaluado {(indice + 1)}: {evaluado.Etiqueta}, {evaluado.Nombre}")</legend>
+                        <div class="alumno-evaluado__persona">
+                            <span class="alumno-evaluado__numero">@(indice + 1).</span>
+                            <span><small>@evaluado.Materia</small><strong>@evaluado.Nombre</strong></span>
+                            @if (evaluado.EsTutor)
+                            {
+                                <span class="alumno-evaluado__distintivo">@evaluado.Etiqueta</span>
+                            }
+                        </div>
+                        <SelectorCalificacion Value="@valor"
+                                               ValueChanged="seleccion => OnCalificar.InvokeAsync(new CalificacionEvaluado(Pregunta.Id, indiceEvaluado, evaluado.Id, seleccion))"
+                                               Etiqueta="@($"Calificación para {evaluado.Etiqueta}: {evaluado.Nombre}")"
+                                               Name="@($"calificacion-{Pregunta.Id}-{evaluado.Id}")"
+                                               IdPrefix="@($"cal-{Pregunta.Id}-{evaluado.Id}")"
+                                               OnTeclaNumero="valor => OnTeclaNumero.InvokeAsync(new TeclaEvaluado(Pregunta.Id, indiceEvaluado, evaluado.Id, valor))" />
+                    </fieldset>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PreguntaAlumno Pregunta { get; set; } = default!;
+    [Parameter] public IReadOnlyList<EvaluadoAlumno> Evaluados { get; set; } = [];
+    [Parameter] public IReadOnlyDictionary<string, int> Calificaciones { get; set; } = new Dictionary<string, int>();
+    [Parameter] public bool Abierta { get; set; }
+    [Parameter] public EventCallback OnAlternar { get; set; }
+    [Parameter] public EventCallback<PreguntaAlumno> OnEscuchar { get; set; }
+    [Parameter] public EventCallback<CalificacionEvaluado> OnCalificar { get; set; }
+    [Parameter] public EventCallback<TeclaEvaluado> OnTeclaNumero { get; set; }
+
+    private int RespuestasCompletas => Evaluados.Count(evaluado =>
+        Calificaciones.ContainsKey(EvaluacionAlumno.CrearClaveCalificacion(Pregunta.Id, evaluado.Id)));
+
+    private bool Completa => Evaluados.Count > 0 && RespuestasCompletas == Evaluados.Count;
+}

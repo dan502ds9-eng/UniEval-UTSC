@@ -1,6 +1,6 @@
 @implements IDisposable
 @inject AuthService AuthService
-@inject AlumnoInMemoryService AlumnoService
+@inject IAlumnoService AlumnoService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -15,7 +15,7 @@
         {
             <button class="topbar__boton topbar__notificaciones"
                     type="button"
-                    aria-label="@($"Notificaciones, {AlumnoService.MensajesSinLeer} mensajes sin leer")"
+                    aria-label="@($"Notificaciones, {TextoMensajesSinLeer}")"
                     aria-haspopup="dialog"
                     @onclick="AbrirMensajes">
                 <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -93,14 +93,14 @@
     @if (_notificacionEmergente)
     {
         <div class="topbar__notificacion-emergente" role="status">
-            <p>Tienes @AlumnoService.MensajesSinLeer mensajes sin leer.</p>
+            <p>Tienes @TextoMensajesSinLeer.</p>
             <button type="button" @onclick="AbrirMensajes">Ver mensaje</button>
             <button type="button" aria-label="Cerrar notificación" @onclick="() => _notificacionEmergente = false">Cerrar</button>
         </div>
     }
     <PanelLateral @bind-IsOpen="_panelMensajesAbierto" Title="Mensajes">
         <div class="alumno-mensajes__encabezado">
-            <p role="status">@(AlumnoService.MensajesSinLeer == 0 ? "Todo leído" : $"{AlumnoService.MensajesSinLeer} mensajes sin leer")</p>
+            <p role="status">@(AlumnoService.MensajesSinLeer == 0 ? "Todo leído" : TextoMensajesSinLeer)</p>
             @if (AlumnoService.MensajesSinLeer > 0)
             {
                 <button class="boton-enlace" type="button" @onclick="MarcarTodosComoLeidos">Marcar todos como leídos</button>
@@ -142,6 +142,9 @@
     private bool _panelMensajesAbierto;
     private string _tema = "light";
     private int _escala = 100;
+    private string TextoMensajesSinLeer => AlumnoService.MensajesSinLeer == 1
+        ? "1 mensaje sin leer"
+        : $"{AlumnoService.MensajesSinLeer} mensajes sin leer";
     private string CssClass => Navigation.ToBaseRelativePath(Navigation.Uri) is ""
         ? "topbar topbar--acceso"
         : "topbar";

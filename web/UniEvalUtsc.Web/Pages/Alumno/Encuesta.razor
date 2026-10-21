@@ -1,0 +1,212 @@
+@page "/alumno/encuesta"
+@attribute [Authorize(Roles = "Alumno")]
+@inject NavigationManager Navigation
+@inject IAlumnoService AlumnoService
+@inject AuthService AuthService
+@inject UnievalJsInterop JsInterop
+
+<PageTitle>@(_evaluacion?.EsEstadia == true ? "Evaluación del tutor de estadías" : "Evaluación del cuatrimestre") · UniEval UTSC</PageTitle>
+
+@if (_evaluacion is not null)
+{
+    <main class="student-home alumno-pagina alumno-encuesta">
+        <div class="alumno-encuesta__encabezado">
+            <button class="boton boton--contorno" type="button" @onclick="VolverAEncuestas">← Mis encuestas</button>
+            <span class="alumno-etiqueta">@_evaluacion.Grupo</span>
+        </div>
+        <h1 tabindex="-1">@(_evaluacion.EsEstadia ? "Evaluación de tu tutor de estadías" : "Evaluación del cuatrimestre")</h1>
+
+        <ResumenEvaluacion Periodo="@_evaluacion.Periodo"
+                           Preguntas="@_evaluacion.Preguntas.Count"
+                           Evaluados="@_evaluacion.Evaluados"
+                           Formato="@_evaluacion.Formato"
+                           EsEstadia="@_evaluacion.EsEstadia" />
+
+        <BarraAvanceEncuesta Avance="@AvanceRespuestas"
+                             Total="@_evaluacion.TotalRespuestas"
+                             HayPendientes="@(_preguntaPendiente is not null)"
+                             OnSiguientePendiente="IrASiguientePendiente" />
+
+        <p class="sr-only">Cada pregunta es una sección que se abre y se cierra. Califica del 1 al 10. Las teclas del 0 al 9 eligen una calificación y el 0 cuenta como 10.</p>
+
+        <div class="alumno-preguntas">
+            @foreach (var pregunta in _evaluacion.Preguntas)
+            {
+                <PreguntaEvaluacion Pregunta="@pregunta"
+                                    Evaluados="@_evaluacion.Evaluados"
+                                    Calificaciones="@_calificaciones"
+                                    Abierta="@(_preguntaAbierta == pregunta.Id)"
+                                    OnAlternar="() => AlternarPregunta(pregunta.Id)"
+                                    OnEscuchar="EscucharPreguntaAsync"
+                                    OnCalificar="CalificarAsync"
+                                    OnTeclaNumero="ManejarTeclaAsync" />
+            }
+        </div>
+
+        <p class="alumno-estado" role="status" aria-live="polite">@TextoAvance</p>
+        @if (!_evaluacion.PeriodoAbierto)
+        {
+            <p class="alumno-aviso" role="status">El periodo está cerrado y no recibe respuestas.</p>
+        }
+    </main>
+    <footer class="alumno-pie alumno-pie--sticky">
+        <div class="alumno-pie__contenido">
+            <button class="boton boton--contorno" type="button" @onclick="GuardarBorradorYSalirAsync">Guardar borrador y salir</button>
+            <button id="boton-enviar-evaluacion" class="boton" type="button" disabled="@(!PuedeEnviar)" @onclick="() => _dialogoEnvio = true">Enviar evaluación</button>
+        </div>
+    </footer>
+    <Dialogo IsOpen="@_dialogoEnvio"
+             IsOpenChanged="CambiarDialogo"
+             Title="¿Enviar tu evaluación?"
+             OnClosed="RestaurarFocoEnvio">
+        <ChildContent>
+            <p>Una vez enviada, tu evaluación no se puede modificar. ¿Deseas continuar?</p>
+        </ChildContent>
+        <Footer>
+            <button class="boton boton--contorno" type="button" @onclick="() => _dialogoEnvio = false">Revisar respuestas</button>
+            <button class="boton" type="button" @onclick="EnviarEvaluacionAsync">Confirmar envío</button>
+        </Footer>
+    </Dialogo>
+    <Toast Message="@_toast" Visible="@(!string.IsNullOrWhiteSpace(_toast))" />
+}
+
+@code {
+    private EvaluacionAlumno? _evaluacion;
+    private Dictionary<string, int> _calificaciones = [];
+    private int? _preguntaAbierta;
+    private bool _dialogoEnvio;
+    private string? _toast;
+
+    private int AvanceRespuestas => _calificaciones.Count;
+    private int? _preguntaPendiente => _evaluacion?.Preguntas.FirstOrDefault(pregunta => !PreguntaCompleta(pregunta.Id))?.Id;
+    private bool PuedeEnviar => _evaluacion is { PeriodoAbierto: true, Enviado: false } &&
+        AvanceRespuestas == _evaluacion.TotalRespuestas;
+    private string TextoAvance => _evaluacion is null
+        ? string.Empty
+        : PuedeEnviar
+            ? "Evaluación completa. Ya puedes enviarla."
+            : $"Faltan {_evaluacion.TotalRespuestas - AvanceRespuestas} respuestas por contestar.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _evaluacion = AlumnoService.ObtenerEvaluacion();
+        _calificaciones = await AlumnoService.RecuperarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno");
+        _preguntaAbierta = _evaluacion.Preguntas.FirstOrDefault(pregunta => !PreguntaCompleta(pregunta.Id))?.Id
+            ?? _evaluacion.Preguntas.FirstOrDefault()?.Id;
+
+        if (_evaluacion.Enviado)
+        {
+            Navigation.NavigateTo("/alumno/comprobante");
+        }
+    }
+
+    private bool PreguntaCompleta(int preguntaId) =>
+        _evaluacion is not null &&
+        _evaluacion.Evaluados.All(evaluado =>
+            _calificaciones.ContainsKey(EvaluacionAlumno.CrearClaveCalificacion(preguntaId, evaluado.Id)));
+
+    private void AlternarPregunta(int preguntaId) =>
+        _preguntaAbierta = _preguntaAbierta == preguntaId ? null : preguntaId;
+
+    private async Task ManejarTeclaAsync(TeclaEvaluado tecla)
+    {
+        await CalificarAsync(new CalificacionEvaluado(
+            tecla.PreguntaId,
+            tecla.IndiceEvaluado,
+            tecla.EvaluadoId,
+            tecla.Valor,
+            AvanzarAlSiguiente: true));
+    }
+
+    private async Task CalificarAsync(CalificacionEvaluado calificacion)
+    {
+        _calificaciones[EvaluacionAlumno.CrearClaveCalificacion(calificacion.PreguntaId, calificacion.EvaluadoId)] = calificacion.Valor;
+        var guardado = await AlumnoService.GuardarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno", _calificaciones);
+        if (!guardado)
+        {
+            _toast = "No se pudo guardar el borrador en este dispositivo.";
+        }
+
+        if (PreguntaCompleta(calificacion.PreguntaId))
+        {
+            _preguntaAbierta = _preguntaPendiente;
+            if (_preguntaAbierta is { } siguiente)
+            {
+                var primerEvaluado = _evaluacion!.Evaluados.First(e =>
+                    !_calificaciones.ContainsKey(EvaluacionAlumno.CrearClaveCalificacion(siguiente, e.Id)));
+                await InvokeAsync(StateHasChanged);
+                await Task.Yield();
+                await JsInterop.FocusByIdAsync(IdCalificacion(siguiente, primerEvaluado.Id, 1));
+            }
+            else
+            {
+                _preguntaAbierta = calificacion.PreguntaId;
+                await InvokeAsync(StateHasChanged);
+                await Task.Yield();
+                await JsInterop.FocusByIdAsync("boton-enviar-evaluacion");
+            }
+        }
+        else if (calificacion.AvanzarAlSiguiente && calificacion.IndiceEvaluado + 1 < _evaluacion!.Evaluados.Count)
+        {
+            var siguiente = _evaluacion.Evaluados[calificacion.IndiceEvaluado + 1];
+            await Task.Yield();
+            await JsInterop.FocusByIdAsync(IdCalificacion(calificacion.PreguntaId, siguiente.Id, 1));
+        }
+    }
+
+    private async Task IrASiguientePendiente()
+    {
+        if (_preguntaPendiente is not { } preguntaId || _evaluacion is null)
+        {
+            return;
+        }
+
+        _preguntaAbierta = preguntaId;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        var evaluado = _evaluacion.Evaluados.First(e =>
+            !_calificaciones.ContainsKey(EvaluacionAlumno.CrearClaveCalificacion(preguntaId, e.Id)));
+        await JsInterop.FocusByIdAsync(IdCalificacion(preguntaId, evaluado.Id, 1));
+    }
+
+    private async Task EscucharPreguntaAsync(PreguntaAlumno pregunta) =>
+        await JsInterop.SpeakAsync($"Pregunta {pregunta.Id} de {_evaluacion!.Preguntas.Count}. {pregunta.Texto}");
+
+    private async Task GuardarBorradorYSalirAsync()
+    {
+        var guardado = await AlumnoService.GuardarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno", _calificaciones);
+        Navigation.NavigateTo(guardado ? "/alumno?borrador=guardado" : "/alumno?borrador=error");
+    }
+
+    private void VolverAEncuestas() => Navigation.NavigateTo("/alumno");
+
+    private static string IdCalificacion(int preguntaId, string evaluadoId, int valor) =>
+        $"cal-{preguntaId}-{evaluadoId}-{valor}";
+
+    private Task CambiarDialogo(bool abierto)
+    {
+        _dialogoEnvio = abierto;
+        return Task.CompletedTask;
+    }
+
+    private Task RestaurarFocoEnvio() => Task.CompletedTask;
+
+    private async Task EnviarEvaluacionAsync()
+    {
+        if (!PuedeEnviar)
+        {
+            return;
+        }
+
+        var resultado = await AlumnoService.EnviarAsync(AuthService.CurrentUser?.Name ?? "alumno", _calificaciones);
+        if (!resultado.Exitoso)
+        {
+            _toast = resultado.Mensaje;
+            _dialogoEnvio = false;
+            return;
+        }
+
+        _dialogoEnvio = false;
+        Navigation.NavigateTo("/alumno/comprobante");
+    }
+}

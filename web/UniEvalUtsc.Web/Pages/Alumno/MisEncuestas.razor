@@ -1,0 +1,94 @@
+@page "/alumno"
+@attribute [Authorize(Roles = "Alumno")]
+@inject NavigationManager Navigation
+@inject IAlumnoService AlumnoService
+@inject AuthService AuthService
+
+<PageTitle>Mis encuestas · UniEval UTSC</PageTitle>
+
+@if (_evaluacion is not null)
+{
+    <main class="student-home alumno-pagina">
+        <h1 tabindex="-1">Mis encuestas</h1>
+        <p class="alumno-introduccion">Consulta y contesta tus evaluaciones del periodo actual.</p>
+        <section class="alumno-resumen-home" aria-label="Avance de encuestas">
+            <strong>@(_evaluacion.Enviado ? _evaluacion.Evaluados.Count : 0) de @_evaluacion.Evaluados.Count contestadas</strong>
+            <BarraProgreso Valor="@(_evaluacion.Enviado ? _evaluacion.Evaluados.Count : 0)" Maximo="@_evaluacion.Evaluados.Count" Label="Encuestas contestadas" />
+        </section>
+        <article class="alumno-tarjeta">
+            <header>
+                <div><span class="alumno-etiqueta">@_evaluacion.Periodo</span><h2>@(_evaluacion.EsEstadia ? "Evaluación de tutor de estadías" : "Evaluación del cuatrimestre")</h2></div>
+                <span class="alumno-tarjeta__formato">@_evaluacion.Formato</span>
+            </header>
+            <ul class="alumno-lista-evaluados">
+                @for (var indice = 0; indice < _evaluacion.Evaluados.Count; indice++)
+                {
+                    var evaluado = _evaluacion.Evaluados[indice];
+                    var respuestas = RespuestasDeEvaluado(evaluado.Id);
+                    <li class="@(evaluado.EsTutor ? "alumno-lista-evaluados__tutor" : null)">
+                        <span class="alumno-lista-evaluados__numero">@(indice + 1).</span>
+                        <span class="alumno-lista-evaluados__datos"><strong>@evaluado.Materia</strong><span>@evaluado.Nombre</span></span>
+                        <span class="alumno-lista-evaluados__estado">@EstadoEvaluado(respuestas)</span>
+                    </li>
+                }
+            </ul>
+            @if (!_evaluacion.PeriodoAbierto && !_evaluacion.Enviado)
+            {
+                <p class="alumno-aviso">El periodo no está abierto. No es posible contestar por el momento.</p>
+            }
+            <button class="boton" type="button" disabled="@(!_evaluacion.PeriodoAbierto || _evaluacion.Enviado)" @onclick="AbrirEncuesta">
+                @(_calificaciones.Count > 0 ? "Continuar evaluación" : "Contestar evaluación")
+            </button>
+            @if (_evaluacion.Enviado)
+            {
+                <button class="boton boton--contorno" type="button" @onclick="AbrirComprobante">Ver comprobante</button>
+            }
+        </article>
+        <Toast Message="@_toast" Visible="@(!string.IsNullOrWhiteSpace(_toast))" />
+    </main>
+}
+
+@code {
+    private EvaluacionAlumno? _evaluacion;
+    private Dictionary<string, int> _calificaciones = [];
+    private string? _toast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _evaluacion = AlumnoService.ObtenerEvaluacion();
+        _calificaciones = await AlumnoService.RecuperarBorradorAsync(AuthService.CurrentUser?.Name ?? "alumno");
+
+        if (Navigation.Uri.Contains("borrador=guardado", StringComparison.Ordinal))
+        {
+            _toast = "✓ Borrador guardado. Continúa cuando quieras desde Mis encuestas.";
+        }
+        else if (Navigation.Uri.Contains("borrador=error", StringComparison.Ordinal))
+        {
+            _toast = "No se pudo guardar el borrador. Intenta de nuevo.";
+        }
+    }
+
+    private int RespuestasDeEvaluado(string evaluadoId) =>
+        _evaluacion?.Preguntas.Count(pregunta =>
+            _calificaciones.ContainsKey(EvaluacionAlumno.CrearClaveCalificacion(pregunta.Id, evaluadoId))) ?? 0;
+
+    private string EstadoEvaluado(int respuestas)
+    {
+        if (_evaluacion is null)
+        {
+            return "Pendiente";
+        }
+
+        if (_evaluacion.Enviado)
+        {
+            return "Contestada";
+        }
+
+        return respuestas == 0
+            ? "Pendiente"
+            : $"Borrador guardado · {respuestas} de {_evaluacion.Preguntas.Count}";
+    }
+
+    private void AbrirEncuesta() => Navigation.NavigateTo("/alumno/encuesta");
+    private void AbrirComprobante() => Navigation.NavigateTo("/alumno/comprobante");
+}

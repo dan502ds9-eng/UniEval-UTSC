@@ -75,7 +75,7 @@ public sealed class AlumnoInMemoryServiceTests
         var respuestas = evaluacion.Preguntas
             .SelectMany(pregunta => evaluacion.Evaluados.Select(evaluado =>
                 new KeyValuePair<string, int>(
-                    AlumnoInMemoryService.LlaveCalificacion(pregunta.Id, evaluado.Id),
+                    EvaluacionAlumno.CrearClaveCalificacion(pregunta.Id, evaluado.Id),
                     8)))
             .ToDictionary(par => par.Key, par => par.Value);
 

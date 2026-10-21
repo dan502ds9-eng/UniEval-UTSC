@@ -12,7 +12,7 @@ var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
     ?? throw new InvalidOperationException("Falta configurar ApiBaseUrl en wwwroot/appsettings.json.");
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
 builder.Services.AddScoped<UnievalJsInterop>();
-builder.Services.AddScoped<AlumnoInMemoryService>();
+builder.Services.AddScoped<IAlumnoService, AlumnoInMemoryService>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<SimulatedAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(services =>

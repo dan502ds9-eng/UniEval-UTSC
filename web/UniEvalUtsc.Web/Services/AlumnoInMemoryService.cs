@@ -8,7 +8,7 @@ namespace UniEvalUtsc.Web.Services;
 public sealed class AlumnoInMemoryService(
     IConfiguration configuration,
     UnievalJsInterop jsInterop,
-    ILogger<AlumnoInMemoryService> logger)
+    ILogger<AlumnoInMemoryService> logger) : IAlumnoService
 {
     private const string PeriodoId = "sep-dic-2026";
     private const string PeriodoNombre = "Sep–Dic 2026";
@@ -93,6 +93,11 @@ public sealed class AlumnoInMemoryService(
         IReadOnlyDictionary<string, int> calificaciones)
     {
         var evaluacion = ObtenerEvaluacion();
+        if (_enviado)
+        {
+            return new ResultadoEnvioAlumno(false, "La evaluación ya fue enviada.");
+        }
+
         if (!evaluacion.PeriodoAbierto)
         {
             return new ResultadoEnvioAlumno(false, "El periodo no está abierto para recibir respuestas.");
@@ -116,6 +121,21 @@ public sealed class AlumnoInMemoryService(
         return new ResultadoEnvioAlumno(true, string.Empty);
     }
 
+    public ComprobanteAlumno? ObtenerComprobante()
+    {
+        if (!_enviado || _fechaEnvio is null)
+        {
+            return null;
+        }
+
+        var evaluacion = ObtenerEvaluacion();
+        return new ComprobanteAlumno(
+            PeriodoNombre,
+            evaluacion.Evaluados.Count,
+            evaluacion.Evaluados.Count,
+            _fechaEnvio);
+    }
+
     public IReadOnlyList<MensajeAlumno> ObtenerMensajes() => _mensajes;
 
     public int MensajesSinLeer => _mensajes.Count(mensaje => !mensaje.Leido);
@@ -135,9 +155,6 @@ public sealed class AlumnoInMemoryService(
         }
     }
 
-    public static string LlaveCalificacion(int preguntaId, string evaluadoId) =>
-        $"{preguntaId}:{evaluadoId}";
-
     private string ClaveBorrador(string alumno) =>
         $"unieval-borrador:{PeriodoId}:{alumno}";
 
@@ -146,7 +163,7 @@ public sealed class AlumnoInMemoryService(
         var evaluacion = ObtenerEvaluacion();
         return evaluacion.Preguntas
             .SelectMany(pregunta => evaluacion.Evaluados.Select(evaluado =>
-                LlaveCalificacion(pregunta.Id, evaluado.Id)))
+                EvaluacionAlumno.CrearClaveCalificacion(pregunta.Id, evaluado.Id)))
             .ToHashSet(StringComparer.Ordinal);
     }
 
@@ -200,46 +217,4 @@ public sealed class AlumnoInMemoryService(
         new(6, "El tutor brindó la orientación oportuna con el fin de encontrar opciones para atender las dificultades académicas, personales y/o de salud."),
         new(7, "El tutor mostró interés en los aspectos personales y académicos que podían repercutir en el desempeño académico de los alumnos.")
     ];
-}
-
-public sealed record EvaluacionAlumno(
-    string PeriodoId,
-    string Periodo,
-    string Grupo,
-    bool PeriodoAbierto,
-    bool EsEstadia,
-    IReadOnlyList<PreguntaAlumno> Preguntas,
-    IReadOnlyList<EvaluadoAlumno> Evaluados,
-    bool Enviado,
-    DateOnly? FechaEnvio)
-{
-    public string Formato => EsEstadia ? "FORM-AC64" : "FORM-AC16";
-    public int TotalRespuestas => Preguntas.Count * Evaluados.Count;
-}
-
-public sealed record PreguntaAlumno(int Id, string Texto);
-
-public sealed record EvaluadoAlumno(
-    string Id,
-    string Materia,
-    string Nombre,
-    bool EsTutor,
-    string Etiqueta);
-
-public sealed record ResultadoEnvioAlumno(bool Exitoso, string Mensaje);
-
-public sealed class MensajeAlumno(
-    string id,
-    string remitente,
-    string titulo,
-    string cuerpo,
-    DateOnly fecha,
-    bool leido)
-{
-    public string Id { get; } = id;
-    public string Remitente { get; } = remitente;
-    public string Titulo { get; } = titulo;
-    public string Cuerpo { get; } = cuerpo;
-    public DateOnly Fecha { get; } = fecha;
-    public bool Leido { get; set; } = leido;
 }

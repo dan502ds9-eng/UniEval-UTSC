@@ -1268,6 +1268,13 @@ html[data-theme="dark"] .acceso {
     border-radius: 0.875rem;
 }
 
+.alumno-calificacion-grupo {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
 .alumno-evaluado--tutor {
     border: 2px dashed var(--primary);
 }
