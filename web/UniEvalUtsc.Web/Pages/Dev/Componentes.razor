@@ -32,6 +32,25 @@
                 <Pill Value="7.9m" />
                 <Pill Value="8m" />
             </div>
+            <fieldset class="escala-muestra">
+                <legend>Selector de calificación</legend>
+                <div class="escala-muestra__opciones">
+                    @for (var calificacion = 1; calificacion <= 10; calificacion++)
+                    {
+                        var numero = calificacion;
+                        <label class="escala-muestra__opcion"
+                               style="--escala-color: var(--escala-@numero); --escala-tinta: var(--escala-tinta-@numero)">
+                            <input type="radio"
+                                   name="calificacion-clara"
+                                   value="@numero"
+                                   checked="@(_calificacion == numero)"
+                                   @onchange="() => SeleccionarCalificacion(numero)" />
+                            <span>@numero</span>
+                        </label>
+                    }
+                </div>
+                <p class="escala-muestra__leyenda">1–4 Bajo · 5–7 Medio · 8–10 Alto</p>
+            </fieldset>
             <div class="tema-muestra__fila">
                 <Etiqueta>Etiqueta informativa</Etiqueta>
                 <BotonRegresar Href="/" />
@@ -71,6 +90,25 @@
                 <Pill Value="7.9m" />
                 <Pill Value="8m" />
             </div>
+            <fieldset class="escala-muestra">
+                <legend>Selector de calificación</legend>
+                <div class="escala-muestra__opciones">
+                    @for (var calificacion = 1; calificacion <= 10; calificacion++)
+                    {
+                        var numero = calificacion;
+                        <label class="escala-muestra__opcion"
+                               style="--escala-color: var(--escala-@numero); --escala-tinta: var(--escala-tinta-@numero)">
+                            <input type="radio"
+                                   name="calificacion-oscura"
+                                   value="@numero"
+                                   checked="@(_calificacion == numero)"
+                                   @onchange="() => SeleccionarCalificacion(numero)" />
+                            <span>@numero</span>
+                        </label>
+                    }
+                </div>
+                <p class="escala-muestra__leyenda">1–4 Bajo · 5–7 Medio · 8–10 Alto</p>
+            </fieldset>
             <div class="tema-muestra__fila">
                 <Etiqueta>Etiqueta informativa</Etiqueta>
                 <BotonRegresar Href="/" />
@@ -120,12 +158,14 @@
     ];
 
     private string? _rol;
+    private int _calificacion = 8;
     private bool _dialogoAbierto;
     private bool _panelAbierto;
 
     private void AbrirDialogo() => _dialogoAbierto = true;
     private void CerrarDialogo() => _dialogoAbierto = false;
     private void AbrirPanel() => _panelAbierto = true;
+    private void SeleccionarCalificacion(int calificacion) => _calificacion = calificacion;
     private Task CambiarRol(string? rol)
     {
         _rol = rol;

@@ -5,6 +5,7 @@
         "input:not([disabled])",
         "select:not([disabled])",
         "textarea:not([disabled])",
+        "summary",
         "[tabindex]:not([tabindex='-1'])"
     ].join(",");
     const focusTraps = new WeakMap();
@@ -85,6 +86,11 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = "es-MX";
+            utterance.rate = 0.95;
+            const voces = window.speechSynthesis.getVoices();
+            utterance.voice = voces.find(voz => voz.lang.toLowerCase() === "es-mx")
+                ?? voces.find(voz => voz.lang.toLowerCase().startsWith("es-"))
+                ?? null;
             window.speechSynthesis.speak(utterance);
             return true;
         },

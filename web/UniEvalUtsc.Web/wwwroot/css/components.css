@@ -142,7 +142,7 @@
 
 .pill--bajo {
     background: var(--low);
-    color: #FFFFFF;
+    color: var(--on-low);
 }
 
 .pill--medio {
@@ -152,12 +152,66 @@
 
 .pill--alto {
     background: var(--high);
-    color: #FFFFFF;
+    color: var(--on-high);
 }
 
-[data-theme="dark"] .pill--bajo,
-[data-theme="dark"] .pill--alto {
-    color: #14110F;
+.escala-muestra {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.escala-muestra legend {
+    margin-bottom: var(--space-2);
+    font-weight: 600;
+}
+
+.escala-muestra__opciones {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(2.75rem, 1fr));
+    gap: var(--space-2);
+}
+
+.escala-muestra__opcion {
+    position: relative;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.escala-muestra__opcion input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+}
+
+.escala-muestra__opcion span {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: var(--button-radius);
+    background: var(--escala-color);
+    color: var(--escala-tinta);
+    font-weight: 700;
+}
+
+.escala-muestra__opcion input:checked + span {
+    border: 3px solid var(--ink);
+}
+
+.escala-muestra__opcion input:focus-visible + span {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.escala-muestra__leyenda {
+    margin-top: var(--space-2);
+    color: var(--mute);
+    font-size: 0.875rem;
 }
 
 .etiqueta {

@@ -16,6 +16,10 @@ html {
     scroll-padding-top: 1rem;
 }
 
+html[data-ts="125"] {
+    font-size: 125%;
+}
+
 html[data-ts="150"] {
     font-size: 150%;
 }
@@ -108,19 +112,6 @@ a {
 html[data-ts="150"] body :is(header, .stk, .snav),
 html[data-ts="200"] body :is(header, .stk, .snav) {
     position: static;
-}
-
-@media (max-width: 48rem) {
-    body {
-        overflow-x: hidden;
-    }
-
-    @media (max-width: 24rem) {
-        html[data-ts="150"],
-        html[data-ts="200"] {
-            overflow-x: clip;
-        }
-    }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
 @using System.Globalization
 
-<span class="pill pill--@NivelCss" aria-label="@AccessibleLabel">
+<span class="pill pill--@NivelCss">
     @if (MostrarValor)
     {
         <span>@ValorTexto</span>
@@ -12,9 +12,9 @@
     [Parameter] public decimal Value { get; set; }
     [Parameter] public bool MostrarValor { get; set; } = true;
 
-    public string Nivel => Value < 5 ? "Bajo" : Value < 8 ? "Medio" : "Alto";
+    public string Nivel => ValorRedondeado < 5 ? "Bajo" : ValorRedondeado < 8 ? "Medio" : "Alto";
 
     private string NivelCss => Nivel.ToLowerInvariant();
-    private string ValorTexto => Value.ToString("0.0", CultureInfo.InvariantCulture);
-    private string AccessibleLabel => MostrarValor ? $"{ValorTexto}, {Nivel}" : Nivel;
+    private decimal ValorRedondeado => Math.Round(Value, 1, MidpointRounding.AwayFromZero);
+    private string ValorTexto => ValorRedondeado.ToString("0.0", CultureInfo.InvariantCulture);
 }
