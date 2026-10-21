@@ -181,6 +181,10 @@
             document.getElementById(id)?.focus();
         },
 
+        print() {
+            window.print();
+        },
+
         speak(text) {
             if (!("speechSynthesis" in window)) {
                 return false;

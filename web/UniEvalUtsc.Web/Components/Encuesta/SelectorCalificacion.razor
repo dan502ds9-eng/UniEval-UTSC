@@ -20,6 +20,8 @@
 </fieldset>
 
 @code {
+    private static string Nivel(int valor) => Niveles.Nivel(valor).ToString().ToLowerInvariant();
+
     private readonly string _id = $"calificacion-{Guid.NewGuid():N}";
 
     [Parameter] public int? Value { get; set; }
@@ -30,8 +32,6 @@
     [Parameter] public string? IdPrefix { get; set; }
 
     private string Id(int valor) => $"{IdPrefix ?? _id}-{valor}";
-
-    private static string Nivel(int valor) => valor <= 4 ? "bajo" : valor <= 7 ? "medio" : "alto";
 
     private Task ManejarTeclaNumeroAsync(KeyboardEventArgs evento)
     {

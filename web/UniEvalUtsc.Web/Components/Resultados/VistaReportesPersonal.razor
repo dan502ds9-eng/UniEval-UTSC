@@ -1,0 +1,38 @@
+@using UniEvalUtsc.Contracts.Enums
+@inject IResultadosService ResultadosService
+@inject UnievalJsInterop JsInterop
+
+<section class="resultados-personal">
+    <table class="tabla-resultados">
+        <caption>Reportes por periodo y @(Rol == Rol.Tutor ? "grupo de tutoría" : "materia")</caption>
+        <thead>
+            <tr><th scope="col">Periodo</th><th scope="col">@(Rol == Rol.Tutor ? "Grupo" : "Materia")</th><th scope="col">Promedio</th><th scope="col">Nivel</th><th scope="col">Reporte</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var reporte in _reportes)
+            {
+                <tr>
+                    <td>@reporte.Periodo</td>
+                    <td><strong>@reporte.ElementoNombre</strong><small class="tabla-resultados__secundario">@reporte.Contexto</small></td>
+                    <td>@reporte.Promedio.ToString("0.0")</td>
+                    <td><Pill Value="@reporte.Promedio" MostrarValor="false" /></td>
+                    <td><button class="boton boton--contorno" type="button" @onclick="() => DescargarPdfAsync(reporte)">Descargar PDF</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+@code {
+    [Parameter] public Rol Rol { get; set; }
+    private IReadOnlyList<FilaReportePersonal> _reportes = [];
+
+    protected override void OnInitialized() =>
+        _reportes = ResultadosService.ObtenerReportes(Rol);
+
+    private async Task DescargarPdfAsync(FilaReportePersonal reporte)
+    {
+        _ = reporte;
+        await JsInterop.PrintAsync();
+    }
+}

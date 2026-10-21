@@ -1,0 +1,43 @@
+<article class="tarjeta-materia">
+    <header class="tarjeta-materia__encabezado">
+        <div>
+            <h2>@(Rol == Rol.Tutor ? "Mi grupo de tutoría" : Elemento.Nombre)</h2>
+            <p>@Elemento.Contexto</p>
+        </div>
+        @if (ResultadoDisponible)
+        {
+            <Pill Value="@Resultado!.PromedioGeneral" />
+        }
+    </header>
+    @if (ResultadoDisponible)
+    {
+        <div class="tarjeta-materia__promedio">
+            <span>Promedio general</span><strong>@Resultado!.PromedioGeneral.ToString("0.0")</strong>
+        </div>
+        <p>@Resultado!.Respuestas de @Resultado.TotalAlumnos alumnos contestaron</p>
+    }
+    else
+    {
+        <p class="tarjeta-materia__aviso" role="status">@Tarjeta.MensajeNoDisponible</p>
+        @if (!Tarjeta.Resultado.Periodo.Abierto && Tarjeta.Resultado.Respuestas < 5)
+        {
+            <p>@Tarjeta.Resultado.Respuestas de @Tarjeta.Resultado.TotalAlumnos alumnos contestaron</p>
+        }
+    }
+    <button class="boton boton--contorno"
+            type="button"
+            disabled="@(!ResultadoDisponible)"
+            @onclick="() => OnVerResultados.InvokeAsync(Elemento.Id)">
+        Ver resultados
+    </button>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public TarjetaResultado Tarjeta { get; set; } = default!;
+    [Parameter] public Rol Rol { get; set; }
+    [Parameter] public EventCallback<string> OnVerResultados { get; set; }
+
+    private ElementoResultado Elemento => Tarjeta.Elemento;
+    private bool ResultadoDisponible => Tarjeta.MensajeNoDisponible is null;
+    private ResultadoPersonal? Resultado => ResultadoDisponible ? Tarjeta.Resultado : null;
+}

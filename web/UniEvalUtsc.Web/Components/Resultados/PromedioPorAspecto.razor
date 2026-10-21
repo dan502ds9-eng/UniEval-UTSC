@@ -1,0 +1,47 @@
+<details class="promedio-aspecto">
+    <summary class="promedio-aspecto__cabecera">
+        <span>
+            <strong>Promedio por aspecto</strong>
+            <small>@Aspectos.Count aspectos · @Aspectos.Count(aspecto => Niveles.Redondear(aspecto.Promedio) < 8) por debajo de 8 · de menor a mayor puntuación</small>
+        </span>
+    </summary>
+    <div class="promedio-aspecto__contenido">
+        <div class="promedio-aspecto__leyenda">
+            <span><i class="promedio-aspecto__muestra" aria-hidden="true"></i>Barra: puntuación obtenida (0 a 10)</span>
+            <span><i class="promedio-aspecto__marca" aria-hidden="true"></i>Línea: promedio de la carrera</span>
+            <span><i class="promedio-aspecto__nivel promedio-aspecto__nivel--bajo" aria-hidden="true"></i>Bajo &lt;5</span>
+            <span><i class="promedio-aspecto__nivel promedio-aspecto__nivel--medio" aria-hidden="true"></i>Medio 5–7.9</span>
+            <span><i class="promedio-aspecto__nivel promedio-aspecto__nivel--alto" aria-hidden="true"></i>Alto 8–10</span>
+        </div>
+        @foreach (var (aspecto, indice) in Aspectos.OrderBy(aspecto => aspecto.Promedio).ThenBy(aspecto => aspecto.Numero).Select((aspecto, indice) => (aspecto, indice)))
+        {
+            var diferencia = Math.Round(aspecto.Promedio - aspecto.PromedioCarrera, 1, MidpointRounding.AwayFromZero);
+            var claseNivel = Niveles.Nivel(aspecto.Promedio).ToString().ToLowerInvariant();
+            <article class="promedio-aspecto__fila">
+                <div class="promedio-aspecto__datos">
+                    <div class="promedio-aspecto__nombre">
+                        <span>@(indice + 1).</span>
+                        <strong>@aspecto.Texto</strong>
+                    </div>
+                    <div class="promedio-aspecto__valores">
+                        <span><small>Puntuación</small><strong>@aspecto.Promedio.ToString("0.0")</strong></span>
+                        <span><small>Carrera</small><strong>@aspecto.PromedioCarrera.ToString("0.0")</strong></span>
+                        <strong class="promedio-aspecto__diferencia @(diferencia >= 0 ? "promedio-aspecto__diferencia--positiva" : "promedio-aspecto__diferencia--negativa")">
+                            @(diferencia > 0 ? "+" : string.Empty)@diferencia.ToString("0.0")
+                        </strong>
+                    </div>
+                </div>
+                <div class="promedio-aspecto__barra"
+                     role="img"
+                     aria-label="@($"{aspecto.Texto}: puntuación {aspecto.Promedio:0.0} de 10, nivel {claseNivel}; promedio de la carrera {aspecto.PromedioCarrera:0.0}; diferencia {(diferencia > 0 ? "más " : string.Empty)}{diferencia:0.0}")">
+                    <span class="promedio-aspecto__relleno promedio-aspecto__relleno--@claseNivel" style="@($"width:{Math.Clamp(aspecto.Promedio * 10, 0, 100):0.0}%")"></span>
+                    <span class="promedio-aspecto__referencia" style="@($"left:{Math.Clamp(aspecto.PromedioCarrera * 10, 0, 100):0.0}%")"></span>
+                </div>
+            </article>
+        }
+    </div>
+</details>
+
+@code {
+    [Parameter] public IReadOnlyList<AspectoResultado> Aspectos { get; set; } = [];
+}
