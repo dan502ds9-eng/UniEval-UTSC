@@ -2,30 +2,32 @@
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 
-<PageTitle>Tu opinión mejora la UTSC · UniEval UTSC</PageTitle>
+<PageTitle>Iniciar sesión · UniEval UTSC</PageTitle>
 
 <main class="acceso">
     <section class="acceso__contenido" aria-labelledby="titulo-acceso">
         <p class="acceso__marca">UniEval / UTSC</p>
         <h1 id="titulo-acceso">Tu opinión mejora la UTSC</h1>
-        <p>Evalúa el desempeño docente y de tutoría de forma anónima.</p>
+        <p class="acceso__apoyo">Evalúa a tus docentes y a tu tutor del cuatrimestre desde tu celular. Son anónimas.</p>
         <div class="acceso__tarjeta">
+            <h2>Iniciar sesión</h2>
+            <p class="acceso__simulacion">Simulación: elige con qué cuenta entras.</p>
             <label for="rol-acceso">Tipo de usuario</label>
             <select id="rol-acceso" @bind="_rolSeleccionado">
                 @foreach (var rol in _roles)
                 {
-                    <option value="@rol">@rol</option>
+                    <option value="@rol">@AuthService.Etiqueta(rol)</option>
                 }
             </select>
             @if (AuthService.EntraConfigurado)
             {
-                <p role="status">Microsoft Entra ID está configurado, pero su inicio de sesión aún no está implementado.</p>
+                <p class="acceso__nota" role="status">Microsoft Entra ID está configurado como proveedor, pero su integración sigue pendiente.</p>
                 <button class="boton" disabled>Iniciar sesión con Microsoft 365</button>
             }
             else
             {
-                <button class="boton" @onclick="IniciarSesion">Iniciar sesión</button>
-                <p class="acceso__nota">Modo simulado</p>
+                <button class="boton" @onclick="IniciarSesion">Iniciar sesión con Microsoft 365</button>
+                <p class="acceso__nota">Usa tu cuenta institucional. No guardamos contraseñas.</p>
             }
         </div>
     </section>
@@ -37,7 +39,13 @@
 
     private async Task IniciarSesion()
     {
-        await AuthService.SignInSimuladoAsync(_rolSeleccionado);
-        Navigation.NavigateTo(AuthService.InicioPorRol(_rolSeleccionado));
+        if (_rolSeleccionado == Rol.Alumno)
+        {
+            await AuthService.SignInSimuladoAsync(_rolSeleccionado);
+            Navigation.NavigateTo(AuthService.InicioPorRol(_rolSeleccionado));
+            return;
+        }
+
+        Navigation.NavigateTo($"/acceso/{_rolSeleccionado}");
     }
 }

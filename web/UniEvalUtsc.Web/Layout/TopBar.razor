@@ -4,7 +4,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<header class="topbar">
+<header class="@CssClass">
     <a class="topbar__marca" href="/" aria-label="UniEval UTSC, inicio">
         <span class="topbar__simbolo" aria-hidden="true">U</span>
         <span><strong>UniEval</strong><small>UTSC</small></span>
@@ -97,6 +97,9 @@
     private bool _usuarioAbierto;
     private string _tema = "light";
     private int _escala = 100;
+    private string CssClass => Navigation.ToBaseRelativePath(Navigation.Uri) is ""
+        ? "topbar topbar--acceso"
+        : "topbar";
     private static string EtiquetaEscala(int tamaño) => tamaño switch
     {
         100 => "Normal 100%",
@@ -109,6 +112,7 @@
     protected override void OnInitialized()
     {
         AuthenticationStateProvider.AuthenticationStateChanged += HandleAuthenticationChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -212,9 +216,17 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _ = sender;
+        _ = args;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         AuthenticationStateProvider.AuthenticationStateChanged -= HandleAuthenticationChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
         _callback?.Dispose();
     }
 

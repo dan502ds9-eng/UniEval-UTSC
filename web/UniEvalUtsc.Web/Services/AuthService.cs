@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using System.Text.Json;
 using UniEvalUtsc.Contracts.Enums;
@@ -9,7 +10,8 @@ namespace UniEvalUtsc.Web.Services;
 public sealed class AuthService(
     IConfiguration configuration,
     SimulatedAuthenticationStateProvider authenticationStateProvider,
-    IJSRuntime jsRuntime)
+    IJSRuntime jsRuntime,
+    ILogger<AuthService> logger)
 {
     private const string SessionStorageKey = "unieval-sesion-simulada";
 
@@ -27,16 +29,37 @@ public sealed class AuthService(
             return;
         }
 
-        var storedUser = await jsRuntime.InvokeAsync<string?>("unieval.getSessionStorage", SessionStorageKey);
+        string? storedUser;
+        try
+        {
+            storedUser = await jsRuntime.InvokeAsync<string?>("unieval.getSessionStorage", SessionStorageKey);
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            logger.LogError(exception, "No fue posible restaurar la sesión simulada desde sessionStorage.");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(storedUser))
         {
             return;
         }
 
-        var user = JsonSerializer.Deserialize<AuthenticatedUser>(storedUser);
-        if (user is not null && Enum.IsDefined(user.Role))
+        try
         {
-            await authenticationStateProvider.SetUserAsync(user);
+            var user = JsonSerializer.Deserialize<AuthenticatedUser>(storedUser);
+            if (user is not null && Enum.IsDefined(user.Role))
+            {
+                await authenticationStateProvider.SetUserAsync(user);
+            }
+            else
+            {
+                logger.LogError("La sesión simulada almacenada contiene un rol no válido.");
+            }
+        }
+        catch (JsonException exception)
+        {
+            logger.LogError(exception, "La sesión simulada almacenada no tiene un formato válido.");
         }
     }
 
@@ -48,12 +71,24 @@ public sealed class AuthService(
             throw new NotSupportedException("La autenticación con Microsoft Entra ID está preparada, pero aún no implementada.");
         }
 
-        var user = new AuthenticatedUser(NombresPorRol[rol], rol);
-        var session = JsonSerializer.Serialize(user);
-        var persisted = await jsRuntime.InvokeAsync<bool>("unieval.setSessionStorage", SessionStorageKey, session);
-        if (!persisted)
+        if (!NombresPorRol.TryGetValue(rol, out var nombre))
         {
-            throw new InvalidOperationException("No fue posible guardar la sesión simulada en sessionStorage.");
+            throw new ArgumentOutOfRangeException(nameof(rol), rol, "El rol no está soportado.");
+        }
+
+        var user = new AuthenticatedUser(nombre, rol);
+        var session = JsonSerializer.Serialize(user);
+        try
+        {
+            var persisted = await jsRuntime.InvokeAsync<bool>("unieval.setSessionStorage", SessionStorageKey, session);
+            if (!persisted)
+            {
+                logger.LogError("No fue posible guardar la sesión simulada; la sesión permanecerá en memoria.");
+            }
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            logger.LogError(exception, "No fue posible guardar la sesión simulada; la sesión permanecerá en memoria.");
         }
 
         await authenticationStateProvider.SetUserAsync(user);
@@ -61,10 +96,17 @@ public sealed class AuthService(
 
     public async Task SignOutAsync()
     {
-        var removed = await jsRuntime.InvokeAsync<bool>("unieval.removeSessionStorage", SessionStorageKey);
-        if (!removed)
+        try
         {
-            throw new InvalidOperationException("No fue posible eliminar la sesión simulada de sessionStorage.");
+            var removed = await jsRuntime.InvokeAsync<bool>("unieval.removeSessionStorage", SessionStorageKey);
+            if (!removed)
+            {
+                logger.LogError("No fue posible eliminar la sesión simulada de sessionStorage; se cerrará en memoria.");
+            }
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            logger.LogError(exception, "No fue posible eliminar la sesión simulada; se cerrará en memoria.");
         }
 
         await authenticationStateProvider.SetUserAsync(null);

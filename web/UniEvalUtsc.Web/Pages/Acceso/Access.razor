@@ -1,31 +1,80 @@
 @page "/acceso/{RutaRol}"
 @inject AuthService AuthService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<PageTitle>Iniciar sesión · UniEval UTSC</PageTitle>
+<PageTitle>@(AuthService.Etiqueta(_rol)) · UniEval UTSC</PageTitle>
 
-<main class="acceso">
-    <section class="acceso__contenido" aria-labelledby="titulo-acceso">
-        <p class="acceso__marca">UniEval / UTSC</p>
-        <h1 id="titulo-acceso">Tu opinión mejora la UTSC</h1>
-        <p>Evalúa el desempeño docente y de tutoría de forma anónima.</p>
-        <div class="acceso__tarjeta">
-            <label for="rol-acceso">Tipo de usuario</label>
-            <select id="rol-acceso" @bind="_rolSeleccionado">
-                @foreach (var rol in _roles)
-                {
-                    <option value="@rol">@rol</option>
-                }
-            </select>
-            @if (AuthService.EntraConfigurado)
+<main class="acceso-personal">
+    <section class="acceso-personal__contenido" aria-labelledby="titulo-acceso-personal">
+        @if (!_pasoCodigo)
+        {
+            <a class="acceso-personal__regresar" href="/">← Regresar al inicio de sesión</a>
+        }
+        else
+        {
+            <button class="acceso-personal__regresar" type="button" @onclick="RegresarAlPasoAnterior">← Regresar</button>
+        }
+        <div class="acceso-personal__tarjeta">
+            <p class="acceso-personal__etiqueta">ACCESO DE PERSONAL</p>
+            <h1 id="titulo-acceso-personal">@AuthService.Etiqueta(_rol)</h1>
+            @if (!_pasoCodigo)
             {
-                <p role="status">Microsoft Entra ID está configurado, pero su inicio de sesión aún no está implementado.</p>
-                <button class="boton" disabled>Iniciar sesión con Microsoft 365</button>
+                <p class="acceso__simulacion">Ingresa tus datos institucionales para continuar.</p>
+                <form @onsubmit="Continuar" @onsubmit:preventDefault>
+                    <div class="acceso__campos">
+                        <label for="correo-institucional">Correo institucional</label>
+                        <input @ref="_correoInput"
+                               id="correo-institucional"
+                               type="email"
+                               autocomplete="username"
+                               inputmode="email"
+                               required
+                               @bind="_correo"
+                               @bind:event="oninput" />
+                        <label for="contrasena">Contraseña</label>
+                        <input @ref="_contrasenaInput"
+                               id="contrasena"
+                               type="password"
+                               autocomplete="current-password"
+                               required
+                               @bind="_contrasena"
+                               @bind:event="oninput" />
+                        @if (_error is not null)
+                        {
+                            <p class="acceso__error" role="alert">@_error</p>
+                        }
+                        <button class="boton" type="submit">Continuar</button>
+                    </div>
+                </form>
             }
             else
             {
-                <button class="boton" @onclick="IniciarSesion">Iniciar sesión</button>
-                <p class="acceso__nota">Modo simulado</p>
+                <h2>Verificación en dos pasos</h2>
+                <p class="acceso__simulacion">Ingresa el código de seis dígitos de tu aplicación de verificación.</p>
+                <form @onsubmit="VerificarCodigo" @onsubmit:preventDefault novalidate>
+                    <div class="acceso__campos">
+                        <label for="codigo-verificacion">Código de verificación</label>
+                        <input @ref="_codigoInput"
+                               id="codigo-verificacion"
+                               type="text"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               pattern="[0-9]{6}"
+                               minlength="6"
+                               maxlength="6"
+                               aria-describedby="codigo-ayuda"
+                               required
+                               @bind="_codigo"
+                               @bind:event="oninput" />
+                        <span id="codigo-ayuda">Escribe los seis dígitos recibidos.</span>
+                        @if (_error is not null)
+                        {
+                            <p class="acceso__error" role="alert">@_error</p>
+                        }
+                        <button class="boton" type="submit">Continuar</button>
+                    </div>
+                </form>
             }
         </div>
     </section>
@@ -33,20 +82,98 @@
 
 @code {
     [Parameter] public string RutaRol { get; set; } = string.Empty;
-    private readonly Rol[] _roles = Enum.GetValues<Rol>();
-    private Rol _rolSeleccionado = Rol.Alumno;
+
+    private ElementReference _correoInput;
+    private ElementReference _contrasenaInput;
+    private ElementReference _codigoInput;
+    private Rol _rol;
+    private string _correo = string.Empty;
+    private string _contrasena = string.Empty;
+    private string _codigo = string.Empty;
+    private string? _error;
+    private bool _pasoCodigo;
+    private bool _enfocarCodigoPendiente;
 
     protected override void OnParametersSet()
     {
-        if (Enum.TryParse<Rol>(RutaRol, ignoreCase: true, out var rol))
+        if (!Enum.TryParse<Rol>(RutaRol, ignoreCase: true, out _rol) || _rol == Rol.Alumno)
         {
-            _rolSeleccionado = rol;
+            Navigation.NavigateTo("/", replace: true);
         }
     }
 
-    private async Task IniciarSesion()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await AuthService.SignInSimuladoAsync(_rolSeleccionado);
-        Navigation.NavigateTo(AuthService.InicioPorRol(_rolSeleccionado));
+        if (_pasoCodigo)
+        {
+            await JS.InvokeVoidAsync("unieval.bindEnterAdvance", _codigoInput, null);
+            if (_enfocarCodigoPendiente)
+            {
+                _enfocarCodigoPendiente = false;
+                await JS.InvokeVoidAsync("unieval.focusElement", _codigoInput);
+            }
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("unieval.bindEnterAdvance", _correoInput, _contrasenaInput);
+        }
+    }
+
+    private async Task Continuar()
+    {
+        _error = null;
+        if (AuthService.EntraConfigurado)
+        {
+            _error = "El acceso con Microsoft 365 aún no está configurado.";
+            return;
+        }
+
+        if (!EsCorreoInstitucional(_correo))
+        {
+            _error = "Ingresa un correo institucional válido.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_contrasena))
+        {
+            _error = "Ingresa tu contraseña.";
+            return;
+        }
+
+        _pasoCodigo = true;
+        _enfocarCodigoPendiente = true;
+    }
+
+    private async Task VerificarCodigo()
+    {
+        _error = null;
+        if (AuthService.EntraConfigurado)
+        {
+            _error = "El acceso con Microsoft 365 aún no está configurado.";
+            return;
+        }
+
+        if (_codigo.Length != 6 || !_codigo.All(char.IsAsciiDigit))
+        {
+            _error = "El código debe contener seis dígitos.";
+            return;
+        }
+
+        await AuthService.SignInSimuladoAsync(_rol);
+        Navigation.NavigateTo(AuthService.InicioPorRol(_rol));
+    }
+
+    private void RegresarAlPasoAnterior()
+    {
+        _pasoCodigo = false;
+        _codigo = string.Empty;
+        _error = null;
+    }
+
+    private static bool EsCorreoInstitucional(string correo)
+    {
+        var separador = correo.LastIndexOf('@');
+        return separador > 0
+            && string.Equals(correo[(separador + 1)..], "utsc.edu.mx", StringComparison.OrdinalIgnoreCase);
     }
 }
