@@ -19,9 +19,11 @@ public class EncuestaAsignada
     private EncuestaAsignada() { } // EF Core
 
     // RN-02: una encuesta por materia (carga académica)
-    public static EncuestaAsignada ParaDocente(int alumnoId, int grupoId, int plantillaId, int cargaAcademicaId) =>
+    public static EncuestaAsignada ParaDocente(
+        int alumnoId, int grupoId, int plantillaId, int cargaAcademicaId, int id = 0) =>
         new()
         {
+            Id = id,
             AlumnoId = alumnoId,
             GrupoId = grupoId,
             PlantillaId = plantillaId,
@@ -31,9 +33,11 @@ public class EncuestaAsignada
         };
 
     // RN-04: una sola encuesta de tutor por grupo
-    public static EncuestaAsignada ParaTutor(int alumnoId, int grupoId, int plantillaId, int tutorId) =>
+    public static EncuestaAsignada ParaTutor(
+        int alumnoId, int grupoId, int plantillaId, int tutorId, int id = 0) =>
         new()
         {
+            Id = id,
             AlumnoId = alumnoId,
             GrupoId = grupoId,
             PlantillaId = plantillaId,
