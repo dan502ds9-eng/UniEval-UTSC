@@ -98,20 +98,23 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
                 var resultado = Calcular(datos, p, tipo, carga, grupo);
                 return resultado.Oculto
                     ? new PuntoHistoricoDto(p.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), p.Nombre,
-                        null, null, "Menos de cinco respuestas")
+                        null, null, resultado.Respuestas == 0 ? "Sin encuesta en este periodo" : $"Menos de 5 respuestas ({resultado.Respuestas})")
                     : new PuntoHistoricoDto(p.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), p.Nombre,
                         resultado.PromedioGeneral, resultado.Nivel!.Value.ToString());
             }).ToArray();
     }
 
-    public async Task<IReadOnlyCollection<ResultadoGestionDto>> ObtenerResultadosGestionAsync(
+    public async Task<ResultadosGestionListaDto> ObtenerResultadosGestionAsync(
         string usuarioId, IReadOnlyCollection<string> roles, string? carreraSolicitada,
         int? periodoId, int? cuatrimestre, bool tutores, CancellationToken ct = default)
     {
         var carrera = await CarreraEfectivaAsync(usuarioId, roles, carreraSolicitada, ct);
         var datos = await repositorio.ObtenerDatosAsync(ct);
-        if (periodoId is int solicitado && datos.Periodos.Any(p => p.Id == solicitado && p.Estado != EstadoPeriodo.Cerrado))
-            return [NoDisponibleGestion()];
+        if (periodoId is int solicitado)
+        {
+            var periodoSolicitado = ObtenerPeriodo(datos, solicitado);
+            if (periodoSolicitado.Estado != EstadoPeriodo.Cerrado) return new(false, []);
+        }
         var periodos = periodoId is int id
             ? datos.Periodos.Where(x => x.Id == id && x.Estado == EstadoPeriodo.Cerrado).ToArray()
             : datos.Periodos.Where(x => x.Estado == EstadoPeriodo.Cerrado).ToArray();
@@ -133,7 +136,7 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
                 resultados.Add(MapearGestion(Calcular(datos, periodo, TipoEncuesta.Docente, cargaAcademicaId: carga.Id),
                     datos, periodo, grupo, carga, TipoEncuesta.Docente));
         }
-        return resultados;
+        return new(true, resultados);
     }
 
     public async Task<ResultadoGestionDto> ObtenerDetalleGestionAsync(
@@ -225,23 +228,29 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
         if (numeroRespuestas < ReglasNegocio.MinimoRespuestas)
             return new(true, numeroRespuestas, null, null, null, null, []);
 
+        var respuestasCarrera = datos.Respuestas.Where(r => r.PeriodoId == periodo.Id && r.Tipo == respuestas.First().Tipo
+            && datos.Grupos.Any(g => g.Id == r.GrupoId && g.CarreraId == carreraId)).ToArray();
+        var respuestasCarreraTotal = respuestasCarrera.Select(r => r.Id).Distinct().Count();
+        var carreraAlcanzaMinimo = respuestasCarreraTotal >= ReglasNegocio.MinimoRespuestas;
         var detalles = respuestas.SelectMany(r => r.Detalles.Select(d => (Respuesta: r, Detalle: d))).ToArray();
         var aspectos = detalles.GroupBy(x => x.Detalle.AspectoId).OrderBy(x => x.Key).Select(agrupacion =>
         {
             var promedio = Niveles.Redondear(agrupacion.Average(x => (decimal)x.Detalle.Calificacion));
+            var respuestasAspectoCarrera = respuestasCarrera.SelectMany(r => r.Detalles)
+                .Where(d => d.AspectoId == agrupacion.Key).ToArray();
+            decimal? promedioAspectoCarrera = carreraAlcanzaMinimo && respuestasAspectoCarrera.Length > 0
+                ? Niveles.Redondear(respuestasAspectoCarrera.Average(d => (decimal)d.Calificacion))
+                : null;
             var plantilla = datos.Plantillas.FirstOrDefault(p => p.Id == agrupacion.First().Respuesta.PlantillaId);
             var aspecto = plantilla?.Aspectos.FirstOrDefault(a => a.Id == agrupacion.Key);
             var texto = aspecto?.Texto ?? $"Aspecto {agrupacion.Key}";
             var textoCorto = aspecto?.TextoCorto ?? CortarTexto(texto, 48);
-            return new AspectoResultado(agrupacion.Key, texto, textoCorto, promedio, promedio, Niveles.Nivel(promedio).ToString());
+            return new AspectoResultado(agrupacion.Key, texto, textoCorto, promedio, promedioAspectoCarrera, Niveles.Nivel(promedio).ToString());
         }).ToArray();
         var promedioGeneral = Niveles.Redondear(detalles.Average(x => (decimal)x.Detalle.Calificacion));
         var promedioCarrera = promedioGeneral;
-        if (respuestas.Count > 0)
+        if (respuestasCarrera.Length > 0)
         {
-            var tipo = respuestas.First().Tipo;
-            var respuestasCarrera = datos.Respuestas.Where(r => r.PeriodoId == periodo.Id && r.Tipo == tipo
-                && datos.Grupos.Any(g => g.Id == r.GrupoId && g.CarreraId == carreraId));
             var detallesCarrera = respuestasCarrera.SelectMany(r => r.Detalles).ToArray();
             if (detallesCarrera.Length > 0)
                 promedioCarrera = Niveles.Redondear(detallesCarrera.Average(x => (decimal)x.Calificacion));

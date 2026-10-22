@@ -14,6 +14,7 @@ public sealed class RepositorioResultadosInMemory(AlmacenEvaluacionInMemory alma
             .Concat([
                 new(101, 6, "Aplicaciones Web", "Óscar Gabriel Chávez Gómez"),
                 new(102, 6, "Bases de Datos", "Sem Tomás Hernández Martínez"),
+                new(103, 6, "Proyecto Integrador II", "Juan Pablo Vega Ramírez"),
                 new(108, 8, "Procesos Industriales", "Docente de Mantenimiento Industrial")
             ]).ToArray();
         var grupos = new[]

@@ -39,14 +39,14 @@ public sealed class ResultadosController(ConsultarResultadosService consultas) :
     private IReadOnlyCollection<string> Roles => User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
 
     [HttpGet("docentes")]
-    [ProducesResponseType<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>(200)]
-    public async Task<ActionResult<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>> Docentes([FromQuery] int? periodoId, [FromQuery] string? carreraId,
+    [ProducesResponseType<UniEvalUtsc.Contracts.Dtos.ResultadosGestionListaDto>(200)]
+    public async Task<ActionResult<UniEvalUtsc.Contracts.Dtos.ResultadosGestionListaDto>> Docentes([FromQuery] int? periodoId, [FromQuery] string? carreraId,
         [FromQuery] int? cuatrimestre, CancellationToken ct) =>
         Ok(await consultas.ObtenerResultadosGestionAsync(UsuarioId, Roles, carreraId, periodoId, cuatrimestre, false, ct));
 
     [HttpGet("tutores")]
-    [ProducesResponseType<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>(200)]
-    public async Task<ActionResult<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>> Tutores([FromQuery] int? periodoId, [FromQuery] string? carreraId,
+    [ProducesResponseType<UniEvalUtsc.Contracts.Dtos.ResultadosGestionListaDto>(200)]
+    public async Task<ActionResult<UniEvalUtsc.Contracts.Dtos.ResultadosGestionListaDto>> Tutores([FromQuery] int? periodoId, [FromQuery] string? carreraId,
         [FromQuery] int? cuatrimestre, CancellationToken ct) =>
         Ok(await consultas.ObtenerResultadosGestionAsync(UsuarioId, Roles, carreraId, periodoId, cuatrimestre, true, ct));
 

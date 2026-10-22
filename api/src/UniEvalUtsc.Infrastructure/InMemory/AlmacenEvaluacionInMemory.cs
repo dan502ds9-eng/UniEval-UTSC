@@ -140,6 +140,16 @@ public sealed class AlmacenEvaluacionInMemory
             _respuestas.Add(Respuesta.Crear(asignada, plantillaDocente, calificacionesDocente, periodoId: 2));
         }
 
+        var calificacionesOtroDocente = plantillaDocente.Aspectos
+            .Select(aspecto => new CalificacionAspecto(aspecto.Id, 6)).ToArray();
+        for (var index = 0; index < 5; index++)
+        {
+            var asignada = EncuestaAsignada.ParaDocente(index + 11, 6, 16, 103, periodoId: 2, id: 700 + index);
+            asignada.MarcarContestada(new DateOnly(2026, 8, 20));
+            _encuestas.Add(asignada.Id, asignada);
+            _respuestas.Add(Respuesta.Crear(asignada, plantillaDocente, calificacionesOtroDocente, periodoId: 2));
+        }
+
         for (var index = 0; index < 3; index++)
         {
             var asignada = EncuestaAsignada.ParaTutor(index + 6, 7, 64, 502, periodoId: 2, id: 400 + index);

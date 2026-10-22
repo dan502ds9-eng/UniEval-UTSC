@@ -21,7 +21,7 @@ public sealed record AspectoResultado(
     string Texto,
     string TextoCorto,
     decimal Promedio,
-    decimal PromedioCarrera,
+    decimal? PromedioCarrera,
     string Nivel)
 {
     public AspectoResultado(int numero, string texto, decimal promedio, decimal promedioCarrera, string nivel)
@@ -59,6 +59,7 @@ public sealed record ResultadoPropioDto(
     ElementoResultado? Elemento, PeriodoResultado? Periodo, decimal? PromedioGeneral,
     decimal? PromedioCarrera, IReadOnlyList<AspectoResultado>? Aspectos);
 public sealed record ResumenResultadosDto(bool Disponible, IReadOnlyList<ResultadoPropioDto> Resultados);
+public sealed record ResultadosGestionListaDto(bool Disponible, IReadOnlyList<ResultadoGestionDto> Resultados);
 public sealed record ResultadoGestionDto(
     bool? Disponible, bool? Oculto, int? Respuestas, int? Alumnos,
     string? Id, string? CarreraId, string? Nombre, string? Contexto, string? Periodo,

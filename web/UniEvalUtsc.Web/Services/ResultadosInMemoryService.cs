@@ -173,7 +173,7 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
             general,
             respuestas,
             elemento.TotalAlumnos,
-            Niveles.Redondear(aspectos.Average(aspecto => aspecto.PromedioCarrera)),
+            Niveles.Redondear(aspectos.Average(aspecto => aspecto.PromedioCarrera ?? aspecto.Promedio)),
             aspectos);
     }
 

@@ -56,7 +56,10 @@ public sealed class ResultadosMensajesApiTests
 
         var historico = await ambos.GetFromJsonAsync<JsonElement[]>("/api/mis-resultados/historico?cargaAcademicaId=102");
         Assert.NotNull(historico);
-        Assert.All(historico, item => Assert.Equal("Menos de cinco respuestas", item.GetProperty("motivo").GetString()));
+        Assert.Contains(historico!, item => item.GetProperty("periodoId").GetString() == "2"
+            && item.GetProperty("motivo").GetString() == "Menos de 5 respuestas (2)");
+        Assert.Contains(historico!, item => item.GetProperty("periodoId").GetString() == "3"
+            && item.GetProperty("motivo").GetString() == "Sin encuesta en este periodo");
         Assert.Equal(HttpStatusCode.Forbidden,
             (await Cliente(api, "3").GetAsync("/api/mis-resultados/historico?cargaAcademicaId=101")).StatusCode);
     }
@@ -68,32 +71,37 @@ public sealed class ResultadosMensajesApiTests
         using var admin = Cliente(api, "5");
         using var coordinador = Cliente(api, "4");
 
-        var docentes = await admin.GetFromJsonAsync<JsonElement[]>("/api/resultados/docentes?periodoId=2&carreraId=dsm&cuatrimestre=5");
-        Assert.NotNull(docentes);
-        Assert.Contains(docentes, x => x.TryGetProperty("promedio", out _));
-        Assert.Contains(docentes, x => x.TryGetProperty("oculto", out _));
+        var docentes = await admin.GetFromJsonAsync<JsonElement>("/api/resultados/docentes?periodoId=2&carreraId=dsm&cuatrimestre=5");
+        Assert.True(docentes.GetProperty("disponible").GetBoolean());
+        var listaDocentes = docentes.GetProperty("resultados").EnumerateArray().ToArray();
+        Assert.Contains(listaDocentes, x => x.TryGetProperty("promedio", out _));
+        Assert.Contains(listaDocentes, x => x.TryGetProperty("oculto", out _));
 
-        var tutores = await admin.GetFromJsonAsync<JsonElement[]>("/api/resultados/tutores?periodoId=2&carreraId=dsm&cuatrimestre=5");
-        Assert.NotNull(tutores);
-        Assert.Contains(tutores, x => x.TryGetProperty("promedio", out _));
+        var tutores = await admin.GetFromJsonAsync<JsonElement>("/api/resultados/tutores?periodoId=2&carreraId=dsm&cuatrimestre=5");
+        Assert.True(tutores.GetProperty("disponible").GetBoolean());
+        var listaTutores = tutores.GetProperty("resultados").EnumerateArray().ToArray();
+        Assert.Contains(listaTutores, x => x.TryGetProperty("promedio", out _));
 
-        var coordinadorMti = await coordinador.GetFromJsonAsync<JsonElement[]>("/api/resultados/docentes?periodoId=2&carreraId=mti&cuatrimestre=5");
-        Assert.NotNull(coordinadorMti);
-        Assert.Contains(coordinadorMti, x => x.TryGetProperty("oculto", out _) || x.TryGetProperty("promedioGeneral", out _));
-        Assert.DoesNotContain(coordinadorMti, x => x.TryGetProperty("carreraId", out var c) && c.GetString() == "mti");
+        var coordinadorMti = await coordinador.GetFromJsonAsync<JsonElement>("/api/resultados/docentes?periodoId=2&carreraId=mti&cuatrimestre=5");
+        Assert.True(coordinadorMti.GetProperty("disponible").GetBoolean());
+        var listaCoordinadorMti = coordinadorMti.GetProperty("resultados").EnumerateArray().ToArray();
+        Assert.Contains(listaCoordinadorMti, x => x.TryGetProperty("oculto", out _) || x.TryGetProperty("promedioGeneral", out _));
+        Assert.DoesNotContain(listaCoordinadorMti, x => x.TryGetProperty("carreraId", out var c) && c.GetString() == "mti");
 
-        var docentesSexto = await admin.GetFromJsonAsync<JsonElement[]>("/api/resultados/docentes?periodoId=2&cuatrimestre=6");
-        Assert.Empty(docentesSexto!);
-        var tutoresSexto = await admin.GetFromJsonAsync<JsonElement[]>("/api/resultados/tutores?periodoId=2&cuatrimestre=6");
-        Assert.NotEmpty(tutoresSexto!);
-        var tutoresDecimo = await admin.GetFromJsonAsync<JsonElement[]>("/api/resultados/tutores?periodoId=2&cuatrimestre=10");
-        Assert.Contains(tutoresDecimo!, x => x.TryGetProperty("oculto", out _));
+        var docentesSexto = await admin.GetFromJsonAsync<JsonElement>("/api/resultados/docentes?periodoId=2&cuatrimestre=6");
+        Assert.Empty(docentesSexto.GetProperty("resultados").EnumerateArray());
+        var tutoresSexto = await admin.GetFromJsonAsync<JsonElement>("/api/resultados/tutores?periodoId=2&cuatrimestre=6");
+        var listaTutoresSexto = tutoresSexto.GetProperty("resultados").EnumerateArray().ToArray();
+        Assert.NotEmpty(listaTutoresSexto);
+        var tutoresDecimo = await admin.GetFromJsonAsync<JsonElement>("/api/resultados/tutores?periodoId=2&cuatrimestre=10");
+        var listaTutoresDecimo = tutoresDecimo.GetProperty("resultados").EnumerateArray().ToArray();
+        Assert.Contains(listaTutoresDecimo, x => x.TryGetProperty("oculto", out _));
         Assert.NotEqual(
-            tutores!.Select(x => x.GetProperty("id").GetString()).Order().ToArray(),
-            tutoresSexto!.Select(x => x.GetProperty("id").GetString()).Order().ToArray());
+            listaTutores.Select(x => x.GetProperty("id").GetString()).Order().ToArray(),
+            listaTutoresSexto.Select(x => x.GetProperty("id").GetString()).Order().ToArray());
         Assert.NotEqual(
-            tutoresSexto!.Select(x => x.GetProperty("id").GetString()).Order().ToArray(),
-            tutoresDecimo!.Select(x => x.GetProperty("id").GetString()).Order().ToArray());
+            listaTutoresSexto.Select(x => x.GetProperty("id").GetString()).Order().ToArray(),
+            listaTutoresDecimo.Select(x => x.GetProperty("id").GetString()).Order().ToArray());
         Assert.Equal(HttpStatusCode.Forbidden,
             (await admin.GetAsync("/api/resultados/docentes/101?periodoId=2&carreraId=mti")).StatusCode);
     }
@@ -122,6 +130,20 @@ public sealed class ResultadosMensajesApiTests
         Assert.Equal(JsonValueKind.Null, estadiasOculto.GetProperty("promedio").ValueKind);
     }
 
+    [Fact]
+    public async Task ResultadoGestion_ComparaCadaAspectoContraElPromedioRealDeLaCarrera()
+    {
+        using var api = CrearApi();
+        using var admin = Cliente(api, "5");
+
+        var docente = await admin.GetFromJsonAsync<JsonElement>("/api/resultados/docentes/101?periodoId=2");
+        var primerAspecto = docente.GetProperty("aspectos")[0];
+
+        Assert.Equal(8m, primerAspecto.GetProperty("promedio").GetDecimal());
+        Assert.NotEqual(primerAspecto.GetProperty("promedio").GetDecimal(),
+            primerAspecto.GetProperty("promedioCarrera").GetDecimal());
+    }
+
     [Theory]
     [InlineData("4", "/api/resultados/docentes?periodoId=1")]
     [InlineData("4", "/api/resultados/tutores?periodoId=1")]
@@ -136,12 +158,9 @@ public sealed class ResultadosMensajesApiTests
         using var api = CrearApi();
         using var cliente = Cliente(api, usuario);
 
-        var lista = await cliente.GetFromJsonAsync<JsonElement[]>(ruta);
-        var noDisponible = Assert.Single(lista!);
-        Assert.False(noDisponible.GetProperty("disponible").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, noDisponible.GetProperty("oculto").ValueKind);
-        Assert.Equal(JsonValueKind.Null, noDisponible.GetProperty("respuestas").ValueKind);
-        Assert.Equal(JsonValueKind.Null, noDisponible.GetProperty("promedio").ValueKind);
+        var lista = await cliente.GetFromJsonAsync<JsonElement>(ruta);
+        Assert.False(lista.GetProperty("disponible").GetBoolean());
+        Assert.Empty(lista.GetProperty("resultados").EnumerateArray());
     }
 
     [Theory]
