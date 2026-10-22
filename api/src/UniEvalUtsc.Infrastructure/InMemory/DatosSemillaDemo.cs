@@ -125,7 +125,8 @@ public static class DatosSemillaDemo
             EncuestaAsignada.ParaTutor(
                 alumnoId: 1,
                 grupoId: grupo.Id,
-                plantillaId: 64,
+                // D-01: el tutor del grupo de 5to responde la misma plantilla AC16.
+                plantillaId: 16,
                 tutorId: 1,
                 id: 8)
         ];
