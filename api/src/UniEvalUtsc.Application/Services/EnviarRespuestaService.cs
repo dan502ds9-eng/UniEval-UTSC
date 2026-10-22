@@ -33,7 +33,6 @@ public class EnviarRespuestaService(
         foreach (var (encuesta, respuesta) in preparadas)
         {
             respuestas.Agregar(respuesta);
-            unidadDeTrabajo.RegistrarReversion(encuesta.RevertirContestacion);
             encuesta.MarcarContestada(reloj.Hoy);
         }
         await unidadDeTrabajo.GuardarCambiosAsync(ct);
@@ -66,7 +65,6 @@ public class EnviarRespuestaService(
 
         // 6. Todo o nada (RNF-07)
         respuestas.Agregar(respuesta);
-        unidadDeTrabajo.RegistrarReversion(encuesta.RevertirContestacion);
         encuesta.MarcarContestada(reloj.Hoy);
         await unidadDeTrabajo.GuardarCambiosAsync(ct);
     }

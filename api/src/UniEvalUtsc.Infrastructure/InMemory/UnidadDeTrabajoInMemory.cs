@@ -1,13 +1,14 @@
 using UniEvalUtsc.Application.Interfaces;
+using UniEvalUtsc.Domain.Entities;
+using UniEvalUtsc.Domain.Enums;
 
 namespace UniEvalUtsc.Infrastructure.InMemory;
 
-public sealed class UnidadDeTrabajoInMemory(RepositorioRespuestaInMemory respuestas) : IUnitOfWork
+public sealed class UnidadDeTrabajoInMemory(RepositorioRespuestaInMemory respuestas, AlmacenEvaluacionInMemory almacen) : IUnitOfWork
 {
-    private readonly List<Action> _reversiones = [];
+    private readonly Dictionary<EncuestaAsignada, (EstadoEncuesta Estado, DateOnly? Fecha)> _estadosOriginales = almacen.ObtenerEncuestas()
+        .ToDictionary(encuesta => encuesta, encuesta => (encuesta.Estado, encuesta.FechaContestada));
     public bool FallarAlGuardar { get; set; }
-
-    public void RegistrarReversion(Action reversion) => _reversiones.Add(reversion);
 
     public Task GuardarCambiosAsync(CancellationToken ct = default)
     {
@@ -16,14 +17,15 @@ public sealed class UnidadDeTrabajoInMemory(RepositorioRespuestaInMemory respues
             ct.ThrowIfCancellationRequested();
             if (FallarAlGuardar) throw new InvalidOperationException("Fallo de guardado simulado.");
             respuestas.Confirmar();
-            _reversiones.Clear();
             return Task.CompletedTask;
         }
         catch
         {
             respuestas.Descartar();
-            foreach (var reversion in _reversiones.AsEnumerable().Reverse()) reversion();
-            _reversiones.Clear();
+            // En EF Core la transacción revierte; esto solo existe para InMemory.
+            foreach (var (encuesta, estado) in _estadosOriginales)
+                if (estado.Estado == EstadoEncuesta.Pendiente && encuesta.Estado == EstadoEncuesta.Contestada)
+                    encuesta.RevertirContestacion();
             throw;
         }
     }

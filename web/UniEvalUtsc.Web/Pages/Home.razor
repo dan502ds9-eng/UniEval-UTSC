@@ -11,41 +11,36 @@
         <p class="acceso__apoyo">Evalúa a tus docentes y a tu tutor del cuatrimestre desde tu celular. Son anónimas.</p>
         <div class="acceso__tarjeta">
             <h2>Iniciar sesión</h2>
-            <p class="acceso__simulacion">Simulación: elige con qué cuenta entras.</p>
-            <label for="rol-acceso">Tipo de usuario</label>
-            <select id="rol-acceso" @bind="_rolSeleccionado">
-                @foreach (var rol in _roles)
-                {
-                    <option value="@rol">@AuthService.Etiqueta(rol)</option>
-                }
-            </select>
             @if (AuthService.EntraConfigurado)
             {
-                <p class="acceso__nota" role="status">Microsoft Entra ID está configurado como proveedor, pero su integración sigue pendiente.</p>
-                <button class="boton" disabled>Iniciar sesión con Microsoft 365</button>
+                <button class="boton" @onclick="IniciarSesionEntra">Iniciar sesión con Microsoft 365</button>
             }
             else
             {
-                <button class="boton" @onclick="IniciarSesion">Iniciar sesión con Microsoft 365</button>
-                <p class="acceso__nota">Usa tu cuenta institucional. No guardamos contraseñas.</p>
+                <p class="acceso__simulacion">Simulado</p>
+                <label for="usuario-prueba">Usuario de prueba</label>
+                <select id="usuario-prueba" @bind="_usuarioSeleccionado">
+                    @foreach (var usuario in AuthService.UsuariosDePrueba())
+                    {
+                        <option value="@($"{usuario.Rol}|{usuario.Id}")">@usuario.Nombre · @AuthService.Etiqueta(usuario.Rol)</option>
+                    }
+                </select>
+                <button class="boton" @onclick="IniciarSesion">Entrar (modo demo)</button>
             }
         </div>
     </section>
 </main>
 
 @code {
-    private readonly Rol[] _roles = Enum.GetValues<Rol>();
-    private Rol _rolSeleccionado = Rol.Alumno;
+    private string _usuarioSeleccionado = "Alumno|1";
 
     private async Task IniciarSesion()
     {
-        if (_rolSeleccionado == Rol.Alumno)
-        {
-            await AuthService.SignInSimuladoAsync(_rolSeleccionado);
-            Navigation.NavigateTo(AuthService.InicioPorRol(_rolSeleccionado));
-            return;
-        }
-
-        Navigation.NavigateTo($"/acceso/{_rolSeleccionado}");
+        var partes = _usuarioSeleccionado.Split('|', 2);
+        var rol = Enum.Parse<Rol>(partes[0]);
+        await AuthService.SignInSimuladoAsync(rol, partes[1]);
+        Navigation.NavigateTo(AuthService.InicioPorRol(rol));
     }
+
+    private void IniciarSesionEntra() => Navigation.NavigateTo(AuthService.UrlAutorizacionEntra(), forceLoad: true);
 }

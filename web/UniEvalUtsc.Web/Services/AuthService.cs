@@ -16,9 +16,24 @@ public sealed class AuthService(
     private const string SessionStorageKey = "unieval-sesion-simulada";
 
     public bool EntraConfigurado => string.Equals(
-        configuration["Autenticacion:Modo"],
+        configuration["Autenticacion:Modo"] ?? "Entra",
         "Entra",
         StringComparison.OrdinalIgnoreCase);
+
+    public static IReadOnlyCollection<UsuarioDePrueba> UsuariosDePrueba(Rol? rol = null) =>
+        UsuariosSemilla.Where(usuario => rol is null || usuario.Rol == rol).ToArray();
+
+    public static string NombreDePrueba(Rol rol) => UsuariosDePrueba(rol).First().Nombre;
+
+    public string UrlAutorizacionEntra()
+    {
+        var autoridad = configuration["Autenticacion:Entra:Authority"]?.TrimEnd('/') ?? "https://login.microsoftonline.com";
+        var tenant = configuration["Autenticacion:Entra:TenantId"];
+        var cliente = configuration["Autenticacion:Entra:ClientId"];
+        var callback = configuration["Autenticacion:Entra:RedirectUri"] ?? new Uri(new Uri("https://localhost"), "authentication/login-callback").ToString();
+        var tenantPath = string.IsNullOrWhiteSpace(tenant) ? "common" : tenant;
+        return $"{autoridad}/{Uri.EscapeDataString(tenantPath)}/oauth2/v2.0/authorize?client_id={Uri.EscapeDataString(cliente ?? string.Empty)}&response_type=code&redirect_uri={Uri.EscapeDataString(callback)}&response_mode=query&scope={Uri.EscapeDataString("openid profile email")}";
+    }
 
     public AuthenticatedUser? CurrentUser => authenticationStateProvider.CurrentUser;
 
@@ -63,7 +78,9 @@ public sealed class AuthService(
         }
     }
 
-    public async Task SignInSimuladoAsync(Rol rol)
+    public Task SignInSimuladoAsync(Rol rol) => SignInSimuladoAsync(rol, UsuariosDePrueba(rol).First().Id);
+
+    public async Task SignInSimuladoAsync(Rol rol, string idUsuario)
     {
         if (EntraConfigurado)
         {
@@ -71,12 +88,10 @@ public sealed class AuthService(
             throw new NotSupportedException("La autenticación con Microsoft Entra ID está preparada, pero aún no implementada.");
         }
 
-        if (!NombresPorRol.TryGetValue(rol, out var nombre))
-        {
-            throw new ArgumentOutOfRangeException(nameof(rol), rol, "El rol no está soportado.");
-        }
+        var usuario = UsuariosDePrueba(rol).FirstOrDefault(usuario => usuario.Id == idUsuario)
+            ?? throw new ArgumentException("El usuario de prueba no pertenece al rol seleccionado.", nameof(idUsuario));
 
-        var user = new AuthenticatedUser(nombre, rol);
+        var user = new AuthenticatedUser(usuario.Nombre, rol);
         var session = JsonSerializer.Serialize(user);
         try
         {
@@ -126,14 +141,17 @@ public sealed class AuthService(
         ? etiqueta
         : throw new ArgumentOutOfRangeException(nameof(rol), rol, "El rol no está soportado.");
 
-    private static readonly IReadOnlyDictionary<Rol, string> NombresPorRol = new Dictionary<Rol, string>
-    {
-        [Rol.Alumno] = "[Nombre del alumno]",
-        [Rol.Docente] = "Óscar Gabriel Chávez Gómez",
-        [Rol.Tutor] = "Mónica Janeth Rodríguez Reyna",
-        [Rol.Coordinador] = "[Coordinación DSM]",
-        [Rol.Administrador] = "[Administrador del sistema]"
-    };
+    private static readonly UsuarioDePrueba[] UsuariosSemilla =
+    [
+        new("1", "Alexis Alumno Demo", Rol.Alumno),
+        new("7", "Alex Alumno Dos Demo", Rol.Alumno),
+        new("2", "Sam Docente Demo", Rol.Docente),
+        new("6", "Dani Docente Tutor Demo", Rol.Docente),
+        new("3", "Tania Tutora Demo", Rol.Tutor),
+        new("6", "Dani Docente Tutor Demo", Rol.Tutor),
+        new("4", "Cris Coordinador Demo", Rol.Coordinador),
+        new("5", "Ari Administrador Demo", Rol.Administrador)
+    ];
 
     private static readonly IReadOnlyDictionary<Rol, string> EtiquetasPorRol = new Dictionary<Rol, string>
     {
@@ -144,6 +162,8 @@ public sealed class AuthService(
         [Rol.Administrador] = "Administrador"
     };
 }
+
+public sealed record UsuarioDePrueba(string Id, string Nombre, Rol Rol);
 
 public sealed record AuthenticatedUser(string Name, Rol Role)
 {
