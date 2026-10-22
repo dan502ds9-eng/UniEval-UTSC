@@ -15,7 +15,10 @@
         </div>
         @foreach (var (aspecto, indice) in Aspectos.OrderBy(aspecto => aspecto.Promedio).ThenBy(aspecto => aspecto.Numero).Select((aspecto, indice) => (aspecto, indice)))
         {
-            var diferencia = Math.Round(aspecto.Promedio - aspecto.PromedioCarrera, 1, MidpointRounding.AwayFromZero);
+            var promedioCarrera = aspecto.PromedioCarrera;
+            var diferencia = promedioCarrera is decimal referencia
+                ? Math.Round(aspecto.Promedio - referencia, 1, MidpointRounding.AwayFromZero)
+                : (decimal?)null;
             var claseNivel = Niveles.Nivel(aspecto.Promedio).ToString().ToLowerInvariant();
             <article class="promedio-aspecto__fila">
                 <div class="promedio-aspecto__datos">
@@ -25,17 +28,23 @@
                     </div>
                     <div class="promedio-aspecto__valores">
                         <span><small>Puntuación</small><strong>@aspecto.Promedio.ToString("0.0")</strong></span>
-                        <span><small>Carrera</small><strong>@aspecto.PromedioCarrera.ToString("0.0")</strong></span>
-                        <strong class="promedio-aspecto__diferencia @(diferencia >= 0 ? "promedio-aspecto__diferencia--positiva" : "promedio-aspecto__diferencia--negativa")">
-                            @(diferencia > 0 ? "+" : string.Empty)@diferencia.ToString("0.0")
-                        </strong>
+                        <span><small>Carrera</small><strong>@(promedioCarrera?.ToString("0.0") ?? "No disponible")</strong></span>
+                        @if (diferencia is decimal valorDiferencia)
+                        {
+                            <strong class="promedio-aspecto__diferencia @(valorDiferencia >= 0 ? "promedio-aspecto__diferencia--positiva" : "promedio-aspecto__diferencia--negativa")">
+                                @(valorDiferencia > 0 ? "+" : string.Empty)@valorDiferencia.ToString("0.0")
+                            </strong>
+                        }
                     </div>
                 </div>
                 <div class="promedio-aspecto__barra"
                      role="img"
-                     aria-label="@($"{aspecto.Texto}: puntuación {aspecto.Promedio:0.0} de 10, nivel {claseNivel}; promedio de la carrera {aspecto.PromedioCarrera:0.0}; diferencia {(diferencia > 0 ? "más " : string.Empty)}{diferencia:0.0}")">
+                     aria-label="@($"{aspecto.Texto}: puntuación {aspecto.Promedio:0.0} de 10, nivel {claseNivel}; promedio de la carrera {(promedioCarrera?.ToString("0.0") ?? "no disponible")}")">
                     <span class="promedio-aspecto__relleno promedio-aspecto__relleno--@claseNivel" style="@($"width:{Math.Clamp(aspecto.Promedio * 10, 0, 100):0.0}%")"></span>
-                    <span class="promedio-aspecto__referencia" style="@($"left:{Math.Clamp(aspecto.PromedioCarrera * 10, 0, 100):0.0}%")"></span>
+                    @if (promedioCarrera is decimal posicionReferencia)
+                    {
+                        <span class="promedio-aspecto__referencia" style="@($"left:{Math.Clamp(posicionReferencia * 10, 0, 100):0.0}%")"></span>
+                    }
                 </div>
             </article>
         }

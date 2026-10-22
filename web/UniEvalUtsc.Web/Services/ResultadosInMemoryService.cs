@@ -82,7 +82,7 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
         return !periodo.Cerrado || resultado.Respuestas < 5 ? null : resultado;
     }
 
-    public async Task<IReadOnlyList<PuntoHistorico>> ObtenerHistoricoAsync(
+    public async Task<IReadOnlyList<PuntoHistoricoDto>> ObtenerHistoricoAsync(
         Rol rol,
         string elementoId,
         CancellationToken ct = default)
@@ -96,7 +96,7 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
             .Select((periodo, indice) =>
             {
                 var promedio = PromedioBase(rol, elemento, indice + 1);
-                return new PuntoHistorico(periodo.Id, periodo.Nombre, promedio, Niveles.Nivel(promedio).ToString());
+                return new PuntoHistoricoDto(periodo.Id, periodo.Nombre, promedio, Niveles.Nivel(promedio).ToString());
             })
             .Reverse()
             .ToArray();
@@ -173,7 +173,7 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
             general,
             respuestas,
             elemento.TotalAlumnos,
-            Niveles.Redondear(aspectos.Average(aspecto => aspecto.PromedioCarrera)),
+            Niveles.Redondear(aspectos.Average(aspecto => aspecto.PromedioCarrera ?? aspecto.Promedio)),
             aspectos);
     }
 

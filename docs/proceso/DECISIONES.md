@@ -3,6 +3,11 @@
 Este documento **manda sobre el PDF y sobre la demo** cuando haya diferencias. `AGENTS.md` lo referencia.
 Equipo 2 · 21 oct 2026.
 
+## D-15 · Asignación de carga docente
+- Un docente puede impartir varias materias en distintos grupos dentro del periodo.
+- Un docente no puede tener dos materias distintas asignadas al mismo grupo.
+- La validación vive en el dominio al crear/asignar una carga académica. La regla incumplida genera `DomainException`, que la API traduce a HTTP 409.
+
 ## D-01 · Evaluación unificada de 5to (pantalla única)
 - **Estado: pendiente de validar con subdirección. Cambia el formato institucional: el tutor de 5to se evalúa con FORM-AC16 en lugar de FORM-AC64.**
 - Es **solo una forma de presentar** las encuestas. El modelo de datos del PDF **no cambia**: al abrir el periodo se crea una `encuesta_asignada` por cada materia del grupo (RN-02, RN-03) y una de tutor (RN-04). Ejemplo DSM05AV: 7 + 1 = 8 asignaciones.

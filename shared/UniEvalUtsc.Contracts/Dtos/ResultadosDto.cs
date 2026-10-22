@@ -21,7 +21,7 @@ public sealed record AspectoResultado(
     string Texto,
     string TextoCorto,
     decimal Promedio,
-    decimal PromedioCarrera,
+    decimal? PromedioCarrera,
     string Nivel)
 {
     public AspectoResultado(int numero, string texto, decimal promedio, decimal promedioCarrera, string nivel)
@@ -32,7 +32,7 @@ public sealed record AspectoResultado(
     [JsonIgnore]
     public int Numero => AspectoId;
 }
-public sealed record PuntoHistorico(string PeriodoId, string Periodo, decimal Promedio, string Nivel);
+public sealed record PuntoHistoricoDto(string PeriodoId, string Periodo, decimal? Promedio, string? Nivel, string? Motivo = null);
 public sealed record FilaReportePersonal(string PeriodoId, string Periodo, string ElementoId, string ElementoNombre, string Contexto, decimal Promedio, string Nivel);
 
 public sealed record OpcionCarreraResultado(string Id, string Nombre);
@@ -54,6 +54,17 @@ public sealed record ResultadoCoordinacion(
 
 public sealed record ResultadoOcultoDto(bool Oculto, int Respuestas);
 public sealed record ResultadoNoDisponibleDto(bool Disponible);
+public sealed record ResultadoPropioDto(
+    bool? Disponible, bool? Oculto, int? Respuestas, int? Alumnos,
+    ElementoResultado? Elemento, PeriodoResultado? Periodo, decimal? PromedioGeneral,
+    decimal? PromedioCarrera, IReadOnlyList<AspectoResultado>? Aspectos);
+public sealed record ResumenResultadosDto(bool Disponible, IReadOnlyList<ResultadoPropioDto> Resultados);
+public sealed record ResultadosGestionListaDto(bool Disponible, IReadOnlyList<ResultadoGestionDto> Resultados);
+public sealed record ResultadoGestionDto(
+    bool? Disponible, bool? Oculto, int? Respuestas, int? Alumnos,
+    string? Id, string? CarreraId, string? Nombre, string? Contexto, string? Periodo,
+    int? Cuatrimestre, decimal? Promedio, decimal? PromedioCarrera,
+    IReadOnlyList<AspectoResultado>? Aspectos, bool? EsTutor, bool? EsTutorEstadias);
 public sealed record GrupoSeguimientoDto(
     int GrupoId, string Grupo, string CarreraId, int Cuatrimestre, int TotalAlumnos,
     int AlumnosRespondieron, decimal Participacion, IReadOnlyList<AlumnoPendienteDto> AlumnosPendientes);

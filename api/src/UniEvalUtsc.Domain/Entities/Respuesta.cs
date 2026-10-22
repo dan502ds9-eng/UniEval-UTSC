@@ -23,8 +23,12 @@ public class Respuesta
 
     public static Respuesta Crear(EncuestaAsignada encuesta, Plantilla plantilla,
                                   IReadOnlyCollection<CalificacionAspecto> calificaciones,
-                                  int periodoId = 0)
+                                  int periodoId)
     {
+        if (periodoId <= 0)
+            throw new DomainException("El periodo de la respuesta debe ser mayor que cero.");
+        if (encuesta.PeriodoId != periodoId)
+            throw new DomainException("El periodo no corresponde a esta encuesta.");
         if (plantilla.Id != encuesta.PlantillaId)
             throw new DomainException("La plantilla no corresponde a esta encuesta.");
 

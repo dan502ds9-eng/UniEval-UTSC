@@ -12,7 +12,7 @@ public interface IResultadosService
 
     Task<ResultadoPersonal?> ObtenerResultadoAsync(Rol rol, string periodoId, string elementoId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<PuntoHistorico>> ObtenerHistoricoAsync(Rol rol, string elementoId, CancellationToken ct = default);
+    Task<IReadOnlyList<PuntoHistoricoDto>> ObtenerHistoricoAsync(Rol rol, string elementoId, CancellationToken ct = default);
 
     Task<IReadOnlyList<FilaReportePersonal>> ObtenerReportesAsync(Rol rol, CancellationToken ct = default);
 }

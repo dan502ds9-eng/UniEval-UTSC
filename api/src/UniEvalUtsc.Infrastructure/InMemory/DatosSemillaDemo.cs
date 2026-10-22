@@ -55,7 +55,15 @@ public static class DatosSemillaDemo
             CrearPeriodoCerrado(4, "Sep–Dic 2025", new DateOnly(2025, 9, 1), new DateOnly(2025, 12, 31))
         };
 
-        return [periodoActual, .. periodosCerrados];
+        var periodoPreparacion = new Periodo(
+            "Ene–Abr 2027",
+            new DateOnly(2027, 1, 1),
+            new DateOnly(2027, 4, 30),
+            new DateTime(2027, 1, 5),
+            new DateTime(2027, 1, 31, 23, 59, 59),
+            id: 5);
+
+        return [periodoActual, .. periodosCerrados, periodoPreparacion];
     }
 
     public static IReadOnlyCollection<Plantilla> CrearPlantillas()

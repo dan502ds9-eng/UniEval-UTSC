@@ -287,7 +287,7 @@ public sealed class CoordinacionInMemoryService(AuthService? authService = null)
             "May–Ago 2026",
             cuatrimestre,
             Niveles.Redondear(aspectos.Average(aspecto => aspecto.Promedio)),
-            Niveles.Redondear(aspectos.Average(aspecto => aspecto.PromedioCarrera)),
+            Niveles.Redondear(aspectos.Average(aspecto => aspecto.PromedioCarrera ?? aspecto.Promedio)),
             respuestas,
             aspectos,
             tutor,

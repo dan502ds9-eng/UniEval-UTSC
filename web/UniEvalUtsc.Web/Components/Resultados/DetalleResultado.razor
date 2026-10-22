@@ -65,7 +65,7 @@
                 (IReadOnlyList<string>)[
                     aspecto.Texto,
                     aspecto.Promedio.ToString("0.0"),
-                    aspecto.PromedioCarrera.ToString("0.0")
+                    aspecto.PromedioCarrera?.ToString("0.0") ?? "No disponible"
                 ])
         ];
 
