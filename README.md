@@ -55,3 +55,20 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File web/tests/UniEvalUtsc.E2
 $env:UNIEVAL_WEB_URL = "http://localhost:5186"
 dotnet test web/tests/UniEvalUtsc.E2E/UniEvalUtsc.E2E.csproj
 ```
+
+## Publicar y servir la demo
+
+Publica el cliente Blazor en una carpeta estática:
+
+```powershell
+dotnet publish web/UniEvalUtsc.Web -c Release -o publicado -p:WasmApplicationEnvironmentName=Demo
+```
+
+Para habilitar el selector de usuarios semilla en la demo, el servidor estático debe enviar el encabezado `Blazor-Environment: Demo` al servir `publicado/wwwroot`. Por ejemplo, con `dotnet-serve`:
+
+```powershell
+dotnet tool install --global dotnet-serve
+dotnet-serve -d publicado/wwwroot -p 5199 --fallback-file index.html -h "Blazor-Environment: Demo"
+```
+
+El entorno `Demo` carga `appsettings.Demo.json` y activa la autenticación simulada. Al publicar, `WasmApplicationEnvironmentName=Demo` fija el entorno del cliente en `Demo`; el encabezado permite que el hosting estático anuncie el mismo entorno. Las publicaciones normales sin esa propiedad usan `Production`, que conserva Entra y no ofrece el acceso de demo.

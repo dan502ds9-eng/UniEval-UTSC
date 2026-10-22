@@ -25,16 +25,6 @@ public sealed class AuthService(
 
     public static string NombreDePrueba(Rol rol) => UsuariosDePrueba(rol).First().Nombre;
 
-    public string UrlAutorizacionEntra()
-    {
-        var autoridad = configuration["Autenticacion:Entra:Authority"]?.TrimEnd('/') ?? "https://login.microsoftonline.com";
-        var tenant = configuration["Autenticacion:Entra:TenantId"];
-        var cliente = configuration["Autenticacion:Entra:ClientId"];
-        var callback = configuration["Autenticacion:Entra:RedirectUri"] ?? new Uri(new Uri("https://localhost"), "authentication/login-callback").ToString();
-        var tenantPath = string.IsNullOrWhiteSpace(tenant) ? "common" : tenant;
-        return $"{autoridad}/{Uri.EscapeDataString(tenantPath)}/oauth2/v2.0/authorize?client_id={Uri.EscapeDataString(cliente ?? string.Empty)}&response_type=code&redirect_uri={Uri.EscapeDataString(callback)}&response_mode=query&scope={Uri.EscapeDataString("openid profile email")}";
-    }
-
     public AuthenticatedUser? CurrentUser => authenticationStateProvider.CurrentUser;
 
     public async Task InitializeAsync()

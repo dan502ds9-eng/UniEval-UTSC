@@ -11,7 +11,8 @@
             <h1 id="titulo-acceso-personal">@AuthService.Etiqueta(_rol)</h1>
             @if (AuthService.EntraConfigurado)
             {
-                <button class="boton" type="button" @onclick="IniciarSesionEntra">Iniciar sesión con Microsoft 365</button>
+                <button class="boton" type="button" aria-disabled="true" aria-describedby="ayuda-entra" disabled>Iniciar sesión con Microsoft 365</button>
+                <p id="ayuda-entra" class="acceso__nota">Microsoft 365 aún no está configurado</p>
             }
             else
             {
@@ -52,5 +53,4 @@
         Navigation.NavigateTo(AuthService.InicioPorRol(_rol));
     }
 
-    private void IniciarSesionEntra() => Navigation.NavigateTo(AuthService.UrlAutorizacionEntra(), forceLoad: true);
 }

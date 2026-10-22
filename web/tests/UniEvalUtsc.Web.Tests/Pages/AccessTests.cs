@@ -35,6 +35,11 @@ public sealed class AccessTests
 
         Assert.Equal("Iniciar sesión con Microsoft 365", pagina.Find("button").TextContent);
         Assert.Empty(pagina.FindAll("input, select, label"));
+        Assert.Empty(pagina.FindAll("button:not([disabled])"));
+        Assert.Equal("true", pagina.Find("button").GetAttribute("aria-disabled"));
+        Assert.True(pagina.Find("button").HasAttribute("disabled"));
+        Assert.Equal("Microsoft 365 aún no está configurado", pagina.Find("#ayuda-entra").TextContent);
+        Assert.DoesNotContain(pagina.FindAll("button"), boton => boton.TextContent.Contains("modo demo", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain("Simulado", pagina.Markup);
     }
 

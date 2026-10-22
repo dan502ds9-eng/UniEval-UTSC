@@ -48,6 +48,9 @@ public sealed class HomeTests
         var pagina = contexto.Render<Home>();
 
         Assert.Equal("Iniciar sesión con Microsoft 365", pagina.Find("button").TextContent);
+        Assert.True(pagina.Find("button").HasAttribute("disabled"));
+        Assert.Equal("true", pagina.Find("button").GetAttribute("aria-disabled"));
+        Assert.Contains("Microsoft 365 aún no está configurado", pagina.Find("#ayuda-entra").TextContent);
         Assert.Empty(pagina.FindAll("input, select"));
         Assert.DoesNotContain("Simulado", pagina.Markup);
     }

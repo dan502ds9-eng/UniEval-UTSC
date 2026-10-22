@@ -23,6 +23,7 @@ builder.Services.AddScoped<IPlantillasService, PlantillasInMemoryService>();
 builder.Services.AddScoped<IFaqService, FaqInMemoryService>();
 builder.Services.AddScoped<FiltrosState>();
 builder.Services.AddScoped<IExportadorReportes, ExportadorLocal>();
+// TODO: usar AddMsalAuthentication (Microsoft.Authentication.WebAssembly.Msal) cuando haya ClientId y TenantId.
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<SimulatedAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(services =>
