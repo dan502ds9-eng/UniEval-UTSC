@@ -9,16 +9,17 @@ using Microsoft.AspNetCore.OpenApi;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-var modoAuth = builder.Configuration["Auth:Modo"] ?? "Simulado";
+var modoAuth = builder.Configuration["Auth:Modo"] ?? "Entra";
 builder.Services.AddScoped<IUsuarioRepository, RepositorioUsuarioInMemory>();
 if (string.Equals(modoAuth, "Simulado", StringComparison.OrdinalIgnoreCase))
 {
+    if (!builder.Environment.IsDevelopment())
+        throw new InvalidOperationException("La autenticación simulada solo se permite en Development");
     builder.Services.AddAuthentication("Simulado").AddScheme<AuthenticationSchemeOptions, UsuarioSimuladoHandler>("Simulado", _ => { });
 }
 else
 {
-    // Registro futuro: AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd")) cuando exista el registro Entra ID.
-    throw new InvalidOperationException("El modo de autenticación configurado no está disponible.");
+    builder.Services.AddAuthentication("Entra").AddScheme<AuthenticationSchemeOptions, EntraNoConfiguradoHandler>("Entra", _ => { });
 }
 builder.Services.AddAuthorization(options =>
 {

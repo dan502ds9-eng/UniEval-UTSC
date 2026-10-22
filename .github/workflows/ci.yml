@@ -34,13 +34,13 @@ jobs:
       - name: Build E2E tests
         run: dotnet build web/tests/UniEvalUtsc.E2E -c Release
       - name: Publish web app
-        run: dotnet publish web/UniEvalUtsc.Web -c Release -o publicado
+        run: dotnet publish web/UniEvalUtsc.Web -c Release -o publicado -p:WasmApplicationEnvironmentName=Demo
       - name: Install static server
         run: dotnet tool install --global dotnet-serve
       - name: Start static server
         run: |
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-          "$HOME/.dotnet/tools/dotnet-serve" -d publicado/wwwroot -p 5199 --fallback-file index.html > /tmp/unieval-web.log 2>&1 &
+          "$HOME/.dotnet/tools/dotnet-serve" -d publicado/wwwroot -p 5199 --fallback-file index.html -h "Blazor-Environment: Demo" > /tmp/unieval-web.log 2>&1 &
           echo $! > /tmp/unieval-web.pid
           for attempt in {1..30}; do
             if curl --fail --silent http://localhost:5199/ > /dev/null; then

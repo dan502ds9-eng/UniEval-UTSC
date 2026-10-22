@@ -97,6 +97,49 @@ public sealed class AlumnoApiTests
     }
 
     [Fact]
+    public async Task OpenApi_EnModoEntraNoPublicaApiKeySimulada()
+    {
+        using var api = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Development").UseSetting("Auth:Modo", "Entra").UseSetting("Datos:Proveedor", "InMemory");
+            builder.ConfigureLogging(logging => logging.ClearProviders());
+        });
+        using var cliente = api.CreateClient();
+
+        var documento = await cliente.GetStringAsync("/openapi/v1.json");
+
+        Assert.DoesNotContain("UsuarioSimulado", documento);
+        Assert.DoesNotContain("apiKey", documento);
+    }
+
+    [Fact]
+    public async Task ModoSimuladoEnProduccion_FallaAlArrancar()
+    {
+        using var api = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production").UseSetting("Auth:Modo", "Simulado").UseSetting("Datos:Proveedor", "InMemory");
+            builder.ConfigureLogging(logging => logging.ClearProviders());
+        });
+
+        var error = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => api.CreateClient().GetAsync("/api/mis-encuestas"));
+
+        Assert.Contains("La autenticación simulada solo se permite en Development", error.ToString());
+    }
+
+    [Fact]
+    public async Task ProduccionSinAuthConfigurado_EncabezadoSimuladoNoAutentica()
+    {
+        using var api = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production").UseSetting("Datos:Proveedor", "InMemory");
+            builder.ConfigureLogging(logging => logging.ClearProviders());
+        });
+        using var cliente = Cliente(api);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await cliente.GetAsync("/api/mis-encuestas")).StatusCode);
+    }
+
+    [Fact]
     public async Task DocenteEnEndpointAlumno_Responde403()
     {
         using var api = CrearApi();

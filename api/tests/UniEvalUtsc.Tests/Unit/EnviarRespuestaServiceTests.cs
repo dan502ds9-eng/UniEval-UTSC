@@ -47,7 +47,7 @@ public sealed class EnviarRespuestaServiceTests
         var almacen = new AlmacenEvaluacionInMemory();
         var encuesta = almacen.ObtenerEncuesta(1)!;
         var repositorioRespuesta = new RepositorioRespuestaInMemory(almacen);
-        var unidad = new UnidadDeTrabajoInMemory(repositorioRespuesta) { FallarAlGuardar = true };
+        var unidad = new UnidadDeTrabajoInMemory(repositorioRespuesta, almacen) { FallarAlGuardar = true };
         var servicio = new EnviarRespuestaService(new RepositorioEncuestaAsignadaInMemory(almacen),
             new RepositorioPlantillaInMemory(almacen), new RepositorioPeriodoInMemory(almacen), repositorioRespuesta,
             unidad, new RelojPrueba(new DateTime(2026, 10, 21, 12, 0, 0)));
@@ -66,7 +66,7 @@ public sealed class EnviarRespuestaServiceTests
         var repoRespuesta = new RepositorioRespuestaInMemory(almacen);
         var servicio = new EnviarRespuestaService(new RepositorioEncuestaAsignadaInMemory(almacen),
             new RepositorioPlantillaInMemory(almacen), new RepositorioPeriodoInMemory(almacen), repoRespuesta,
-            new UnidadDeTrabajoInMemory(repoRespuesta), new RelojPrueba(ahora ?? new DateTime(2026, 10, 21, 12, 0, 0)));
+            new UnidadDeTrabajoInMemory(repoRespuesta, almacen), new RelojPrueba(ahora ?? new DateTime(2026, 10, 21, 12, 0, 0)));
         return (servicio, almacen);
     }
 

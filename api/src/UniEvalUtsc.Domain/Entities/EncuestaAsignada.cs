@@ -57,7 +57,7 @@ public class EncuestaAsignada
         FechaContestada = hoy;
     }
 
-    public void RevertirContestacion()
+    internal void RevertirContestacion()
     {
         Estado = EstadoEncuesta.Pendiente;
         FechaContestada = null;

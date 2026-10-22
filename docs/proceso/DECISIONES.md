@@ -4,6 +4,7 @@ Este documento **manda sobre el PDF y sobre la demo** cuando haya diferencias. `
 Equipo 2 · 21 oct 2026.
 
 ## D-01 · Evaluación unificada de 5to (pantalla única)
+- **Estado: pendiente de validar con subdirección. Cambia el formato institucional: el tutor de 5to se evalúa con FORM-AC16 en lugar de FORM-AC64.**
 - Es **solo una forma de presentar** las encuestas. El modelo de datos del PDF **no cambia**: al abrir el periodo se crea una `encuesta_asignada` por cada materia del grupo (RN-02, RN-03) y una de tutor (RN-04). Ejemplo DSM05AV: 7 + 1 = 8 asignaciones.
 - `/alumno/encuesta` carga **todas** las asignaciones pendientes del alumno en el periodo abierto y las muestra como la demo: cada aspecto del FORM-AC16 con una fila por docente y la del tutor al final.
 - La fila del tutor usa el **mismo texto de pregunta** (aspecto AC16) que los docentes, como pidió el equipo, aunque su asignación apunte a la plantilla FORM-AC64. En la API se resuelve así: la asignación de tutor de 5to usa la plantilla FORM-AC16 vigente. FORM-AC64 queda para estadías (D-02). Si la subdirección pide AC64 para el tutor de 5to, solo cambia la plantilla de esa asignación.
@@ -69,7 +70,7 @@ Equipo 2 · 21 oct 2026.
 - `GET /api/plantillas` (vigentes y borradores) y `GET /api/plantillas/{id}`.
 - `POST /api/plantillas/{id}/borrador` crea un borrador (versión n+1) copiando la vigente. Si ya existe un borrador, lo devuelve.
 - `PUT /api/plantillas/{id}/aspectos` reemplaza la **lista ordenada completa** de aspectos del borrador (con eso se cubren editar, agregar, eliminar y reordenar). Solo funciona en borradores, como ya valida `Plantilla.AgregarAspecto`.
-- `POST /api/plantillas/{id}/publicar` vuelve vigente el borrador y deja la anterior como histórica. Aplica **desde el siguiente periodo que se abra** (RN-12): cada periodo guarda el `plantilla_id` con el que se abrió.
+- `POST /api/plantillas/{id}/publicar` vuelve vigente el borrador y deja la anterior como histórica. Aplica **desde el siguiente periodo que se abra** (RN-12): cada encuesta_asignada guarda su plantilla_id al abrir el periodo (un periodo usa AC16 y AC64 a la vez); no existe periodo.plantilla_id.
 - `DELETE /api/plantillas/{id}` solo para borradores ("Descartar cambios").
 
 ## D-13 · Periodos
