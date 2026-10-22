@@ -11,7 +11,7 @@ namespace UniEvalUtsc.Web.Tests.Pages;
 public sealed class HomeTests
 {
     [Fact]
-    public void Home_MuestraSelectorDeUsuarioYEtiquetaEnModoSimulado()
+    public void Home_MuestraUsuariosUnicosYPermiteElegirRolDespues()
     {
         using var contexto = new BunitContext();
         contexto.Services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
@@ -25,10 +25,14 @@ public sealed class HomeTests
         var pagina = contexto.Render<Home>();
 
         Assert.Equal("Tu opinión mejora la UTSC", pagina.Find("h1").TextContent);
-        Assert.Equal("Usuario de prueba", pagina.Find("label[for='usuario-prueba']").TextContent);
-        Assert.Equal(8, pagina.FindAll("#usuario-prueba option").Count);
-        Assert.Contains("Simulado", pagina.Markup);
-        Assert.Equal("Entrar (modo demo)", pagina.Find("button").TextContent);
+        Assert.Equal("Usuario", pagina.Find("label[for='usuario-prueba']").TextContent);
+        Assert.Equal(7, pagina.FindAll("#usuario-prueba option").Count);
+        Assert.DoesNotContain("Demo", pagina.Markup);
+        Assert.DoesNotContain("Simulado", pagina.Markup);
+        Assert.Equal("Entrar", pagina.Find("button").TextContent);
+        pagina.Find("#usuario-prueba").Change("6");
+        Assert.Contains("Mónica Janeth Rodríguez Reyna", pagina.Markup);
+        Assert.Equal(2, pagina.FindAll("#rol-prueba option").Count);
         Assert.DoesNotContain("type=\"password\"", pagina.Markup);
     }
 

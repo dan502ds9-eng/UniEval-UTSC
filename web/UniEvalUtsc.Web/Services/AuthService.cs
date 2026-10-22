@@ -21,7 +21,7 @@ public sealed class AuthService(
         StringComparison.OrdinalIgnoreCase);
 
     public static IReadOnlyCollection<UsuarioDePrueba> UsuariosDePrueba(Rol? rol = null) =>
-        UsuariosSemilla.Where(usuario => rol is null || usuario.Rol == rol).ToArray();
+        UsuariosSemilla.Where(usuario => rol is null || usuario.Roles.Contains(rol.Value)).ToArray();
 
     public static string NombreDePrueba(Rol rol) => UsuariosDePrueba(rol).First().Nombre;
 
@@ -133,14 +133,13 @@ public sealed class AuthService(
 
     private static readonly UsuarioDePrueba[] UsuariosSemilla =
     [
-        new("1", "Alexis Alumno Demo", Rol.Alumno),
-        new("7", "Alex Alumno Dos Demo", Rol.Alumno),
-        new("2", "Sam Docente Demo", Rol.Docente),
-        new("6", "Dani Docente Tutor Demo", Rol.Docente),
-        new("3", "Tania Tutora Demo", Rol.Tutor),
-        new("6", "Dani Docente Tutor Demo", Rol.Tutor),
-        new("4", "Cris Coordinador Demo", Rol.Coordinador),
-        new("5", "Ari Administrador Demo", Rol.Administrador)
+        new("1", "Viridiana Nataly Pintor Jiménez", [Rol.Alumno]),
+        new("7", "Sem Tomás Hernández Martínez", [Rol.Alumno]),
+        new("2", "Óscar Gabriel Chávez Gómez", [Rol.Docente]),
+        new("6", "Mónica Janeth Rodríguez Reyna", [Rol.Docente, Rol.Tutor]),
+        new("3", "Martha Laura Esparza Robles", [Rol.Tutor]),
+        new("4", "José Manuel Chávez García", [Rol.Coordinador]),
+        new("5", "Humberto Hernández", [Rol.Administrador])
     ];
 
     private static readonly IReadOnlyDictionary<Rol, string> EtiquetasPorRol = new Dictionary<Rol, string>
@@ -153,19 +152,16 @@ public sealed class AuthService(
     };
 }
 
-public sealed record UsuarioDePrueba(string Id, string Nombre, Rol Rol);
+public sealed record UsuarioDePrueba(string Id, string Nombre, IReadOnlyList<Rol> Roles)
+{
+    public Rol Rol => Roles[0];
+}
 
 public sealed record AuthenticatedUser(string Name, Rol Role)
 {
-    public string Initials => Role switch
-    {
-        Rol.Alumno => "AL",
-        Rol.Docente => "ÓC",
-        Rol.Tutor => "MR",
-        Rol.Coordinador => "CO",
-        Rol.Administrador => "AD",
-        _ => throw new ArgumentOutOfRangeException(nameof(Role), Role, "El rol no está soportado.")
-    };
+    public string Initials => string.Concat(Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2)
+        .Select(part => char.ToUpperInvariant(part[0])));
 }
 
 public sealed class SimulatedAuthenticationStateProvider : AuthenticationStateProvider

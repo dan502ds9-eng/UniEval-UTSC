@@ -61,7 +61,7 @@ public sealed class ResultadosInMemoryService(IPeriodosService? periodosService 
                 var mensaje = !periodo.Cerrado
                     ? "Disponible al cierre del periodo."
                     : resultado.Respuestas < 5
-                        ? "No se muestran resultados con menos de 5 respuestas (RN-10)."
+                        ? "No hay suficientes respuestas para mostrar los resultados."
                         : null;
                 return new TarjetaResultado(elemento, resultado, mensaje);
             })

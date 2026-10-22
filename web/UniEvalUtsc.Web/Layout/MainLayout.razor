@@ -19,6 +19,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("unieval.recordAppNavigation", Navigation.Uri);
+        }
         if (!_navigationPending)
         {
             return;
@@ -35,6 +39,7 @@
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {
+        _ = JS.InvokeVoidAsync("unieval.recordAppNavigation", args.Location);
         _navigationPending = true;
         _announcement = "Pantalla: cargando";
         _ = InvokeAsync(StateHasChanged);

@@ -277,6 +277,9 @@
     min-height: 2.75rem;
     align-items: center;
     gap: var(--space-2);
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: var(--link);
     font-size: 1rem;
     font-weight: 600;
@@ -388,14 +391,19 @@
 }
 
 .panel-lateral__fondo {
+    top: 3.75rem;
     justify-content: flex-end;
+    align-items: stretch;
     padding: 0;
 }
 
 .panel-lateral {
     width: min(100%, 30rem);
-    height: 100%;
-    overflow: auto;
+    height: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     border-left: var(--card-border);
     background: var(--card);
     color: var(--ink);
@@ -403,6 +411,8 @@
 }
 
 .panel-lateral__contenido {
+    min-height: 0;
+    overflow-y: auto;
     padding: var(--space-5);
 }
 
@@ -1657,15 +1667,6 @@ html[data-theme="dark"] .acceso {
     margin: 0;
 }
 
-.coordinacion-privacidad {
-    margin-top: var(--space-5);
-    padding: var(--space-3) var(--space-4);
-    border-left: 0.25rem solid var(--primary);
-    background: var(--card);
-    color: var(--ink);
-    font-weight: 600;
-}
-
 .reportes-coordinacion__lista {
     display: grid;
     align-items: start;
@@ -1764,7 +1765,6 @@ html[data-theme="dark"] .acceso {
     .resultado-filtros,
     .resultado-segmentado,
     .filtros-resultados,
-    .coordinacion-privacidad,
     .tarjeta-materia button,
     .resultados-personal > button,
     .tabla-resultados button {
@@ -2058,16 +2058,26 @@ html[data-theme="dark"] .acceso {
 }
 
 .alumno-pregunta__cabecera {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
     font-family: Inter, system-ui, sans-serif;
     font-size: 1rem;
 }
 
-.alumno-pregunta__cabecera button {
+.alumno-pregunta__cabecera h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+    font: inherit;
+}
+
+.alumno-pregunta__cabecera h2 button {
     display: grid;
     width: 100%;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--space-2) var(--space-4);
-    padding: var(--space-4);
+    padding: 0;
     border: 0;
     background: transparent;
     color: var(--ink);
@@ -2108,7 +2118,16 @@ html[data-theme="dark"] .acceso {
 }
 
 .alumno-escuchar {
-    justify-self: start;
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+    padding-inline: var(--space-3);
+}
+
+.alumno-mensajes__encabezado > .boton-enlace {
+    width: 100%;
+    min-height: 2.75rem;
+    white-space: normal;
+    text-align: left;
 }
 
 .alumno-evaluados {

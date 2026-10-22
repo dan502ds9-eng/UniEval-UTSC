@@ -87,6 +87,10 @@ a {
     outline-offset: 2px;
 }
 
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
 #app {
     min-height: 100vh;
 }

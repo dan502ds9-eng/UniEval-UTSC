@@ -18,28 +18,39 @@
             }
             else
             {
-                <p class="acceso__simulacion">Simulado</p>
-                <label for="usuario-prueba">Usuario de prueba</label>
+                <label for="usuario-prueba">Usuario</label>
                 <select id="usuario-prueba" @bind="_usuarioSeleccionado">
                     @foreach (var usuario in AuthService.UsuariosDePrueba())
                     {
-                        <option value="@($"{usuario.Rol}|{usuario.Id}")">@usuario.Nombre · @AuthService.Etiqueta(usuario.Rol)</option>
+                        <option value="@usuario.Id">@usuario.Nombre</option>
                     }
                 </select>
-                <button class="boton" @onclick="IniciarSesion">Entrar (modo demo)</button>
+                @if (UsuarioSeleccionado?.Roles.Count > 1)
+                {
+                    <label for="rol-prueba">Rol</label>
+                    <select id="rol-prueba" @bind="_rolSeleccionado">
+                        @foreach (var rol in UsuarioSeleccionado.Roles)
+                        {
+                            <option value="@rol">@AuthService.Etiqueta(rol)</option>
+                        }
+                    </select>
+                }
+                <button class="boton" @onclick="IniciarSesion">Entrar</button>
             }
         </div>
     </section>
 </main>
 
 @code {
-    private string _usuarioSeleccionado = "Alumno|1";
+    private string _usuarioSeleccionado = "1";
+    private Rol _rolSeleccionado = Rol.Alumno;
+    private UsuarioDePrueba? UsuarioSeleccionado => AuthService.UsuariosDePrueba().FirstOrDefault(usuario => usuario.Id == _usuarioSeleccionado);
 
     private async Task IniciarSesion()
     {
-        var partes = _usuarioSeleccionado.Split('|', 2);
-        var rol = Enum.Parse<Rol>(partes[0]);
-        await AuthService.SignInSimuladoAsync(rol, partes[1]);
+        var usuario = UsuarioSeleccionado ?? throw new InvalidOperationException("Selecciona un usuario.");
+        var rol = usuario.Roles.Contains(_rolSeleccionado) ? _rolSeleccionado : usuario.Roles[0];
+        await AuthService.SignInSimuladoAsync(rol, usuario.Id);
         Navigation.NavigateTo(AuthService.InicioPorRol(rol));
     }
 

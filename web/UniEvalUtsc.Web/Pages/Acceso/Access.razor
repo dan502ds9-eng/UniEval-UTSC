@@ -16,15 +16,14 @@
             }
             else
             {
-                <p class="acceso__simulacion">Simulado</p>
-                <label for="usuario-prueba">Usuario de prueba</label>
+                <label for="usuario-prueba">Usuario</label>
                 <select id="usuario-prueba" @bind="_usuarioSeleccionado">
                     @foreach (var usuario in AuthService.UsuariosDePrueba(_rol))
                     {
                         <option value="@usuario.Id">@usuario.Nombre</option>
                     }
                 </select>
-                <button class="boton" type="button" @onclick="IniciarSesionSimulada">Entrar (modo demo)</button>
+                <button class="boton" type="button" @onclick="IniciarSesionSimulada">Entrar</button>
             }
         </div>
     </section>

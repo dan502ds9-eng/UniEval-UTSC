@@ -9,16 +9,18 @@
         <nav class="staff-shell__nav" aria-label="Secciones">
             @foreach (var item in Secciones)
             {
-                <NavLink href="@item.Ruta" Match="NavLinkMatch.All" class="staff-shell__enlace" ActiveClass="activo">
+                <a href="@item.Ruta"
+                   class="staff-shell__enlace @(item.Slug == SeccionActual ? "activo" : null)"
+                   aria-current="@(item.Slug == SeccionActual ? "page" : null)">
                     @item.Etiqueta
-                </NavLink>
+                </a>
             }
         </nav>
     </aside>
     <main class="staff-shell__contenido">
         @if (SeccionActual != "inicio")
         {
-            <BotonRegresar Href="@AuthService.InicioPorRol(Rol)" />
+            <BotonRegresar Href="@AuthService.InicioPorRol(Rol)" Text="← Volver" />
         }
         <h1 tabindex="-1">@TituloActual</h1>
         <p class="staff-shell__descripcion">@DescripcionActual</p>

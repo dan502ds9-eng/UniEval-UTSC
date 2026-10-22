@@ -32,7 +32,7 @@ public sealed class FaqInMemoryService : IFaqService
                     "corregir", "modificar", "cambiar", "después", "enviada"),
                 Crear(
                     "¿Son anónimas?",
-                    "Sí. Guardamos que ya contestaste, pero tus calificaciones no quedan ligadas a tu matrícula. Ni tu docente ni tu coordinador pueden ver qué calificaste.",
+                    "Sí. Tus calificaciones se guardan de forma anónima y no quedan ligadas a tu matrícula.",
                     "anónimas", "anonimato", "privacidad", "matrícula", "quién", "respuestas"),
                 Crear(
                     "¿Hasta cuándo puedo contestar?",
@@ -51,7 +51,7 @@ public sealed class FaqInMemoryService : IFaqService
                     "cuándo", "ver", "resultados", "cierre", "cerrar", "periodo"),
                 Crear(
                     "¿Por qué no sale una materia?",
-                    "Con menos de 5 respuestas no se muestran resultados, para proteger el anonimato de los alumnos.",
+                    "Los resultados estarán disponibles cuando haya suficientes respuestas.",
                     "materia", "no sale", "no aparece", "resultados", "respuestas", "cinco", "5", "anonimato"),
                 Crear(
                     "¿Por qué piden verificación en dos pasos?",
@@ -77,12 +77,8 @@ public sealed class FaqInMemoryService : IFaqService
             [
                 Crear(
                     "¿Puedo ver quién falta?",
-                    "Sí. En cada grupo ves la lista de alumnos que no han contestado, sin ver sus respuestas.",
+                    "Sí. En cada grupo ves la lista de alumnos que no han contestado.",
                     "quién falta", "alumnos", "pendientes", "grupo", "seguimiento"),
-                Crear(
-                    "¿Veo respuestas individuales?",
-                    "No. Solo participación por grupo y promedios, nunca qué calificó cada alumno.",
-                    "respuestas", "individuales", "calificó", "alumno", "anonimato", "promedios"),
                 Crear(
                     "¿Cómo exporto un reporte?",
                     "Desde el tablero con el botón Exportar, en Excel o PDF con el encabezado institucional.",
@@ -94,10 +90,6 @@ public sealed class FaqInMemoryService : IFaqService
             ],
             [Rol.Administrador] =
             [
-                Crear(
-                    "¿Puedo ver qué contestó un alumno?",
-                    "No. Las respuestas se guardan sin matrícula ni hora exacta. Ves participación y promedios, igual que el coordinador.",
-                    "qué contestó", "respuestas", "alumno", "matrícula", "hora", "anonimato", "promedios"),
                 Crear(
                     "¿Cómo abro las encuestas?",
                     "En Administración → Periodos, usa el botón Abrir aplicación. El sistema genera las encuestas de cada alumno: una por materia más una de tutor.",
