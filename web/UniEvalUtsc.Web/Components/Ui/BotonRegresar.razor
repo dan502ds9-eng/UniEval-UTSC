@@ -1,9 +1,11 @@
-<a class="boton-regresar" href="@Href">
-    <span aria-hidden="true">←</span>
+<button class="boton-regresar" type="button" @onclick="Volver">
     @Text
-</a>
+</button>
+@inject IJSRuntime JS
 
 @code {
     [Parameter] public string Href { get; set; } = "/";
-    [Parameter] public string Text { get; set; } = "Volver al inicio";
+    [Parameter] public string Text { get; set; } = "← Volver";
+
+    private Task Volver() => JS.InvokeVoidAsync("unieval.backOrNavigate", Href).AsTask();
 }

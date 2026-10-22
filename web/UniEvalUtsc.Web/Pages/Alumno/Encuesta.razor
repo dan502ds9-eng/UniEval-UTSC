@@ -202,8 +202,26 @@ else if (_evaluacion is not null)
         await JsInterop.FocusByIdAsync(IdCalificacion(preguntaId, evaluado.Id, 1));
     }
 
-    private async Task EscucharPreguntaAsync(PreguntaAlumno pregunta) =>
-        await JsInterop.SpeakAsync($"Pregunta {pregunta.Id} de {_evaluacion!.Preguntas.Count}. {pregunta.Texto}");
+    private async Task EscucharPreguntaAsync(PreguntaAlumno pregunta)
+    {
+        var texto = new System.Text.StringBuilder($"Pregunta {pregunta.Id}. {pregunta.Texto}. ");
+        foreach (var evaluado in _evaluacion!.Evaluados)
+        {
+            var clave = EvaluacionAlumno.CrearClaveCalificacion(pregunta.Id, evaluado.Id);
+            texto.Append($"{evaluado.Nombre}, {evaluado.Materia}. ");
+            if (_calificaciones.TryGetValue(clave, out var calificacion))
+            {
+                var nivel = calificacion < 5 ? "bajo" : calificacion < 8 ? "medio" : "alto";
+                texto.Append($"{calificacion} de 10, {nivel}. ");
+            }
+            else
+            {
+                texto.Append("sin calificación. ");
+            }
+        }
+
+        await JsInterop.SpeakAsync(texto.ToString());
+    }
 
     private async Task GuardarBorradorYSalirAsync()
     {

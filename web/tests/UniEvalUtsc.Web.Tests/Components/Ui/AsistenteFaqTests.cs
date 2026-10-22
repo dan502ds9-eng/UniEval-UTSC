@@ -41,7 +41,7 @@ public sealed class AsistenteFaqTests
             .ClickAsync();
 
         asistente.WaitForAssertion(() =>
-            Assert.Contains("tus calificaciones no quedan ligadas a tu matrícula",
+            Assert.Contains("Tus calificaciones se guardan de forma anónima",
                 asistente.Find("[role='log']").TextContent));
 
         await asistente.Instance.CerrarPorEscape();

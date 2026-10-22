@@ -55,7 +55,7 @@ public sealed class PwaSmokeTests
         await Assertions.Expect(pagina.Locator("html")).ToHaveAttributeAsync("data-theme", "dark");
         Assert.Equal("dark", await pagina.EvaluateAsync<string>("() => localStorage.getItem('unieval-theme')"));
 
-        await pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar (modo demo)" }).ClickAsync();
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno$"));
         await Assertions.Expect(pagina.GetByRole(AriaRole.Button, new() { Name = "Notificaciones, 2 mensajes sin leer" })).ToBeVisibleAsync();
         await pagina.EvaluateAsync("() => { const enlace = document.createElement('a'); enlace.href = '/admin/periodos'; document.body.appendChild(enlace); enlace.click(); }");
@@ -72,8 +72,8 @@ public sealed class PwaSmokeTests
 
         await pagina.GotoAsync(new Uri(new Uri(url), "/admin/periodos").ToString());
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/$"));
-        await pagina.Locator("#usuario-prueba").SelectOptionAsync("Administrador|5");
-        await pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar (modo demo)" }).ClickAsync();
+        await pagina.Locator("#usuario-prueba").SelectOptionAsync("5");
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
         await Assertions.Expect(pagina.Locator(".acceso")).ToHaveCountAsync(0);
         await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Inicio" })).ToBeVisibleAsync();
         await Assertions.Expect(pagina.Locator(".topbar")).Not.ToHaveClassAsync(new Regex("topbar--acceso"));
@@ -82,6 +82,7 @@ public sealed class PwaSmokeTests
         await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Inicio" })).ToBeFocusedAsync();
         await pagina.GetByRole(AriaRole.Link, new() { Name = "Periodos", Exact = true }).ClickAsync();
         await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Periodos", Exact = true })).ToBeFocusedAsync();
+        await Assertions.Expect(pagina.GetByRole(AriaRole.Link, new() { Name = "Periodos", Exact = true })).ToHaveAttributeAsync("aria-current", "page");
         await Assertions.Expect(pagina).ToHaveTitleAsync("Periodos · UniEval UTSC");
         await pagina.GetByRole(AriaRole.Button, new() { Name = "Aa" }).ClickAsync();
         await pagina.Locator("[role='menuitemradio']").Filter(new() { HasText = "Normal 100%" }).ClickAsync();
@@ -90,21 +91,21 @@ public sealed class PwaSmokeTests
         Assert.Equal("static", await pagina.Locator(".staff-shell__sidebar").EvaluateAsync<string>("element => getComputedStyle(element).position"));
         Assert.Equal("auto", await pagina.Locator(".staff-shell__nav").EvaluateAsync<string>("element => getComputedStyle(element).overflowX"));
         await pagina.SetViewportSizeAsync(1280, 900);
-        await pagina.GetByRole(AriaRole.Link, new() { Name = "Volver al inicio" }).ClickAsync();
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "← Volver" }).ClickAsync();
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/admin/inicio$"));
         await Assertions.Expect(pagina.GetByRole(AriaRole.Link, new() { Name = "Resultados de docentes" })).ToHaveAttributeAsync("href", "/admin/resultados-docentes");
         await Assertions.Expect(pagina.GetByRole(AriaRole.Link, new() { Name = "Resultados de tutores" })).ToHaveAttributeAsync("href", "/admin/resultados-tutores");
 
         await menuUsuario.PressAsync("ArrowDown");
         await pagina.Locator("[role='menuitem']").Filter(new() { HasText = "Cerrar sesión" }).ClickAsync();
-        await pagina.Locator("#usuario-prueba").SelectOptionAsync("Docente|2");
-        await pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar (modo demo)" }).ClickAsync();
+        await pagina.Locator("#usuario-prueba").SelectOptionAsync("2");
+        await pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/docente/inicio$"));
-        await Assertions.Expect(pagina.Locator(".staff-shell__nombre")).ToHaveTextAsync("Sam Docente Demo");
+        await Assertions.Expect(pagina.Locator(".staff-shell__nombre")).ToHaveTextAsync("Óscar Gabriel Chávez Gómez");
         Assert.NotEmpty(await pagina.EvaluateAsync<string>("() => sessionStorage.getItem('unieval-sesion-simulada')"));
         await pagina.ReloadAsync();
         await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/docente/inicio$"));
-        await Assertions.Expect(pagina.Locator(".staff-shell__nombre")).ToHaveTextAsync("Sam Docente Demo");
+        await Assertions.Expect(pagina.Locator(".staff-shell__nombre")).ToHaveTextAsync("Óscar Gabriel Chávez Gómez");
 
         await pagina.GotoAsync(new Uri(new Uri(url), "/dev/componentes").ToString());
         var abrirDialogo = pagina.GetByRole(AriaRole.Button, new() { Name = "Mostrar diálogo" });

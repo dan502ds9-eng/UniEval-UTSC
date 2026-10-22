@@ -12,6 +12,12 @@
     const enterHandlers = new WeakMap();
     let dialogOpener = null;
     let activeFocusTrap = null;
+    const navigationStackKey = "unieval-navigation-stack";
+    let navigationStack = [];
+    let navigationIndex = -1;
+    let popNavigationPending = false;
+
+    window.addEventListener("popstate", () => { popNavigationPending = true; });
 
     function focusables(container) {
         return Array.from(container.querySelectorAll(focusableSelector))
@@ -41,6 +47,56 @@
         },
 
         setTextScale,
+
+        recordAppNavigation(url) {
+            const path = new URL(url, window.location.href).pathname + new URL(url, window.location.href).search;
+            if (navigationStack.length === 0) {
+                const navigationType = performance.getEntriesByType("navigation")[0]?.type;
+                const referrerIsInApp = (() => {
+                    if (!document.referrer) return false;
+                    try {
+                        return new URL(document.referrer).origin === window.location.origin;
+                    } catch {
+                        return false;
+                    }
+                })();
+                if (navigationType === "navigate" && !referrerIsInApp) {
+                    try { window.sessionStorage.removeItem(navigationStackKey); } catch { }
+                }
+                try {
+                    navigationStack = JSON.parse(window.sessionStorage.getItem(navigationStackKey) ?? "[]");
+                } catch {
+                    navigationStack = [];
+                }
+                navigationIndex = navigationStack.length - 1;
+            }
+
+            if (popNavigationPending) {
+                popNavigationPending = false;
+                const next = navigationStack.indexOf(path, navigationIndex + 1);
+                if (next >= 0) {
+                    navigationIndex = next;
+                } else {
+                    const previous = navigationStack.lastIndexOf(path, Math.max(0, navigationIndex - 1));
+                    navigationIndex = previous >= 0 ? previous : 0;
+                }
+            } else if (navigationStack[navigationIndex] !== path) {
+                navigationStack = navigationStack.slice(0, navigationIndex + 1);
+                navigationStack.push(path);
+                navigationIndex = navigationStack.length - 1;
+            }
+            try {
+                window.sessionStorage.setItem(navigationStackKey, JSON.stringify(navigationStack));
+            } catch { }
+        },
+
+        backOrNavigate(fallback) {
+            if (navigationIndex > 0) {
+                window.history.back();
+            } else {
+                window.location.assign(fallback);
+            }
+        },
 
         bindEnterAdvance(element, nextElement) {
             const previousHandler = enterHandlers.get(element);

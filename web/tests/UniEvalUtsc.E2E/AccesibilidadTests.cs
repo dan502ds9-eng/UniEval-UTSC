@@ -249,7 +249,7 @@ public sealed class AccesibilidadTests
             await pagina.GotoAsync(url);
             await Assertions.Expect(pagina.GetByRole(AriaRole.Heading, new() { Name = "Tu opinión mejora la UTSC" })).ToBeFocusedAsync();
 
-            var iniciarSesion = pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar (modo demo)" });
+            var iniciarSesion = pagina.GetByRole(AriaRole.Button, new() { Name = "Entrar" });
             await EnfocarConTabAsync(pagina, iniciarSesion);
             await pagina.Keyboard.PressAsync("Enter");
             await Assertions.Expect(pagina).ToHaveURLAsync(new Regex(".*/alumno$"));

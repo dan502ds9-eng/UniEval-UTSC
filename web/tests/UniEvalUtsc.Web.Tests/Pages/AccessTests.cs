@@ -18,9 +18,9 @@ public sealed class AccessTests
         var pagina = contexto.Render<Access>(parameters => parameters.Add(componente => componente.RutaRol, "Administrador"));
 
         Assert.Equal("Administrador", pagina.Find("h1").TextContent);
-        Assert.Equal("Usuario de prueba", pagina.Find("label[for='usuario-prueba']").TextContent);
-        Assert.Equal("Entrar (modo demo)", pagina.Find("button").TextContent);
-        Assert.Contains("Simulado", pagina.Markup);
+        Assert.Equal("Usuario", pagina.Find("label[for='usuario-prueba']").TextContent);
+        Assert.Equal("Entrar", pagina.Find("button").TextContent);
+        Assert.DoesNotContain("Simulado", pagina.Markup);
         Assert.Single(pagina.FindAll("#usuario-prueba option"));
         Assert.Empty(pagina.FindAll("input"));
         Assert.Empty(pagina.FindAll("[type='password'], #codigo-verificacion"));
