@@ -14,16 +14,19 @@ public sealed class MisResultadosController(ConsultarResultadosService consultas
     private IReadOnlyCollection<string> Roles => User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
 
     [HttpGet]
-    public async Task<IActionResult> Obtener([FromQuery] int periodoId, [FromQuery] int? cargaAcademicaId,
+    [ProducesResponseType<UniEvalUtsc.Contracts.Dtos.ResultadoPropioDto>(200)]
+    public async Task<ActionResult<UniEvalUtsc.Contracts.Dtos.ResultadoPropioDto>> Obtener([FromQuery] int periodoId, [FromQuery] int? cargaAcademicaId,
         [FromQuery] int? grupoId, CancellationToken ct) =>
         Ok(await consultas.ObtenerPropioAsync(UsuarioId, Roles, null, periodoId, cargaAcademicaId, grupoId, ct));
 
     [HttpGet("resumen")]
-    public async Task<IActionResult> Resumen([FromQuery] int periodoId, CancellationToken ct) =>
+    [ProducesResponseType<UniEvalUtsc.Contracts.Dtos.ResumenResultadosDto>(200)]
+    public async Task<ActionResult<UniEvalUtsc.Contracts.Dtos.ResumenResultadosDto>> Resumen([FromQuery] int periodoId, CancellationToken ct) =>
         Ok(await consultas.ObtenerResumenPropioAsync(UsuarioId, Roles, periodoId, ct));
 
     [HttpGet("historico")]
-    public async Task<IActionResult> Historico([FromQuery] int? cargaAcademicaId, [FromQuery] int? grupoId, CancellationToken ct) =>
+    [ProducesResponseType<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.PuntoHistoricoDto>>(200)]
+    public async Task<ActionResult<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.PuntoHistoricoDto>>> Historico([FromQuery] int? cargaAcademicaId, [FromQuery] int? grupoId, CancellationToken ct) =>
         Ok(await consultas.ObtenerHistoricoPropioAsync(UsuarioId, Roles, null, cargaAcademicaId, grupoId, ct));
 }
 
@@ -36,27 +39,32 @@ public sealed class ResultadosController(ConsultarResultadosService consultas) :
     private IReadOnlyCollection<string> Roles => User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
 
     [HttpGet("docentes")]
-    public async Task<IActionResult> Docentes([FromQuery] int? periodoId, [FromQuery] string? carreraId,
+    [ProducesResponseType<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>(200)]
+    public async Task<ActionResult<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>> Docentes([FromQuery] int? periodoId, [FromQuery] string? carreraId,
         [FromQuery] int? cuatrimestre, CancellationToken ct) =>
         Ok(await consultas.ObtenerResultadosGestionAsync(UsuarioId, Roles, carreraId, periodoId, cuatrimestre, false, ct));
 
     [HttpGet("tutores")]
-    public async Task<IActionResult> Tutores([FromQuery] int? periodoId, [FromQuery] string? carreraId,
+    [ProducesResponseType<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>(200)]
+    public async Task<ActionResult<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>>> Tutores([FromQuery] int? periodoId, [FromQuery] string? carreraId,
         [FromQuery] int? cuatrimestre, CancellationToken ct) =>
         Ok(await consultas.ObtenerResultadosGestionAsync(UsuarioId, Roles, carreraId, periodoId, cuatrimestre, true, ct));
 
     [HttpGet("docentes/{cargaAcademicaId:int}")]
-    public async Task<IActionResult> DetalleDocente(int cargaAcademicaId, [FromQuery] int periodoId,
+    [ProducesResponseType<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>(200)]
+    public async Task<ActionResult<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>> DetalleDocente(int cargaAcademicaId, [FromQuery] int periodoId,
         [FromQuery] string? carreraId, CancellationToken ct) =>
         Ok(await consultas.ObtenerDetalleGestionAsync(UsuarioId, Roles, carreraId, periodoId, cargaAcademicaId, null, null, ct));
 
     [HttpGet("tutores/{grupoId:int}")]
-    public async Task<IActionResult> DetalleTutor(int grupoId, [FromQuery] int periodoId,
+    [ProducesResponseType<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>(200)]
+    public async Task<ActionResult<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>> DetalleTutor(int grupoId, [FromQuery] int periodoId,
         [FromQuery] string? carreraId, CancellationToken ct) =>
         Ok(await consultas.ObtenerDetalleGestionAsync(UsuarioId, Roles, carreraId, periodoId, null, grupoId, null, ct));
 
     [HttpGet("tutores/estadias/{tutorDocenteId:int}")]
-    public async Task<IActionResult> DetalleTutorEstadias(int tutorDocenteId, [FromQuery] int periodoId,
+    [ProducesResponseType<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>(200)]
+    public async Task<ActionResult<UniEvalUtsc.Contracts.Dtos.ResultadoGestionDto>> DetalleTutorEstadias(int tutorDocenteId, [FromQuery] int periodoId,
         [FromQuery] string? carreraId, CancellationToken ct) =>
         Ok(await consultas.ObtenerDetalleGestionAsync(UsuarioId, Roles, carreraId, periodoId, null, null, tutorDocenteId, ct));
 }
@@ -67,6 +75,7 @@ public sealed class ResultadosController(ConsultarResultadosService consultas) :
 public sealed class SeguimientoController(ConsultarResultadosService consultas) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.GrupoSeguimientoDto>>(200)]
     public async Task<IActionResult> Obtener([FromQuery] int periodoId, [FromQuery] string? carreraId,
         [FromQuery] int? grupoId, CancellationToken ct)
     {
@@ -98,9 +107,11 @@ public sealed class MisMensajesController(MensajesService mensajes) : Controller
     private string AlumnoId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
     [HttpGet]
+    [ProducesResponseType<IReadOnlyCollection<UniEvalUtsc.Contracts.Dtos.MensajeDto>>(200)]
     public async Task<IActionResult> Obtener(CancellationToken ct) => Ok(await mensajes.ObtenerMisMensajesAsync(AlumnoId, ct));
 
     [HttpPut("{id:guid}/leido")]
+    [ProducesResponseType(204)]
     public async Task<IActionResult> MarcarLeido(Guid id, CancellationToken ct)
     {
         await mensajes.MarcarLeidoAsync(id, AlumnoId, ct);
@@ -108,6 +119,7 @@ public sealed class MisMensajesController(MensajesService mensajes) : Controller
     }
 
     [HttpPut("leidos")]
+    [ProducesResponseType(204)]
     public async Task<IActionResult> MarcarTodosLeidos(CancellationToken ct)
     {
         await mensajes.MarcarTodosLeidosAsync(AlumnoId, ct);

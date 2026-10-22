@@ -19,7 +19,7 @@ public class RespuestaTests
 
     // Encuesta del alumno 50, grupo 7, materia (carga) 30
     private static EncuestaAsignada CrearEncuesta() =>
-        EncuestaAsignada.ParaDocente(alumnoId: 50, grupoId: 7, plantillaId: 1, cargaAcademicaId: 30);
+        EncuestaAsignada.ParaDocente(alumnoId: 50, grupoId: 7, plantillaId: 1, cargaAcademicaId: 30, periodoId: 1);
 
     private static List<CalificacionAspecto> Completas() =>
         [new(101, 9), new(102, 10), new(103, 8)];
@@ -27,7 +27,7 @@ public class RespuestaTests
     [Fact]
     public void Crear_ConTodosLosAspectos_GuardaDetallesYDatosDelEvaluado()
     {
-        var r = Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas());
+        var r = Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas(), 1);
 
         Assert.Equal(3, r.Detalles.Count);
         Assert.Equal(7, r.GrupoId);
@@ -36,11 +36,18 @@ public class RespuestaTests
     }
 
     [Fact]
+    public void Crear_RechazaPeriodoInvalidoODistintoAlDeLaEncuesta()
+    {
+        Assert.Throws<DomainException>(() => Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas(), 0));
+        Assert.Throws<DomainException>(() => Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas(), 2));
+    }
+
+    [Fact]
     public void Crear_FaltaUnAspecto_LanzaValidacion()
     {
         var incompletas = new List<CalificacionAspecto> { new(101, 9), new(102, 10) };
         Assert.Throws<ValidacionException>(() =>
-            Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), incompletas));
+            Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), incompletas, 1));
     }
 
     [Theory]
@@ -50,7 +57,7 @@ public class RespuestaTests
     {
         var calif = new List<CalificacionAspecto> { new(101, mala), new(102, 10), new(103, 8) };
         Assert.Throws<ValidacionException>(() =>
-            Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), calif));
+            Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), calif, 1));
     }
 
     [Fact]
@@ -58,7 +65,7 @@ public class RespuestaTests
     {
         var repetidas = new List<CalificacionAspecto> { new(101, 9), new(101, 9), new(103, 8) };
         Assert.Throws<ValidacionException>(() =>
-            Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), repetidas));
+            Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), repetidas, 1));
     }
 
     // RN-09: la prueba de anonimato
@@ -76,8 +83,8 @@ public class RespuestaTests
     [Fact]
     public void Crear_GeneraIdAleatorioVersion4()
     {
-        var r1 = Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas());
-        var r2 = Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas());
+        var r1 = Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas(), 1);
+        var r2 = Respuesta.Crear(CrearEncuesta(), CrearPlantilla(), Completas(), 1);
 
         Assert.NotEqual(r1.Id, r2.Id);
         Assert.Equal(4, r1.Id.Version);

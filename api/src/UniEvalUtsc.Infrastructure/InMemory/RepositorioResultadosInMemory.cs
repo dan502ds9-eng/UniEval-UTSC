@@ -12,8 +12,8 @@ public sealed class RepositorioResultadosInMemory(AlmacenEvaluacionInMemory alma
             .Where(g => g.Id == 1)
             .SelectMany(g => g.Materias.Select(m => new CargaResultadoDatos(m.CargaAcademicaId, g.Id, m.Materia, m.Docente)))
             .Concat([
-                new(101, 6, "Aplicaciones Web", "Sam Docente Demo"),
-                new(102, 6, "Bases de Datos", "Dani Docente Tutor Demo"),
+                new(101, 6, "Aplicaciones Web", "Óscar Gabriel Chávez Gómez"),
+                new(102, 6, "Bases de Datos", "Sem Tomás Hernández Martínez"),
                 new(108, 8, "Procesos Industriales", "Docente de Mantenimiento Industrial")
             ]).ToArray();
         var grupos = new[]

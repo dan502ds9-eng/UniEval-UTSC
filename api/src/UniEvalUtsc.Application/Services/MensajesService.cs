@@ -25,7 +25,7 @@ public sealed class MensajesService(
             .OrderByDescending(p => p.FechaFin).FirstOrDefault()
             ?? throw new NoEncontradoException("No hay un periodo abierto.");
         var alumnosPendientes = datos.Encuestas.Where(e => e.GrupoId == grupoId
-                && (e.PeriodoId == periodoActual.Id || e.PeriodoId == 0) && e.Estado == EstadoEncuesta.Pendiente)
+                && e.PeriodoId == periodoActual.Id && e.Estado == EstadoEncuesta.Pendiente)
             .Select(e => e.AlumnoId.ToString(System.Globalization.CultureInfo.InvariantCulture)).Distinct(StringComparer.Ordinal).ToArray();
         var creados = await mensajes.CrearParaAlumnosAsync(alumnosPendientes, remitente.Nombre,
             "Encuestas pendientes", "Tienes encuestas de desempeño pendientes. Entra a UniEval UTSC para responderlas.", reloj.Ahora, ct);

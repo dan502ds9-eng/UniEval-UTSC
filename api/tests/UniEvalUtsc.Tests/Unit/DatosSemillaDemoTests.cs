@@ -11,6 +11,7 @@ public sealed class DatosSemillaDemoTests
         var periodos = DatosSemillaDemo.CrearPeriodos();
 
         Assert.Single(periodos, periodo => periodo.Estado == EstadoPeriodo.Abierto);
+        Assert.Single(periodos, periodo => periodo.Estado == EstadoPeriodo.Preparacion);
         Assert.Equal(3, periodos.Count(periodo => periodo.Estado == EstadoPeriodo.Cerrado));
         Assert.Equal("Sep–Dic 2026", periodos.Single(periodo => periodo.Estado == EstadoPeriodo.Abierto).Nombre);
     }

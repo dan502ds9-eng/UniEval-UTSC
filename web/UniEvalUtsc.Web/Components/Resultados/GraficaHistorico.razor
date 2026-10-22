@@ -2,8 +2,9 @@
 
 @if (Puntos.Count > 0)
 {
-    var min = Math.Max(0, Puntos.Min(punto => punto.Promedio) - 0.5m);
-    var max = Math.Min(10, Puntos.Max(punto => punto.Promedio) + 0.5m);
+    var puntosVisibles = Puntos.Where(punto => punto.Promedio.HasValue).ToArray();
+    var min = puntosVisibles.Length == 0 ? 0 : Math.Max(0, puntosVisibles.Min(punto => punto.Promedio!.Value) - 0.5m);
+    var max = puntosVisibles.Length == 0 ? 10 : Math.Min(10, puntosVisibles.Max(punto => punto.Promedio!.Value) + 0.5m);
     if (max - min < 1)
     {
         min = Math.Max(0, min - 0.5m);
@@ -12,16 +13,17 @@
     <svg class="grafica-historico"
          viewBox="0 0 640 260"
          role="img"
-         aria-label="@($"Evolución del promedio: {string.Join(", ", Puntos.Select(punto => $"{punto.Periodo}: {punto.Promedio:0.0}"))}")">
+         aria-label="@($"Evolución del promedio: {string.Join(", ", puntosVisibles.Select(punto => $"{punto.Periodo}: {punto.Promedio:0.0}"))}")">
         <line x1="54" y1="24" x2="54" y2="206" class="grafica-historico__eje" />
         <line x1="54" y1="206" x2="616" y2="206" class="grafica-historico__eje" />
-        <polyline class="grafica-historico__linea" points="@PuntosPolyline(min, max)" />
-        @foreach (var (punto, indice) in Puntos.Select((punto, indice) => (punto, indice)))
+        @if (puntosVisibles.Length > 0) { <polyline class="grafica-historico__linea" points="@PuntosPolyline(puntosVisibles, min, max)" /> }
+        @foreach (var (punto, indice) in puntosVisibles.Select((punto, indice) => (punto, indice)))
         {
-            var coordenadas = Posicion(indice, punto.Promedio, min, max);
+            var promedio = punto.Promedio!.Value;
+            var coordenadas = Posicion(indice, promedio, min, max, puntosVisibles.Length);
             <g>
                 <circle cx="@coordenadas.X" cy="@coordenadas.Y" r="6" class="grafica-historico__punto" />
-                <text x="@coordenadas.X" y="@(coordenadas.Y - 14)" text-anchor="middle" class="grafica-historico__valor">@punto.Promedio.ToString("0.0", CultureInfo.InvariantCulture)</text>
+                <text x="@coordenadas.X" y="@(coordenadas.Y - 14)" text-anchor="middle" class="grafica-historico__valor">@promedio.ToString("0.0", CultureInfo.InvariantCulture)</text>
                 <text x="@coordenadas.X" y="232" text-anchor="middle" class="grafica-historico__periodo">@punto.Periodo</text>
             </g>
         }
@@ -33,18 +35,18 @@ else
 }
 
 @code {
-    [Parameter] public IReadOnlyList<PuntoHistorico> Puntos { get; set; } = [];
+    [Parameter] public IReadOnlyList<PuntoHistoricoDto> Puntos { get; set; } = [];
 
-    private string PuntosPolyline(decimal min, decimal max) =>
-        string.Join(" ", Puntos.Select((punto, indice) =>
+    private string PuntosPolyline(IReadOnlyList<PuntoHistoricoDto> puntos, decimal min, decimal max) =>
+        string.Join(" ", puntos.Select((punto, indice) =>
         {
-            var posicion = Posicion(indice, punto.Promedio, min, max);
+            var posicion = Posicion(indice, punto.Promedio!.Value, min, max, puntos.Count);
             return $"{posicion.X.ToString("0.0", CultureInfo.InvariantCulture)},{posicion.Y.ToString("0.0", CultureInfo.InvariantCulture)}";
         }));
 
-    private (decimal X, decimal Y) Posicion(int indice, decimal promedio, decimal min, decimal max)
+    private (decimal X, decimal Y) Posicion(int indice, decimal promedio, decimal min, decimal max, int cantidad)
     {
-        var x = Puntos.Count == 1 ? 335m : 60m + indice * 550m / (Puntos.Count - 1);
+        var x = cantidad == 1 ? 335m : 60m + indice * 550m / (cantidad - 1);
         var y = 196m - (promedio - min) * 156m / Math.Max(1m, max - min);
         return (x, y);
     }

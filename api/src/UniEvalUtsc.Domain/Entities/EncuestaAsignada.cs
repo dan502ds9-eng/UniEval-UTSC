@@ -21,8 +21,10 @@ public class EncuestaAsignada
 
     // RN-02: una encuesta por materia (carga académica)
     public static EncuestaAsignada ParaDocente(
-        int alumnoId, int grupoId, int plantillaId, int cargaAcademicaId, int id = 0, int periodoId = 0) =>
-        new()
+        int alumnoId, int grupoId, int plantillaId, int cargaAcademicaId, int periodoId, int id = 0)
+    {
+        ValidarPeriodo(periodoId);
+        return new()
         {
             Id = id,
             AlumnoId = alumnoId,
@@ -33,11 +35,14 @@ public class EncuestaAsignada
             Tipo = TipoEncuesta.Docente,
             Estado = EstadoEncuesta.Pendiente
         };
+    }
 
     // RN-04: una sola encuesta de tutor por grupo
     public static EncuestaAsignada ParaTutor(
-        int alumnoId, int grupoId, int plantillaId, int tutorId, int id = 0, int periodoId = 0) =>
-        new()
+        int alumnoId, int grupoId, int plantillaId, int tutorId, int periodoId, int id = 0)
+    {
+        ValidarPeriodo(periodoId);
+        return new()
         {
             Id = id,
             AlumnoId = alumnoId,
@@ -48,6 +53,13 @@ public class EncuestaAsignada
             Tipo = TipoEncuesta.Tutor,
             Estado = EstadoEncuesta.Pendiente
         };
+    }
+
+    private static void ValidarPeriodo(int periodoId)
+    {
+        if (periodoId <= 0)
+            throw new DomainException("El periodo de la encuesta debe ser mayor que cero.");
+    }
 
     public bool PerteneceA(int alumnoId) => AlumnoId == alumnoId;
 

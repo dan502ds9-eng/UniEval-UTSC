@@ -14,14 +14,14 @@ namespace UniEvalUtsc.Application.Services;
 
 public sealed class ConsultarResultadosService(IResultadosRepository repositorio, IUsuarioRepository usuarios)
 {
-    public async Task<object> ObtenerPropioAsync(
+    public async Task<ResultadoPropioDto> ObtenerPropioAsync(
         string usuarioId, IReadOnlyCollection<string> roles, string? carreraId,
         int periodoId, int? cargaAcademicaId, int? grupoId, CancellationToken ct = default)
     {
         var usuario = await ObtenerUsuarioAsync(usuarioId, ct);
         var datos = await repositorio.ObtenerDatosAsync(ct);
         var periodo = ObtenerPeriodo(datos, periodoId);
-        if (periodo.Estado != EstadoPeriodo.Cerrado) return new ResultadoNoDisponibleDto(false);
+        if (periodo.Estado != EstadoPeriodo.Cerrado) return NoDisponiblePropio();
 
         if (cargaAcademicaId is int cargaId)
         {
@@ -46,22 +46,22 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
         throw new ValidacionException("Debes indicar cargaAcademicaId o grupoId.");
     }
 
-    public async Task<object> ObtenerResumenPropioAsync(
+    public async Task<ResumenResultadosDto> ObtenerResumenPropioAsync(
         string usuarioId, IReadOnlyCollection<string> roles, int periodoId, CancellationToken ct = default)
     {
         var usuario = await ObtenerUsuarioAsync(usuarioId, ct);
         var datos = await repositorio.ObtenerDatosAsync(ct);
         var periodo = ObtenerPeriodo(datos, periodoId);
-        if (periodo.Estado != EstadoPeriodo.Cerrado) return new ResultadoNoDisponibleDto(false);
-        var resultados = new List<object>();
+        if (periodo.Estado != EstadoPeriodo.Cerrado) return new(false, []);
+        var resultados = new List<ResultadoPropioDto>();
         if (roles.Contains(nameof(Rol.Docente)))
             resultados.AddRange((usuario.CargasAcademicasId ?? []).Distinct().Select(id => CalcularPersonal(datos, periodo, TipoEncuesta.Docente, cargaAcademicaId: id)));
         if (roles.Contains(nameof(Rol.Tutor)))
             resultados.AddRange((usuario.GruposTutorId ?? []).Distinct().Select(id => CalcularPersonal(datos, periodo, TipoEncuesta.Tutor, grupoId: id)));
-        return new { disponible = true, resultados };
+        return new(true, resultados);
     }
 
-    public async Task<IReadOnlyCollection<object>> ObtenerHistoricoPropioAsync(
+    public async Task<IReadOnlyCollection<PuntoHistoricoDto>> ObtenerHistoricoPropioAsync(
         string usuarioId, IReadOnlyCollection<string> roles, string? carreraId,
         int? cargaAcademicaId, int? grupoId, CancellationToken ct = default)
     {
@@ -96,25 +96,30 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
             .Select(p =>
             {
                 var resultado = Calcular(datos, p, tipo, carga, grupo);
-                return resultado is ResultadoCalculado visible
-                    ? new PuntoHistorico(p.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), p.Nombre,
-                        visible.PromedioGeneral, visible.Nivel.ToString())
-                    : resultado;
+                return resultado.Oculto
+                    ? new PuntoHistoricoDto(p.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), p.Nombre,
+                        null, null, "Menos de cinco respuestas")
+                    : new PuntoHistoricoDto(p.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), p.Nombre,
+                        resultado.PromedioGeneral, resultado.Nivel!.Value.ToString());
             }).ToArray();
     }
 
-    public async Task<IReadOnlyCollection<object>> ObtenerResultadosGestionAsync(
+    public async Task<IReadOnlyCollection<ResultadoGestionDto>> ObtenerResultadosGestionAsync(
         string usuarioId, IReadOnlyCollection<string> roles, string? carreraSolicitada,
         int? periodoId, int? cuatrimestre, bool tutores, CancellationToken ct = default)
     {
         var carrera = await CarreraEfectivaAsync(usuarioId, roles, carreraSolicitada, ct);
         var datos = await repositorio.ObtenerDatosAsync(ct);
-        var periodos = periodoId is int id ? [ObtenerPeriodo(datos, id)] : datos.Periodos.Where(x => x.Estado == EstadoPeriodo.Cerrado).ToArray();
+        if (periodoId is int solicitado && datos.Periodos.Any(p => p.Id == solicitado && p.Estado != EstadoPeriodo.Cerrado))
+            return [NoDisponibleGestion()];
+        var periodos = periodoId is int id
+            ? datos.Periodos.Where(x => x.Id == id && x.Estado == EstadoPeriodo.Cerrado).ToArray()
+            : datos.Periodos.Where(x => x.Estado == EstadoPeriodo.Cerrado).ToArray();
         var grupos = datos.Grupos.Where(g => carrera is null || g.CarreraId == carrera)
             .Where(g => cuatrimestre is null || g.Cuatrimestre == cuatrimestre)
             .Where(g => tutores || !g.EsEstadia)
             .Where(g => !tutores || (cuatrimestre is 6 or 10 ? g.EsEstadia : !g.EsEstadia));
-        var resultados = new List<object>();
+        var resultados = new List<ResultadoGestionDto>();
         foreach (var periodo in periodos)
         foreach (var grupo in grupos)
         {
@@ -131,13 +136,14 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
         return resultados;
     }
 
-    public async Task<object> ObtenerDetalleGestionAsync(
+    public async Task<ResultadoGestionDto> ObtenerDetalleGestionAsync(
         string usuarioId, IReadOnlyCollection<string> roles, string? carreraSolicitada,
         int periodoId, int? cargaAcademicaId, int? grupoId, int? tutorDocenteId, CancellationToken ct = default)
     {
         var carrera = await CarreraEfectivaAsync(usuarioId, roles, carreraSolicitada, ct);
         var datos = await repositorio.ObtenerDatosAsync(ct);
         var periodo = ObtenerPeriodo(datos, periodoId);
+        if (periodo.Estado != EstadoPeriodo.Cerrado) return NoDisponibleGestion();
         if (cargaAcademicaId is int cargaId)
         {
             var carga = datos.Cargas.SingleOrDefault(x => x.Id == cargaId) ?? throw new NoEncontradoException("La carga académica no existe.");
@@ -180,7 +186,7 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
             throw new AccesoDenegadoException("El grupo no pertenece a la carrera autorizada.");
         return grupos.Select(grupo =>
         {
-            var asignaciones = datos.Encuestas.Where(e => e.GrupoId == grupo.Id && (e.PeriodoId == periodoId || e.PeriodoId == 0)).ToArray();
+            var asignaciones = datos.Encuestas.Where(e => e.GrupoId == grupo.Id && e.PeriodoId == periodoId).ToArray();
             var pendientes = asignaciones.Where(e => e.Estado == EstadoEncuesta.Pendiente).Select(e => e.AlumnoId).Distinct().ToArray();
             var respondieron = asignaciones.GroupBy(e => e.AlumnoId)
                 .Count(alumno => alumno.Any(e => e.Estado == EstadoEncuesta.Contestada)
@@ -201,7 +207,7 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
         return roles.Contains(nameof(Rol.Administrador)) ? solicitada : throw new AccesoDenegadoException("No tienes acceso a estos resultados.");
     }
 
-    private static object Calcular(DatosResultados datos, Periodo periodo, TipoEncuesta tipo, int? cargaAcademicaId = null, int? grupoId = null)
+    private static ResultadoCalculo Calcular(DatosResultados datos, Periodo periodo, TipoEncuesta tipo, int? cargaAcademicaId = null, int? grupoId = null)
     {
         var respuestas = datos.Respuestas.Where(r => r.PeriodoId == periodo.Id && r.Tipo == tipo
             && (cargaAcademicaId is null || r.CargaAcademicaId == cargaAcademicaId)
@@ -212,12 +218,12 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
         return CalcularDesdeRespuestas(datos, periodo, respuestas, grupo.TotalAlumnos, grupo.CarreraId);
     }
 
-    private static object CalcularDesdeRespuestas(DatosResultados datos, Periodo periodo,
+    private static ResultadoCalculo CalcularDesdeRespuestas(DatosResultados datos, Periodo periodo,
         IReadOnlyCollection<Respuesta> respuestas, int totalAlumnos, string carreraId)
     {
         var numeroRespuestas = respuestas.Select(r => r.Id).Distinct().Count();
         if (numeroRespuestas < ReglasNegocio.MinimoRespuestas)
-            return new ResultadoOcultoDto(true, numeroRespuestas);
+            return new(true, numeroRespuestas, null, null, null, null, []);
 
         var detalles = respuestas.SelectMany(r => r.Detalles.Select(d => (Respuesta: r, Detalle: d))).ToArray();
         var aspectos = detalles.GroupBy(x => x.Detalle.AspectoId).OrderBy(x => x.Key).Select(agrupacion =>
@@ -226,7 +232,7 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
             var plantilla = datos.Plantillas.FirstOrDefault(p => p.Id == agrupacion.First().Respuesta.PlantillaId);
             var aspecto = plantilla?.Aspectos.FirstOrDefault(a => a.Id == agrupacion.Key);
             var texto = aspecto?.Texto ?? $"Aspecto {agrupacion.Key}";
-            var textoCorto = texto.Length > 48 ? $"{texto[..45]}…" : texto;
+            var textoCorto = aspecto?.TextoCorto ?? CortarTexto(texto, 48);
             return new AspectoResultado(agrupacion.Key, texto, textoCorto, promedio, promedio, Niveles.Nivel(promedio).ToString());
         }).ToArray();
         var promedioGeneral = Niveles.Redondear(detalles.Average(x => (decimal)x.Detalle.Calificacion));
@@ -240,44 +246,43 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
             if (detallesCarrera.Length > 0)
                 promedioCarrera = Niveles.Redondear(detallesCarrera.Average(x => (decimal)x.Calificacion));
         }
-        return new ResultadoCalculado(numeroRespuestas, promedioGeneral, Niveles.Nivel(promedioGeneral),
+        return new(false, numeroRespuestas, promedioGeneral, Niveles.Nivel(promedioGeneral),
             totalAlumnos, promedioCarrera, aspectos);
     }
 
-    private static object CalcularPersonal(DatosResultados datos, Periodo periodo, TipoEncuesta tipo,
+    private static ResultadoPropioDto CalcularPersonal(DatosResultados datos, Periodo periodo, TipoEncuesta tipo,
         int? cargaAcademicaId = null, int? grupoId = null)
     {
         var resultado = Calcular(datos, periodo, tipo, cargaAcademicaId, grupoId);
-        if (resultado is not ResultadoCalculado visible) return resultado;
+        if (resultado.Oculto) return new(true, true, resultado.Respuestas, null, null, null, null, null, null);
         var carga = cargaAcademicaId is int id ? datos.Cargas.Single(c => c.Id == id) : null;
         var grupo = carga is null ? datos.Grupos.Single(g => g.Id == grupoId) : datos.Grupos.Single(g => g.Id == carga.GrupoId);
         var elementos = new ElementoResultado(
             carga?.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? grupo.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
             carga?.NombreMateria ?? (grupo.EsEstadia ? "Tutoría de estadías" : "Tutoría"),
             grupo.Nombre,
-            visible.Respuestas,
-            visible.Alumnos);
+            resultado.Respuestas,
+            resultado.Alumnos!.Value);
         var periodoDto = new PeriodoResultado(periodo.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
             periodo.Nombre, periodo.Estado == EstadoPeriodo.Abierto, periodo.Estado == EstadoPeriodo.Cerrado);
-        return new ResultadoPersonal(elementos, periodoDto, visible.PromedioGeneral, visible.Respuestas,
-            visible.Alumnos, visible.PromedioCarrera, visible.Aspectos);
+        return new(true, false, resultado.Respuestas, resultado.Alumnos, elementos, periodoDto,
+            resultado.PromedioGeneral, resultado.PromedioCarrera, resultado.Aspectos);
     }
 
-    private static object MapearGestion(object resultado, DatosResultados datos, Periodo periodo,
+    private static ResultadoGestionDto MapearGestion(ResultadoCalculo resultado, DatosResultados datos, Periodo periodo,
         GrupoResultadoDatos grupo, CargaResultadoDatos? carga, TipoEncuesta tipo, int? tutorId = null)
     {
-        if (resultado is not ResultadoCalculado visible) return resultado;
-        return new ResultadoCoordinacion(
+        if (resultado.Oculto) return new(true, true, resultado.Respuestas, null, null, null, null, null, null, null, null, null, null, null, null);
+        return new(true, false, resultado.Respuestas, resultado.Alumnos,
             carga?.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? tutorId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? grupo.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
             grupo.CarreraId,
             tipo == TipoEncuesta.Docente ? carga!.NombreDocente : grupo.EsEstadia ? "Tutor de estadías" : "Tutor de grupo",
             tipo == TipoEncuesta.Docente ? $"{carga!.NombreMateria} · {grupo.Nombre}" : grupo.Nombre,
             periodo.Nombre,
             grupo.Cuatrimestre,
-            visible.PromedioGeneral,
-            visible.PromedioCarrera,
-            visible.Respuestas,
-            visible.Aspectos,
+            resultado.PromedioGeneral,
+            resultado.PromedioCarrera,
+            resultado.Aspectos,
             tipo == TipoEncuesta.Tutor,
             tipo == TipoEncuesta.Tutor && grupo.EsEstadia);
     }
@@ -297,9 +302,19 @@ public sealed class ConsultarResultadosService(IResultadosRepository repositorio
     private static string Enmascarar(string correo)
     {
         var separador = correo.IndexOf('@');
-        return separador <= 0 ? "d***@utsc.edu.mx" : $"d***{correo[separador..]}";
+        return separador <= 0 ? "d***@utsc.edu.mx" : $"{char.ToLowerInvariant(correo[0])}***{correo[separador..]}";
     }
 
-    private sealed record ResultadoCalculado(int Respuestas, decimal PromedioGeneral,
-        Nivel Nivel, int Alumnos, decimal PromedioCarrera, IReadOnlyList<AspectoResultado> Aspectos);
+    private static string CortarTexto(string texto, int limite)
+    {
+        if (texto.Length <= limite) return texto;
+        var corte = texto.LastIndexOf(' ', limite - 2, limite - 1);
+        if (corte <= 0) corte = limite - 1;
+        return $"{texto[..corte].TrimEnd()}…";
+    }
+
+    private static ResultadoPropioDto NoDisponiblePropio() => new(false, null, null, null, null, null, null, null, null);
+    private static ResultadoGestionDto NoDisponibleGestion() => new(false, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    private sealed record ResultadoCalculo(bool Oculto, int Respuestas, decimal? PromedioGeneral,
+        Nivel? Nivel, int? Alumnos, decimal? PromedioCarrera, IReadOnlyList<AspectoResultado> Aspectos);
 }

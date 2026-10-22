@@ -22,7 +22,7 @@ public sealed class AlmacenEvaluacionInMemory
         {
             // Semilla cerrada para comprobar RN-10 en resultados, separada del grupo activo del alumno.
             SembrarResultadosCerrados();
-            var encuestaPendiente = EncuestaAsignada.ParaDocente(7, 1, 16, 1, id: 20, periodoId: 1);
+            var encuestaPendiente = EncuestaAsignada.ParaDocente(8, 1, 16, 1, id: 20, periodoId: 1);
             _encuestas.Add(encuestaPendiente.Id, encuestaPendiente);
         }
     }
@@ -121,12 +121,12 @@ public sealed class AlmacenEvaluacionInMemory
         for (var index = 0; index < 5; index++)
         {
             var alumnoId = index + 1;
-            var asignada = EncuestaAsignada.ParaDocente(alumnoId, 6, 16, 101, 100 + index, periodoId: 2);
+            var asignada = EncuestaAsignada.ParaDocente(alumnoId, 6, 16, 101, periodoId: 2, id: 100 + index);
             asignada.MarcarContestada(new DateOnly(2026, 8, 20));
             _encuestas.Add(asignada.Id, asignada);
             _respuestas.Add(Respuesta.Crear(asignada, plantillaDocente, calificacionesDocente, periodoId: 2));
 
-            var tutorAsignada = EncuestaAsignada.ParaTutor(alumnoId, 6, 64, 501, 200 + index, periodoId: 2);
+            var tutorAsignada = EncuestaAsignada.ParaTutor(alumnoId, 6, 64, 501, periodoId: 2, id: 200 + index);
             tutorAsignada.MarcarContestada(new DateOnly(2026, 8, 20));
             _encuestas.Add(tutorAsignada.Id, tutorAsignada);
             _respuestas.Add(Respuesta.Crear(tutorAsignada, plantillaTutor, calificacionesTutor, periodoId: 2));
@@ -134,7 +134,7 @@ public sealed class AlmacenEvaluacionInMemory
 
         for (var index = 0; index < 2; index++)
         {
-            var asignada = EncuestaAsignada.ParaDocente(index + 6, 6, 16, 102, 300 + index, periodoId: 2);
+            var asignada = EncuestaAsignada.ParaDocente(index + 6, 6, 16, 102, periodoId: 2, id: 300 + index);
             asignada.MarcarContestada(new DateOnly(2026, 8, 20));
             _encuestas.Add(asignada.Id, asignada);
             _respuestas.Add(Respuesta.Crear(asignada, plantillaDocente, calificacionesDocente, periodoId: 2));
@@ -142,7 +142,7 @@ public sealed class AlmacenEvaluacionInMemory
 
         for (var index = 0; index < 3; index++)
         {
-            var asignada = EncuestaAsignada.ParaTutor(index + 6, 7, 64, 502, 400 + index, periodoId: 2);
+            var asignada = EncuestaAsignada.ParaTutor(index + 6, 7, 64, 502, periodoId: 2, id: 400 + index);
             asignada.MarcarContestada(new DateOnly(2026, 8, 20));
             _encuestas.Add(asignada.Id, asignada);
             _respuestas.Add(Respuesta.Crear(asignada, plantillaTutor, calificacionesTutor, periodoId: 2));
@@ -150,7 +150,7 @@ public sealed class AlmacenEvaluacionInMemory
 
         for (var index = 0; index < 5; index++)
         {
-            var asignada = EncuestaAsignada.ParaTutor(index + 1, 3, 64, 503, 500 + index, periodoId: 2);
+            var asignada = EncuestaAsignada.ParaTutor(index + 1, 3, 64, 503, periodoId: 2, id: 500 + index);
             asignada.MarcarContestada(new DateOnly(2026, 8, 20));
             _encuestas.Add(asignada.Id, asignada);
             _respuestas.Add(Respuesta.Crear(asignada, plantillaTutor, calificacionesTutor, periodoId: 2));
@@ -158,7 +158,7 @@ public sealed class AlmacenEvaluacionInMemory
 
         for (var index = 0; index < 3; index++)
         {
-            var asignada = EncuestaAsignada.ParaTutor(index + 6, 4, 64, 504, 600 + index, periodoId: 2);
+            var asignada = EncuestaAsignada.ParaTutor(index + 6, 4, 64, 504, periodoId: 2, id: 600 + index);
             asignada.MarcarContestada(new DateOnly(2026, 8, 20));
             _encuestas.Add(asignada.Id, asignada);
             _respuestas.Add(Respuesta.Crear(asignada, plantillaTutor, calificacionesTutor, periodoId: 2));
