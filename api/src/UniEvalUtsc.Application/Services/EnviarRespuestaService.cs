@@ -25,10 +25,12 @@ public class EnviarRespuestaService(
             var encuesta = await encuestas.ObtenerAsync(item.EncuestaId, ct) ?? throw new NoEncontradoException("La encuesta no existe.");
             if (!encuesta.PerteneceA(alumnoId)) throw new AccesoDenegadoException("Esta encuesta no te pertenece.");
             if (encuesta.Estado == EstadoEncuesta.Contestada) throw new DomainException("Esta encuesta ya fue contestada.");
-            var periodo = await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
+            var periodo = encuesta.PeriodoId > 0
+                ? await periodos.ObtenerPorIdAsync(encuesta.PeriodoId, ct)
+                : await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
             if (periodo is null || !periodo.AceptaRespuestas(reloj.Ahora)) throw new DomainException("El periodo de encuestas no está abierto.");
             var plantilla = await plantillas.ObtenerConAspectosAsync(encuesta.PlantillaId, ct) ?? throw new NoEncontradoException("La plantilla de la encuesta no existe.");
-            preparadas.Add((encuesta, Respuesta.Crear(encuesta, plantilla, item.Calificaciones)));
+            preparadas.Add((encuesta, Respuesta.Crear(encuesta, plantilla, item.Calificaciones, periodo.Id)));
         }
         foreach (var (encuesta, respuesta) in preparadas)
         {
@@ -54,14 +56,16 @@ public class EnviarRespuestaService(
             throw new DomainException("Esta encuesta ya fue contestada.");
 
         // 4. ¿Periodo abierto y en fechas? -> 409 (RN-08)
-        var periodo = await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
+        var periodo = encuesta.PeriodoId > 0
+            ? await periodos.ObtenerPorIdAsync(encuesta.PeriodoId, ct)
+            : await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
         if (periodo is null || !periodo.AceptaRespuestas(reloj.Ahora))
             throw new DomainException("El periodo de encuestas no está abierto.");
 
         // 5. Validar calificaciones y crear la respuesta anónima -> 400 si algo falla (RN-06, RN-09)
         var plantilla = await plantillas.ObtenerConAspectosAsync(encuesta.PlantillaId, ct)
             ?? throw new NoEncontradoException("La plantilla de la encuesta no existe.");
-        var respuesta = Respuesta.Crear(encuesta, plantilla, calificaciones);
+        var respuesta = Respuesta.Crear(encuesta, plantilla, calificaciones, periodo.Id);
 
         // 6. Todo o nada (RNF-07)
         respuestas.Agregar(respuesta);

@@ -117,7 +117,8 @@ public static class DatosSemillaDemo
                 grupoId: grupo.Id,
                 plantillaId: 16,
                 cargaAcademicaId: materia.CargaAcademicaId,
-                id: index + 1));
+                id: index + 1,
+                periodoId: 1));
 
         return
         [
@@ -128,7 +129,8 @@ public static class DatosSemillaDemo
                 // D-01: el tutor del grupo de 5to responde la misma plantilla AC16.
                 plantillaId: 16,
                 tutorId: 1,
-                id: 8)
+                id: 8,
+                periodoId: 1)
         ];
     }
 

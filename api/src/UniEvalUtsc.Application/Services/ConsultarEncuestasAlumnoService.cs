@@ -18,7 +18,7 @@ public sealed class ConsultarEncuestasAlumnoService(
         var visibles = new List<(EncuestaAsignada Encuesta, Periodo Periodo)>();
         foreach (var encuesta in await encuestas.ObtenerTodasAsync(alumnoId, ct))
         {
-            var periodo = await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
+            var periodo = await ObtenerPeriodoAsync(encuesta, ct);
             if (periodo?.Estado == EstadoPeriodo.Abierto && periodo.AceptaRespuestas(reloj.Ahora))
                 visibles.Add((encuesta, periodo));
         }
@@ -38,7 +38,7 @@ public sealed class ConsultarEncuestasAlumnoService(
         var filas = new List<(EncuestaAsignada Encuesta, Plantilla Plantilla, DatosEvaluadoAlumno Evaluado, Periodo Periodo)>();
         foreach (var encuesta in await encuestas.ObtenerPendientesAsync(alumnoId, ct))
         {
-            var periodo = await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
+            var periodo = await ObtenerPeriodoAsync(encuesta, ct);
             if (periodo?.Estado != EstadoPeriodo.Abierto || !periodo.AceptaRespuestas(reloj.Ahora)) continue;
             var plantilla = await plantillas.ObtenerConAspectosAsync(encuesta.PlantillaId, ct)
                 ?? throw new NoEncontradoException("La plantilla de la encuesta no existe.");
@@ -61,7 +61,7 @@ public sealed class ConsultarEncuestasAlumnoService(
         var candidatas = new List<(EncuestaAsignada Encuesta, Periodo Periodo)>();
         foreach (var encuesta in asignaciones)
         {
-            var periodo = await periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
+            var periodo = await ObtenerPeriodoAsync(encuesta, ct);
             if (periodo is not null) candidatas.Add((encuesta, periodo));
         }
         var periodoElegido = candidatas.Select(x => x.Periodo).OrderByDescending(p => p.Estado == EstadoPeriodo.Abierto)
@@ -73,4 +73,9 @@ public sealed class ConsultarEncuestasAlumnoService(
         var fecha = delPeriodo.Max(e => e.FechaContestada ?? reloj.Hoy);
         return new ComprobanteDto(nombre, periodoElegido.Nombre, delPeriodo.Length, delPeriodo.Length, fecha);
     }
+
+    private Task<Periodo?> ObtenerPeriodoAsync(EncuestaAsignada encuesta, CancellationToken ct) =>
+        encuesta.PeriodoId > 0
+            ? periodos.ObtenerPorIdAsync(encuesta.PeriodoId, ct)
+            : periodos.ObtenerPorGrupoAsync(encuesta.GrupoId, ct);
 }

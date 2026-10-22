@@ -10,4 +10,10 @@ public sealed class RepositorioPeriodoInMemory(AlmacenEvaluacionInMemory almacen
         ct.ThrowIfCancellationRequested();
         return Task.FromResult(almacen.ObtenerPeriodoPorGrupo(grupoId));
     }
+
+    public Task<Periodo?> ObtenerPorIdAsync(int periodoId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(almacen.ObtenerPeriodo(periodoId));
+    }
 }

@@ -13,6 +13,7 @@ public class Respuesta
     public Guid Id { get; private set; }
     public int GrupoId { get; private set; }
     public int PlantillaId { get; private set; }
+    public int PeriodoId { get; private set; }
     public int? CargaAcademicaId { get; private set; }
     public int? TutorEvaluadoId { get; private set; }
     public TipoEncuesta Tipo { get; private set; }
@@ -21,7 +22,8 @@ public class Respuesta
     private Respuesta() { } // EF Core
 
     public static Respuesta Crear(EncuestaAsignada encuesta, Plantilla plantilla,
-                                  IReadOnlyCollection<CalificacionAspecto> calificaciones)
+                                  IReadOnlyCollection<CalificacionAspecto> calificaciones,
+                                  int periodoId = 0)
     {
         if (plantilla.Id != encuesta.PlantillaId)
             throw new DomainException("La plantilla no corresponde a esta encuesta.");
@@ -42,6 +44,7 @@ public class Respuesta
             Id = Guid.NewGuid(), // UUID v4 aleatorio. NO usar Guid.CreateVersion7(): va ordenado por tiempo
             GrupoId = encuesta.GrupoId,
             PlantillaId = encuesta.PlantillaId,
+            PeriodoId = periodoId,
             CargaAcademicaId = encuesta.CargaAcademicaId,
             TutorEvaluadoId = encuesta.TutorEvaluadoId,
             Tipo = encuesta.Tipo

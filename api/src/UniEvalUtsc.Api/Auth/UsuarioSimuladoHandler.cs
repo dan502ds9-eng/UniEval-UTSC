@@ -19,6 +19,7 @@ public sealed class UsuarioSimuladoHandler(IOptionsMonitor<AuthenticationSchemeO
             new(ClaimTypes.NameIdentifier, usuario.Id), new(ClaimTypes.Name, usuario.Nombre), new(ClaimTypes.Email, usuario.Correo)
         };
         claims.AddRange(usuario.Roles.Select(rol => new Claim(ClaimTypes.Role, rol)));
+        if (usuario.CarreraId is not null) claims.Add(new Claim("carrera_id", usuario.CarreraId));
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name));
     }

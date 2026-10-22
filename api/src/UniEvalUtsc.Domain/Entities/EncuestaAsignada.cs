@@ -8,6 +8,7 @@ public class EncuestaAsignada
 {
     public int Id { get; private set; }
     public int AlumnoId { get; private set; }
+    public int PeriodoId { get; private set; }
     public int GrupoId { get; private set; }
     public int PlantillaId { get; private set; }
     public int? CargaAcademicaId { get; private set; }
@@ -20,11 +21,12 @@ public class EncuestaAsignada
 
     // RN-02: una encuesta por materia (carga académica)
     public static EncuestaAsignada ParaDocente(
-        int alumnoId, int grupoId, int plantillaId, int cargaAcademicaId, int id = 0) =>
+        int alumnoId, int grupoId, int plantillaId, int cargaAcademicaId, int id = 0, int periodoId = 0) =>
         new()
         {
             Id = id,
             AlumnoId = alumnoId,
+            PeriodoId = periodoId,
             GrupoId = grupoId,
             PlantillaId = plantillaId,
             CargaAcademicaId = cargaAcademicaId,
@@ -34,11 +36,12 @@ public class EncuestaAsignada
 
     // RN-04: una sola encuesta de tutor por grupo
     public static EncuestaAsignada ParaTutor(
-        int alumnoId, int grupoId, int plantillaId, int tutorId, int id = 0) =>
+        int alumnoId, int grupoId, int plantillaId, int tutorId, int id = 0, int periodoId = 0) =>
         new()
         {
             Id = id,
             AlumnoId = alumnoId,
+            PeriodoId = periodoId,
             GrupoId = grupoId,
             PlantillaId = plantillaId,
             TutorEvaluadoId = tutorId,

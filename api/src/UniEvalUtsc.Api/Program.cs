@@ -35,7 +35,7 @@ builder.Services.AddCors(options => options.AddPolicy("WebClient", policy =>
 var proveedorDatos = builder.Configuration["Datos:Proveedor"] ?? "InMemory";
 if (string.Equals(proveedorDatos, "InMemory", StringComparison.OrdinalIgnoreCase))
 {
-    builder.Services.AddSingleton<AlmacenEvaluacionInMemory>();
+    builder.Services.AddSingleton(_ => new AlmacenEvaluacionInMemory(sembrarResultados: true));
     builder.Services.AddScoped<IPeriodoRepository, RepositorioPeriodoInMemory>();
     builder.Services.AddScoped<IPlantillaRepository, RepositorioPlantillaInMemory>();
     builder.Services.AddScoped<IEncuestaAsignadaRepository, RepositorioEncuestaAsignadaInMemory>();
@@ -47,6 +47,10 @@ if (string.Equals(proveedorDatos, "InMemory", StringComparison.OrdinalIgnoreCase
     builder.Services.AddScoped<EnviarRespuestaService>();
     builder.Services.AddScoped<ConsultarEncuestasAlumnoService>();
     builder.Services.AddScoped<ICatalogoConsultaRepository, RepositorioCatalogoConsultaInMemory>();
+    builder.Services.AddScoped<IResultadosRepository, RepositorioResultadosInMemory>();
+    builder.Services.AddScoped<IMensajeRepository, RepositorioMensajeInMemory>();
+    builder.Services.AddScoped<ConsultarResultadosService>();
+    builder.Services.AddScoped<MensajesService>();
 }
 else
 {
@@ -126,6 +130,42 @@ builder.Services.AddOpenApi(o => o.AddDocumentTransformer((doc, ctx, ct) =>
                     "texto": "Al inicio del curso dio a conocer los objetivos.",
                     "evaluados": [{ "encuestaAsignadaId": 1, "nombre": "Docente", "materia": "Inglés V", "tipo": 0 }]
                   }]
+                }
+                """)
+        };
+    }
+
+    if (nodosRuta is not null && nodosRuta.TryGetValue("/api/resultados/docentes/{cargaAcademicaId}", out var resultadoPath)
+        && resultadoPath.Operations?.Values.FirstOrDefault() is { } resultadoOperacion
+        && resultadoOperacion.Responses?.TryGetValue("200", out var respuestaResultado) == true
+        )
+    {
+        var respuestaResultadoMutable = respuestaResultado as Microsoft.OpenApi.OpenApiResponse
+            ?? new Microsoft.OpenApi.OpenApiResponse { Description = respuestaResultado.Description };
+        var respuestasResultado = resultadoOperacion.Responses!;
+        if (!ReferenceEquals(respuestaResultadoMutable, respuestaResultado))
+            respuestasResultado["200"] = respuestaResultadoMutable;
+        respuestaResultadoMutable.Content ??= new Dictionary<string, Microsoft.OpenApi.OpenApiMediaType>();
+        if (!respuestaResultadoMutable.Content.TryGetValue("application/json", out var tipoResultado))
+            respuestaResultadoMutable.Content["application/json"] = tipoResultado = new Microsoft.OpenApi.OpenApiMediaType();
+        tipoResultado.Examples ??= new Dictionary<string, Microsoft.OpenApi.IOpenApiExample>();
+        tipoResultado.Examples["Resultado oculto por RN-10"] = new Microsoft.OpenApi.OpenApiExample
+        {
+            Summary = "Menos de cinco respuestas: no incluye promedios ni aspectos",
+            Value = System.Text.Json.Nodes.JsonNode.Parse("""{"oculto":true,"respuestas":2}""")
+        };
+        tipoResultado.Examples["Resultado visible"] = new Microsoft.OpenApi.OpenApiExample
+        {
+            Summary = "Cinco respuestas o más",
+            Value = System.Text.Json.Nodes.JsonNode.Parse("""
+                {
+                  "oculto": false,
+                  "respuestas": 5,
+                  "promedioGeneral": 8.0,
+                  "nivel": 2,
+                  "alumnos": 31,
+                  "promedioCarrera": 8.0,
+                  "aspectos": [{"aspectoId":1,"texto":"Comunicó objetivos y forma de evaluación.","textoCorto":"Comunicó objetivos","promedio":8.0,"promedioCarrera":8.0,"nivel":"Alto"}]
                 }
                 """)
         };
